@@ -1,11 +1,13 @@
 "use client";
+
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
-export default function SetPasswordPage() {
+export default function SetPasswordClient() {
   const searchParams = useSearchParams();
   const uid = searchParams.get("uid");
   const token = searchParams.get("token");
@@ -37,16 +39,23 @@ export default function SetPasswordPage() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/set-password/`, { uid, token, password });
+      const res = await axios.post(`${API_URL}/set-password/`, {
+        uid,
+        token,
+        password,
+      });
+
       setStatus(res.data.message || "Password set successfully");
 
-      // Redirect to login after 2 seconds
       setTimeout(() => router.push("/login"), 2000);
+
       setPassword("");
       setConfirmPassword("");
     } catch (err) {
       console.error(err.response?.data || err);
-      setStatus(err.response?.data?.error || "Failed to set password");
+      setStatus(
+        err.response?.data?.error || "Failed to set password"
+      );
     } finally {
       setLoading(false);
     }
