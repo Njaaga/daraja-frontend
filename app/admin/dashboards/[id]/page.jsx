@@ -1,91 +1,142 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
-import Link from "next/link";
 
+/**
+ * DashboardView
+ * Read-only dashboard viewer
+ */
 export default function DashboardView({ params }) {
-  const { id } = params; // dashboard ID from URL
+  const { id } = params;
+
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
-  const [kpiValues, setKpiValues] = useState({}); // for KPI charts
+  const [kpiValues, setKpiValues] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    if (!id) return;
+  const fetchDashboard = useCallback(async () => {
+    let cancelled = false;
 
-    apiClient(`/api/dashboards/${id}/`).then((res) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await apiClient(`/api/dashboards/${id}/`);
+      if (cancelled) return;
+
       setDashboard(res);
 
-      if (res.dashboard_charts) {
-        const mappedCharts = res.dashboard_charts.map((dc, i) => ({
-          i: dc.id.toString(),
-          chartId: dc.chart,
-          dataset: dc.chart_detail.dataset,
-          type: dc.chart_detail.chart_type,
-          xField: dc.chart_detail.x_field,
-          yField: dc.chart_detail.y_field,
-          aggregation: dc.chart_detail.aggregation,
+      const mappedCharts = (res.dashboard_charts || []).map((dc) => ({
+        id: dc.id,
+        chartId: dc.chart,
+        type: dc.chart_detail.chart_type,
+
+        label:
+          dc.chart_detail.label ||
+          dc.chart_detail.title ||
+          dc.chart_detail.y_field,
+
+        datasetId: dc.chart_detail.dataset,
+        xField: dc.chart_detail.x_field,
+        yField: dc.chart_detail.y_field,
+        aggregation: dc.chart_detail.aggregation,
+
+        filters: dc.chart_detail.filters || {},
+        logicRules: dc.chart_detail.logic_rules || [],
+        logicExpression: dc.chart_detail.logic_expression || null,
+        joins: dc.chart_detail.joins || [],
+        calculatedFields: dc.chart_detail.calculated_fields || [],
+      }));
+
+      setCharts(mappedCharts);
+
+      /**
+       * 🔥 Bulk KPI fetch
+       */
+      const kpis = mappedCharts.filter((c) => c.type === "kpi");
+      if (kpis.length) {
+        const payload = kpis.map((k) => ({
+          chart_id: k.id,
+          dataset: k.datasetId,
+          field: k.yField,
+          aggregation: k.aggregation,
         }));
 
-        setCharts(mappedCharts);
-
-        // Fetch KPI values
-        mappedCharts.forEach((c) => {
-          if (c.type === "kpi") {
-            apiClient(`/api/datasets/${c.dataset}/aggregate/`, {
-              method: "POST",
-              body: JSON.stringify({ field: c.yField, aggregation: c.aggregation }),
-            })
-              .then((res) => {
-                const value = res.value ?? res.data?.value ?? 0;
-                setKpiValues((prev) => ({ ...prev, [c.i]: value }));
-              })
-              .catch(() => {
-                setKpiValues((prev) => ({ ...prev, [c.i]: 0 }));
-              });
+        const values = await apiClient(
+          `/api/dashboards/${id}/kpis/`,
+          {
+            method: "POST",
+            body: JSON.stringify(payload),
           }
-        });
+        );
+
+        if (!cancelled) {
+          setKpiValues(values || {});
+        }
       }
-    });
+    } catch (err) {
+      if (!cancelled) {
+        setError("Failed to load dashboard.");
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  if (!dashboard) return <p>Loading dashboard...</p>;
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard, refreshKey]);
+
+  if (loading) return <DashboardSkeleton />;
+  if (error) return <ErrorState message={error} />;
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">{dashboard.name}</h2>
-          {dashboard.description && (
-            <p className="text-gray-600 mt-1">{dashboard.description}</p>
-          )}
-        </div>
-        <Link href="/dashboards" className="text-blue-600 underline">
-          ← Back to Dashboards
-        </Link>
-      </div>
+      {/* Header */}
+      <DashboardHeader
+        title={dashboard.name}
+        description={dashboard.description}
+        onRefresh={() => setRefreshKey((k) => k + 1)}
+      />
 
+      {/* Content */}
       {charts.length === 0 ? (
-        <p>No charts added yet.</p>
+        <EmptyState />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {charts.map((c) => (
+          {charts.map((chart) => (
             <div
-              key={c.i}
-              className="bg-white rounded-lg shadow p-4 flex flex-col items-center justify-center"
+              key={chart.id}
+              className="bg-white rounded-lg shadow p-4"
             >
-              {c.type === "kpi" ? (
-                <>
-                  <h3 className="text-lg font-semibold mb-2">{c.yField.toUpperCase()}</h3>
-                  <p className="text-3xl font-bold">{kpiValues[c.i] ?? "..."}</p>
-                </>
+              {chart.type === "kpi" ? (
+                <KPIBlock
+                  label={chart.label}
+                  value={kpiValues[chart.id]}
+                />
               ) : (
                 <ChartRenderer
-                  datasetId={c.dataset}
-                  type={c.type}
-                  xField={c.xField}
-                  yField={c.yField}
+                  key={`${chart.id}-${refreshKey}`}
+                  datasetId={chart.datasetId}
+                  type={chart.type}
+                  xField={chart.xField}
+                  yField={chart.yField}
+                  filters={chart.filters}
+                  logicRules={chart.logicRules}
+                  logicExpression={chart.logicExpression}
+                  joins={chart.joins}
+                  calculatedFields={chart.calculatedFields}
                 />
               )}
             </div>

@@ -1,83 +1,134 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AuthGuard from "@/app/components/AuthGuard";
 import Layout from "@/app/components/Layout";
 import Link from "next/link";
 import { apiClient } from "@/lib/apiClient";
 
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function loadDatasets() {
-      try {
-        const data = await apiClient("/api/datasets/");
+  // -----------------------------
+  // Load datasets (silent)
+  // -----------------------------
+  const loadDatasets = async () => {
+    setRefreshing(true);
+    setError(null);
 
-        if (Array.isArray(data)) setDatasets(data);
-        else if (data.results) setDatasets(data.results);
-        else setDatasets([]);
-      } catch (err) {
-        console.error("Error loading datasets:", err);
+    try {
+      const data = await apiClient("/api/datasets/");
+
+      if (Array.isArray(data)) {
+        setDatasets(data);
+      } else if (Array.isArray(data?.results)) {
+        setDatasets(data.results);
+      } else {
         setDatasets([]);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("Error loading datasets:", err);
+      setError("Failed to load datasets.");
+      setDatasets([]);
+    } finally {
+      setRefreshing(false);
     }
+  };
 
+  const deleteDataset = async (id) => {
+    if (!confirm("Move dataset to recycle bin?")) return;
+
+    await apiClient(`/api/datasets/${id}/`, { method: "DELETE" });
+    loadDatasets();
+  };
+
+
+  // -----------------------------
+  // Initial load
+  // -----------------------------
+  useEffect(() => {
     loadDatasets();
   }, []);
 
   return (
     <Layout>
-    <div className="p-10">
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Datasets</h1>
-        <Link
-          href="/datasets/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          + New Dataset
-        </Link>
-      </div>
+      <div className="p-10">
+        <div className="flex justify-between mb-6 items-center">
+          <h1 className="text-2xl font-semibold">Datasets</h1>
 
-      {loading ? (
-        <div className="bg-white shadow rounded-xl p-6">Loading...</div>
-      ) : datasets.length === 0 ? (
-        <div className="bg-white shadow rounded-xl p-6 text-gray-600">
-          No datasets found.
+          <div className="flex items-center gap-4">
+            {refreshing && (
+              <span className="text-sm text-gray-500">Refreshing…</span>
+            )}
+
+            <Link
+              href="/datasets/new"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              + New Dataset
+            </Link>
+            <Link
+              href="/datasets/deleted"
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg"
+            >
+              Recycle Bin
+            </Link>
+          </div>
         </div>
-      ) : (
-        <div className="bg-white shadow rounded-xl p-6">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="p-3">Name</th>
-                <th className="p-3">API Source</th>
-                <th className="p-3">Endpoint</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
 
-            <tbody>
-              {datasets.map((d) => (
-                <tr key={d.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">{d.name}</td>
-                  <td className="p-3">{d.api_source_name}</td>
-                  <td className="p-3">{d.endpoint}</td>
-                  <td className="p-3">
-                    <Link href={`/datasets/${d.id}`} className="text-blue-600">
-                      Edit
-                    </Link>
-                  </td>
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {datasets.length === 0 && !error ? (
+          <div className="bg-white shadow rounded-xl p-6 text-gray-600">
+            No datasets found.
+          </div>
+        ) : (
+          <div className="bg-white shadow rounded-xl p-6">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="p-3">Name</th>
+                  <th className="p-3">API Source</th>
+                  <th className="p-3">Endpoint</th>
+                  <th className="p-3">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </thead>
+
+              <tbody>
+                {datasets.map((d) => (
+                  <tr key={d.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3">{d.name}</td>
+                    <td className="p-3">{d.api_source_name}</td>
+                    <td className="p-3">{d.endpoint}</td>
+                    <td className="p-3">
+                      <Link
+                        href={`/datasets/${d.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => deleteDataset(d.id)}
+                        className="text-red-600 hover:underline ml-3"
+                      >
+                        Delete
+                      </button>
+
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </Layout>
   );
 }

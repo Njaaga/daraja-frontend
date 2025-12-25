@@ -1,5 +1,6 @@
 "use client";
 
+import SubscriptionGate from "@/app/components/SubscriptionGate"
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -47,6 +48,7 @@ export default function Layout({ children }) {
   };
 
   return (
+    <SubscriptionGate>
     <div className="h-screen flex flex-col">
       {/* Top Bar */}
       <header className="h-14 bg-gray-900 text-white flex items-center justify-between px-6">
@@ -56,11 +58,6 @@ export default function Layout({ children }) {
             onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
             className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
           >
-            <img
-              src="/avatar.png"
-              alt="User Avatar"
-              className="w-6 h-6 rounded-full object-cover"
-            />
             <span>Admin</span>
           </button>
           {avatarMenuOpen && (
@@ -131,8 +128,9 @@ export default function Layout({ children }) {
                   Datasets
                 </Link>
               </>
+              
             )}
-
+          
             {/* Settings Menu */}
             <div>
               <button
@@ -143,7 +141,7 @@ export default function Layout({ children }) {
                 <span>Settings</span>
                 <span>{settingsOpen ? "▲" : "▼"}</span>
               </button>
-
+                  
               {settingsOpen && (
                 <div className="ml-4 mt-1 flex flex-col gap-1 text-xs">
                   <Link
@@ -162,5 +160,6 @@ export default function Layout({ children }) {
         <main className="flex-1 overflow-auto p-6 bg-gray-100">{children}</main>
       </div>
     </div>
+    </SubscriptionGate>
   );
 }

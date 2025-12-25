@@ -17,14 +17,18 @@ function flattenObject(obj, parentKey = "") {
   return items;
 }
 
-export default function DatasetRunner({ data }) {
+// Helper to truncate long strings
+function truncate(val, length = 50) {
+  const str = String(val);
+  return str.length > length ? str.slice(0, length) + "…" : str;
+}
+
+export default function DatasetRunner({ data, apiSource, endpoint, queryParams }) {
   if (!data || (Array.isArray(data) && data.length === 0))
     return <div className="text-gray-500 mt-4">No data returned.</div>;
 
-  // Ensure data is always an array
   const rows = Array.isArray(data) ? data : [data];
 
-  // Collect all unique columns from all rows
   const columnsSet = new Set();
   const flattenedRows = rows.map((row) => {
     const flat = flattenObject(row);
@@ -34,9 +38,26 @@ export default function DatasetRunner({ data }) {
   const columns = Array.from(columnsSet);
 
   return (
-    <div className="mt-6">
-      <h3 className="text-lg font-semibold mb-2">Preview</h3>
+    <div className="mt-6 space-y-4">
+      {/* Debug / info */}
+      <div className="bg-gray-50 p-4 rounded-xl border">
+        <h4 className="font-semibold mb-2">Preview Info</h4>
+        {apiSource && <div><strong>API Source:</strong> {apiSource}</div>}
+        {endpoint && <div><strong>Endpoint:</strong> {endpoint}</div>}
+        {queryParams && Object.keys(queryParams).length > 0 && (
+          <div>
+            <strong>Query Params:</strong>{" "}
+            {JSON.stringify(queryParams)}
+          </div>
+        )}
+      </div>
 
+      {/* Raw JSON preview (truncated) */}
+      <div className="bg-gray-100 p-4 rounded-xl overflow-auto max-h-40">
+        <pre className="text-sm">{truncate(JSON.stringify(data, null, 2), 500)}</pre>
+      </div>
+
+      {/* Flattened table */}
       <div className="overflow-auto border rounded-xl max-h-80">
         <table className="w-full border-collapse text-sm">
           <thead className="bg-gray-50 sticky top-0">
@@ -48,14 +69,15 @@ export default function DatasetRunner({ data }) {
               ))}
             </tr>
           </thead>
-
           <tbody>
             {flattenedRows.map((row, idx) => (
               <tr key={idx} className="hover:bg-gray-50">
                 {columns.map((col) => (
                   <td key={col} className="p-2 border-b">
                     {row[col] !== undefined && row[col] !== null
-                      ? String(row[col])
+                      ? Array.isArray(row[col])
+                        ? row[col].map((x) => JSON.stringify(x)).join(", ")
+                        : truncate(row[col])
                       : "-"}
                   </td>
                 ))}

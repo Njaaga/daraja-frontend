@@ -19,7 +19,7 @@ export default function VerifyEmail() {
       return;
     }
 
-    axios.post(`${API_URL}/api/verify-email/`, { uid, token })
+    axios.post(`${API_URL}/api/tenants/verify-email/`, { uid, token })
       .then(() => {
         setStatus("Email verified! Redirecting to login...");
         setTimeout(() => {

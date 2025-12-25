@@ -39,7 +39,7 @@ export default function ClientSignup() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_URL}/api/signup/`, {
+      const res = await axios.post(`${API_URL}/api/tenants/signup/`, {
         name: form.companyName,
         subdomain: form.subdomain,
         email: form.email,

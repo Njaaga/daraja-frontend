@@ -94,48 +94,40 @@ const normalizeForExport = (rows) =>
  * but we add helpers and graceful failure handling.
  */
 function buildCalcExecutor(expr, fieldKeys) {
-  // Helper functions for expression
   const helpers = {
-    SUM: (arr) => {
-      if (!Array.isArray(arr)) return Number(arr) || 0;
-      return arr.reduce((s, x) => s + Number(x || 0), 0);
+    SUM: (arr) => Array.isArray(arr)
+      ? arr.reduce((s, x) => s + Number(x || 0), 0)
+      : Number(arr || 0),
+
+    AVG: (arr) => Array.isArray(arr)
+      ? (arr.length ? arr.reduce((s, x) => s + Number(x || 0), 0) / arr.length : 0)
+      : Number(arr || 0),
+
+    LEN: (x) => {
+      if (x === null || x === undefined) return 0;
+      if (Array.isArray(x)) return x.length;
+      if (typeof x === "number") return 1;
+      return String(x).length;
     },
-    AVG: (arr) => {
-      if (!Array.isArray(arr)) return Number(arr) || 0;
-      if (arr.length === 0) return 0;
-      return arr.reduce((s, x) => s + Number(x || 0), 0) / arr.length;
-    },
-    LEN: (x) => (x == null ? 0 : (Array.isArray(x) ? x.length : String(x).length)),
+
     IF: (cond, a, b) => (cond ? a : b),
-    JSONPARSE: (s) => {
-      try {
-        return JSON.parse(s);
-      } catch {
-        return null;
-      }
-    },
   };
 
-  // Build function header args: ...fieldKeys, then helpers as last arg
   const args = [...fieldKeys, "__helpers"];
   const body = `
     try {
-      const {SUM,AVG,LEN,IF,JSONPARSE} = __helpers;
+      const {SUM,AVG,LEN,IF} = __helpers;
       return (${expr});
-    } catch(e) {
+    } catch (e) {
       return null;
     }
   `;
-  // create function
-  try {
-    // eslint-disable-next-line no-new-func
-    const fn = new Function(...args, body);
-    return (rowValues) => fn(...rowValues, helpers);
-  } catch (err) {
-    console.warn("Failed to build calc function:", expr, err);
-    return () => null;
-  }
+
+  // eslint-disable-next-line no-new-func
+  const fn = new Function(...args, body);
+  return (rowValues) => fn(...rowValues, helpers);
 }
+
 
 /* --------------------- Logic Engine --------------------- */
 /**
@@ -616,39 +608,60 @@ export default function DashboardBuilder() {
   const removeLogicRule = (i) => setLogicSaved((s) => s.filter((_, idx) => idx !== i));
 
   /* ---------- apply calculated fields ---------- */
-  const applyCalculatedFields = (rows, calcs) => {
-    if (!calcs || !calcs.length) return rows;
-    // derive field keys union (from first row)
-    return rows.map((r) => {
-      const flat = flattenObject(r);
-      const keys = Object.keys(flat);
-      const values = keys.map((k) => getValueByPath(flat, k));
-      let out = { ...flat };
-      // evaluate sequentially so calculations cascade
-      for (const c of calcs) {
-        if (!c.name || !c.expr) continue;
-        try {
-          // create executor per expression
-          const executor = buildCalcExecutor(c.expr, keys);
-          // prepare rowValues matching keys order
-          const rowValues = keys.map((k) => getValueByPath(flat, k));
-          const val = executor(rowValues);
-          out[c.name] = val;
-          // add to keys for cascading calculations
-          if (!keys.includes(c.name)) {
-            keys.push(c.name);
-            values.push(val);
-          } else {
-            const idx = keys.indexOf(c.name);
-            values[idx] = val;
-          }
-        } catch (err) {
-          out[c.name] = null;
-        }
-      }
-      return out;
+/* ---------- apply calculated fields ---------- */
+/* ---------- apply calculated fields (row + column-level aggregates) ---------- */
+const applyCalculatedFields = (rows, calcs) => {
+  if (!rows?.length || !calcs?.length) return rows;
+
+  let outRows = rows.map((r) => flattenObject(r));
+
+  // ---------- ROW-LEVEL ----------
+  for (const c of calcs) {
+    if (!c.name || !c.expr) continue;
+
+    // skip column aggregates
+    if (/^(SUM|AVG|LEN)\(/i.test(c.expr.trim())) continue;
+
+    const keys = Object.keys(outRows[0]);
+    const executor = buildCalcExecutor(c.expr, keys);
+
+    outRows = outRows.map((r) => {
+      const values = keys.map((k) => r[k]);
+      r[c.name] = executor(values);
+      return r;
     });
-  };
+  }
+
+  // ---------- COLUMN-LEVEL ----------
+  for (const c of calcs) {
+    const match = /^(SUM|AVG|LEN)\((.+)\)$/i.exec(c.expr.trim());
+    if (!match) continue;
+
+    const func = match[1].toUpperCase();
+    const field = match[2].trim();
+
+    let value = 0;
+    const colValues = outRows.map((r) => r[field]).filter((v) => v !== null && v !== undefined);
+
+    if (func === "SUM")
+      value = colValues.reduce((a, b) => a + Number(b || 0), 0);
+
+    if (func === "AVG")
+      value = colValues.length
+        ? colValues.reduce((a, b) => a + Number(b || 0), 0) / colValues.length
+        : 0;
+
+    if (func === "LEN")
+      value = colValues.length;
+
+    outRows = outRows.map((r) => ({ ...r, [c.name]: value }));
+  }
+
+  return outRows;
+};
+
+
+
 
   /* ---------- apply logic gates (simple wrapper for expression + saved rules) ---------- */
   const applyLogicGates = (rows, logicExpression, savedRules = []) => {
@@ -848,6 +861,8 @@ export default function DashboardBuilder() {
 
   /* ---------- small helpers ---------- */
   const replaceIntoLogicExpr = (token) => setLogicExpr((e) => (e ? e + " " + token : token));
+
+  
 
   /* ---------- UI ---------- */
   return (

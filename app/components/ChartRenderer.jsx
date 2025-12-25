@@ -5,8 +5,8 @@ import { apiClient } from "@/lib/apiClient";
 import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
-import StackedBarChart from "@/app/charts/StackedBarChart"; // <-- new component
-import KPI from "@/app/charts/KPI"; // <-- KPI display component
+import StackedBarChart from "@/app/charts/StackedBarChart";
+import KPI from "@/app/charts/KPI";
 
 // ---------------------
 // Logic evaluation
@@ -41,11 +41,10 @@ export default function ChartRenderer({
   type,
   xField,
   yField,
-  stackedFields = [],    // for stacked bar
+  stackedFields = [],
   filters = {},
   excelData = null,
   logicRules = [],
-  logicExpression = null,
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,22 +121,24 @@ export default function ChartRenderer({
   // --- Map chart data ---
   const chartData = useMemo(() => {
     if (type === "kpi") {
-      // for KPI, return value of yField (sum/avg)
       return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
     }
 
     if (type === "stacked_bar") {
-      // transform for stacked bar
       return filteredData.map(row => {
         const obj = { x: row[xField] };
-        stackedFields.forEach(f => obj[f] = Number(row[f] || 0));
+        const finalFields = stackedFields.length
+          ? stackedFields
+          : Object.keys(row).filter(k => k !== xField);
+        finalFields.forEach(f => obj[f] = Number(row[f] || 0));
         return obj;
       });
     }
 
     if (xField && yField) {
-      return filteredData.map(row => ({ x: row[xField], y: row[yField] }));
+      return filteredData.map(row => ({ x: row[xField], y: Number(row[yField] || 0) }));
     }
+
     return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
 
@@ -148,9 +149,16 @@ export default function ChartRenderer({
   switch (type) {
     case "line": return <LineChart data={chartData} />;
     case "bar": return <BarChart data={chartData} />;
-    case "stacked_bar": return <StackedBarChart data={chartData} xKey={xField} yKeys={stackedFields} />;
+    case "stacked_bar":
+      const finalStackedFields = stackedFields.length
+        ? stackedFields
+        : filteredData.length
+          ? Object.keys(filteredData[0]).filter(k => k !== xField)
+          : [];
+      return <StackedBarChart data={chartData} xKey={xField} yKeys={finalStackedFields} />;
     case "pie": return <PieChart data={chartData} xKey={xField} yKey={yField} />;
     case "kpi": return <KPI value={chartData} label={yField} />;
+
     case "table":
       return (
         <div className="overflow-x-auto">
@@ -173,7 +181,6 @@ export default function ChartRenderer({
             </tbody>
           </table>
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-2 flex-wrap">
               <button

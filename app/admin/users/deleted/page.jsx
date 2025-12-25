@@ -7,19 +7,11 @@ import { apiClient } from "@/lib/apiClient";
 import SubscriptionGate from "@/app/components/SubscriptionGate";
 import Link from "next/link";
 
-export default function UsersPage() {
+export default function UsersRecycleBinPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState([]);
   const [tenant, setTenant] = useState("");
-
-  // Invite form
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-
-  // UI
-  const [status, setStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Table
@@ -28,7 +20,7 @@ export default function UsersPage() {
   const pageSize = 10;
 
   // -----------------------------
-  // Tenant detection
+  // Tenant
   // -----------------------------
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -37,15 +29,23 @@ export default function UsersPage() {
   }, []);
 
   // -----------------------------
-  // Load active users only
+  // Load deleted users
   // -----------------------------
-  const loadUsers = async () => {
+  const loadDeletedUsers = async () => {
     if (!tenant) return;
 
     setRefreshing(true);
     try {
-      const data = await apiClient("/api/users/", { tenant });
-      setUsers(Array.isArray(data) ? data : []);
+      const data = await apiClient(
+        "/api/users/?include_deleted=true",
+        { tenant }
+      );
+
+      setUsers(
+        Array.isArray(data)
+          ? data.filter((u) => !u.is_active)
+          : []
+      );
     } catch {
       router.push("/login");
     } finally {
@@ -54,49 +54,18 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    loadUsers();
+    loadDeletedUsers();
   }, [tenant]);
 
   // -----------------------------
-  // Invite user
+  // Restore
   // -----------------------------
-  const inviteUser = async () => {
-    if (!firstName || !lastName || !email) {
-      setStatus("All fields are required");
-      return;
-    }
-
-    try {
-      const res = await apiClient("/api/users/invite/", {
-        method: "POST",
-        tenant,
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-        }),
-      });
-
-      setStatus(res?.message || "Invitation sent");
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      loadUsers();
-    } catch {
-      router.push("/login");
-    }
-  };
-
-  // -----------------------------
-  // Soft delete
-  // -----------------------------
-  const deleteUser = async (id) => {
-    await apiClient(`/api/users/${id}/`, {
-      method: "DELETE",
+  const restoreUser = async (id) => {
+    await apiClient(`/api/users/${id}/restore/`, {
+      method: "POST",
       tenant,
     });
-
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    loadDeletedUsers();
   };
 
   // -----------------------------
@@ -125,55 +94,26 @@ export default function UsersPage() {
       <Layout>
         <div className="p-10">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Users</h2>
+            <h2 className="text-2xl font-bold">User Recycle Bin</h2>
             <Link
-              href="/admin/users/deleted"
+              href="/admin/users"
               className="text-sm text-blue-600 hover:underline"
             >
-              Recycle Bin
+              ← Back to Users
             </Link>
           </div>
 
-          {status && <p className="mb-4 text-red-600">{status}</p>}
+          {refreshing && (
+            <p className="text-sm text-gray-500 mb-2">Refreshing…</p>
+          )}
 
-          {/* Invite */}
-          <div className="mb-6 flex flex-col gap-2 w-80">
-            <input
-              placeholder="First Name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="p-2 border rounded"
-            />
-            <input
-              placeholder="Last Name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="p-2 border rounded"
-            />
-            <input
-              placeholder="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="p-2 border rounded"
-            />
-            <button
-              onClick={inviteUser}
-              className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
-            >
-              Send Invitation
-            </button>
-          </div>
-
-          {/* Search */}
           <input
-            placeholder="Search users..."
+            placeholder="Search deleted users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="p-2 border rounded mb-4 w-80"
           />
 
-          {/* Table */}
           <div className="border rounded overflow-x-auto">
             <table className="min-w-full divide-y">
               <thead className="bg-gray-100">
@@ -188,7 +128,7 @@ export default function UsersPage() {
                 {paginatedUsers.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="p-4 text-center text-gray-500">
-                      No users found
+                      Recycle bin is empty
                     </td>
                   </tr>
                 ) : (
@@ -199,10 +139,10 @@ export default function UsersPage() {
                       <td className="px-4 py-2">{u.email}</td>
                       <td className="px-4 py-2">
                         <button
-                          onClick={() => deleteUser(u.id)}
-                          className="bg-red-600 text-white px-3 py-1 rounded"
+                          onClick={() => restoreUser(u.id)}
+                          className="bg-green-600 text-white px-3 py-1 rounded"
                         >
-                          Delete
+                          Restore
                         </button>
                       </td>
                     </tr>

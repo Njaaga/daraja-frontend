@@ -8,7 +8,7 @@ export default function CancelSubscriptionButton({ onCancel }) {
 
   const handleCancel = async () => {
     setLoading(true);
-    const res = await apiClient("/api/subscriptions/cancel-subscription/", { method: "POST" });
+    const res = await apiClient("/api/subscription/cancel-subscription/", { method: "POST" });
     if (res?.status === "success") onCancel();
     setLoading(false);
   };

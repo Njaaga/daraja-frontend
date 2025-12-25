@@ -36,14 +36,20 @@ export default function DashboardView() {
             return {
               i: dc.id.toString(),
               chartId: dc.chart,
-              dashboardChartId: dc.id,
-              datasetId: chartDetail.dataset || null,
-              excelData: chartDetail.excel_data || null,
-              type: chartDetail.chart_type,
-              xField: chartDetail.x_field,
-              yField: chartDetail.y_field,
-              filters: chartDetail.filters || {},
-              logicRules: chartDetail.logic_rules || [],
+
+              dataset: dc.chart_detail.dataset,
+              type: dc.chart_detail.chart_type,
+              xField: dc.chart_detail.x_field,
+              yField: dc.chart_detail.y_field,
+              aggregation: dc.chart_detail.aggregation,
+
+              // 🔥 REQUIRED
+              filters: dc.chart_detail.filters || {},
+              logicRules: dc.chart_detail.logic_rules || [],
+              logicExpression: dc.chart_detail.logic_expression || null,
+              joins: dc.chart_detail.joins || [],
+              excelData: dc.chart_detail.excel_data || null,
+
             };
           });
           setCharts(mappedCharts);
@@ -114,6 +120,8 @@ export default function DashboardView() {
                   yField={c.yField}
                   filters={c.filters}
                   logicRules={c.logicRules}
+                  logicExpression={c.logicExpression}
+                  joins={c.joins}
                 />
               </div>
             ))}

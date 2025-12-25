@@ -1,17 +1,38 @@
 "use client";
 
-import { BarChart as BC, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import "@/lib/chartjs";
+import { Bar } from "react-chartjs-2";
 
 export default function BarChart({ data }) {
+  const labels = data.map((d) => d.x);
+  const values = data.map((d) => Number(d.y));
+
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: "Value",
+        data: values,
+        borderRadius: 6,
+        maxBarThickness: 40,
+        backgroundColor: "#10b981", // emerald-500
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { tooltip: { mode: "index", intersect: false }, legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, grid: { drawBorder: false } },
+    },
+  };
+
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <BC data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="x" />   {/* 👈 matching ChartRenderer formatted data */}
-        <YAxis />
-        <Tooltip />
-        <Bar dataKey="y" fill="#10b981" />
-      </BC>
-    </ResponsiveContainer>
+    <div className="w-full h-[350px]">
+      <Bar data={chartData} options={options} />
+    </div>
   );
 }
