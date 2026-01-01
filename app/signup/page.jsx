@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL = "https://daraja-frontend-dl85.vercel.app";
+const API_URL = "http://18.220.106.255/";
 
 export default function ClientSignup() {
   const router = useRouter();
