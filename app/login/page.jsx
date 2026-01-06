@@ -6,8 +6,7 @@ import axios from "axios";
 import { saveTokens, saveTenant, saveUserRole } from "@/lib/apiClient";
 import Link from "next/link";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = "https://darajatechnologies.ca";
 
 export default function LoginPage() {
   const router = useRouter();
