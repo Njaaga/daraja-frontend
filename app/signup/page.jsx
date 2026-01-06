@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL = "https://18.220.106.255";
+const API_URL = "https://darajatechnologies.ca";
 
 export default function ClientSignup() {
   const router = useRouter();
