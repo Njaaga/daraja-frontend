@@ -68,7 +68,7 @@ export default function UsersPage() {
 
     try {
         const res = await apiClient(
-          "/api/users/invite",
+          "/api/users/invite/",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
