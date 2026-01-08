@@ -69,12 +69,12 @@ export default function UsersPage() {
     try {
       const res = await apiClient("/api/users/invite/", {
         method: "POST",
-        tenant, // ✅ THIS is what your apiClient expects
-        body: {
+        tenant,
+        body: JSON.stringify({
           first_name: firstName,
           last_name: lastName,
           email,
-        },
+        }),
       });
 
 
