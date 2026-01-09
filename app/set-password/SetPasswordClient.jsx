@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL = "https://darajatechnologies.ca/api";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export default function SetPasswordClient() {
   const searchParams = useSearchParams();
@@ -38,7 +38,7 @@ export default function SetPasswordClient() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/users/set-password/`, {
+      const res = await axios.post(`${API_URL}/set-password/`, {
         uid,
         token,
         password,
