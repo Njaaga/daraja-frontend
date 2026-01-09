@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL = "https://darajatechnologies.ca";
+const API_URL = "https://darajatechnologies.ca/api";
 
 export default function SetPasswordClient() {
   const searchParams = useSearchParams();
