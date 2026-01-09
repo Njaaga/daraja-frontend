@@ -38,7 +38,7 @@ export default function SetPasswordClient() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/users/set-password/`, {
+      const res = await axios.post(`${API_URL}/users/set-password`, {
         uid,
         token,
         password,
