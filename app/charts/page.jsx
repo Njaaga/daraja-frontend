@@ -901,8 +901,8 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 0 - Select Data */}
         {step === STEPS.SELECT_DATASET && (
           <div className="mb-4">
-            <InfoTooltip text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard." />
             <h3 className="font-semibold mb-2">Choose dataset(s) or upload Excel / CSV / Google Sheets</h3>
+            <InfoTooltip text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard." />
             <div className="mb-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 font-medium">API Datasets</label>
