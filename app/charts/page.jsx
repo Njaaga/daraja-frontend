@@ -12,6 +12,7 @@ import * as XLSX from "xlsx";
 import "react-datepicker/dist/react-datepicker.css";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
+import InfoTooltip from "@/app/components/InfoTooltip";
 
 /**
  * DashboardBuilder - enhanced full-featured replacement for your original component
@@ -874,15 +875,15 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* progress */}
         <div className="mb-4 flex gap-2">
           {[
-            "1.Select Data",
-            "2.Fields",
-            "3.Joins",
-            "4.Calculated",
-            "5.Logic Gates",
-            "6.Filters",
-            "7.Charts",
-            "8.Layout",
-            "9.Publish",
+            "Select Data",
+            "Fields",
+            "Joins",
+            "Calculated",
+            "Logic Gates",
+            "Filters",
+            "Charts",
+            "Layout",
+            "Publish",
           ].map((label, i) => (
             <div key={i} className={`px-3 py-1 rounded ${step === i ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
               {i + 1}. {label}
@@ -900,6 +901,7 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 0 - Select Data */}
         {step === STEPS.SELECT_DATASET && (
           <div className="mb-4">
+            <InfoTooltip text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard." />
             <h3 className="font-semibold mb-2">Choose dataset(s) or upload Excel / CSV / Google Sheets</h3>
             <div className="mb-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
