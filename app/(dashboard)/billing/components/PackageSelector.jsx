@@ -24,6 +24,9 @@ export default function PackageSelector({ currentPlanId, onSelect }) {
     setSelectedPlanId(plan.id);
     onSelect?.(plan);
   };
+useEffect(() => {
+  console.log("Plans from API:", plans);
+}, [plans]);
 
   return (
     <div className="grid md:grid-cols-3 gap-6">
