@@ -8,9 +8,9 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  Title,
   Tooltip,
   Legend,
-  Title,
   Filler,
 } from "chart.js";
 
@@ -19,37 +19,25 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  Title,
   Tooltip,
   Legend,
-  Title,
   Filler
 );
 
 export default function AreaChart({ data = [], xKey, yKey }) {
-  if (!data.length)
-    return (
-      <p className="text-red-500 font-bold">
-        ❗ No data provided for area chart.
-      </p>
-    );
-
-  if (!xKey || !yKey)
-    return (
-      <p className="text-red-500 font-bold">
-        ❗ xKey and yKey are required for area chart.
-      </p>
-    );
+  if (!data.length) return <p className="text-red-500 font-bold">❗ No data provided for area chart.</p>;
 
   const chartData = {
-    labels: data.map((d) => d[xKey]),
+    labels: data.map(d => d[xKey]),
     datasets: [
       {
         label: yKey,
-        data: data.map((d) => Number(d[yKey] || 0)),
+        data: data.map(d => Number(d[yKey] || 0)),
         fill: true,
-        backgroundColor: "rgba(59,130,246,0.25)",
-        borderColor: "#3b82f6",
-        tension: 0.4,
+        backgroundColor: "rgba(59, 130, 246, 0.3)", // semi-transparent blue
+        borderColor: "#3b82f6", // blue line
+        tension: 0.4, // smooth curve
         pointRadius: 3,
       },
     ],
@@ -58,19 +46,8 @@ export default function AreaChart({ data = [], xKey, yKey }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      tooltip: { mode: "index", intersect: false },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-      },
-      y: {
-        beginAtZero: true,
-        grid: { drawBorder: false },
-      },
-    },
+    plugins: { legend: { position: "top" }, tooltip: { mode: "index", intersect: false } },
+    scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { drawBorder: false } } },
   };
 
   return (
