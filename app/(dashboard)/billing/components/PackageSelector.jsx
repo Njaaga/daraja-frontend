@@ -51,10 +51,6 @@ useEffect(() => {
             {/* Plan header */}
             <h3 className="text-xl font-semibold">{plan.name}</h3>
 
-            <p className="text-sm text-gray-600 mt-1">
-              {plan.description || "Ideal for teams getting started."}
-            </p>
-
             {/* Price */}
             <div className="mt-4">
               <span className="text-3xl font-bold">
