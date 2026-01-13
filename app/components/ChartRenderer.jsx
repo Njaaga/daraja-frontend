@@ -6,8 +6,8 @@ import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
 import StackedBarChart from "@/app/charts/StackedBarChart";
-import StackedBarChart from "@/app/charts/AreaChart";
-import StackedBarChart from "@/app/charts/ScatterChart";
+import AreaChart from "@/app/charts/AreaChart";
+import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
 // ---------------------
