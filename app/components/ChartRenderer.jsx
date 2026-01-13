@@ -160,7 +160,10 @@ export default function ChartRenderer({
       return <StackedBarChart data={chartData} xKey={xField} yKeys={finalStackedFields} />;
     case "pie": return <PieChart data={chartData} xKey={xField} yKey={yField} />;
     case "kpi": return <KPI value={chartData} label={yField} />;
-
+    case "scatter": 
+      return <ScatterChart data={chartData} xKey={xField} yKey={yField} />;
+    case "area": 
+      return <AreaChart data={chartData} xKey={xField} yKey={yField} />;
     case "table":
       return (
         <div className="overflow-x-auto">
