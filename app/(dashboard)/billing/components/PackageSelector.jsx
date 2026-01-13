@@ -20,13 +20,13 @@ export default function PackageSelector({ currentPlanId, onSelect }) {
   }, []);
 
   const handleSelect = (plan) => {
-    if (plan.id === currentPlanId) return; // 🚫 already active
+    if (plan.id === currentPlanId) return;
     setSelectedPlanId(plan.id);
     onSelect?.(plan);
   };
 
   return (
-    <div className="space-y-3">
+    <div className="grid md:grid-cols-3 gap-6">
       {plans.map((plan) => {
         const isCurrent = plan.id === currentPlanId;
         const isSelected = plan.id === selectedPlanId;
@@ -34,28 +34,56 @@ export default function PackageSelector({ currentPlanId, onSelect }) {
         return (
           <div
             key={plan.id}
-            className={`border rounded p-4 cursor-pointer transition
+            className={`border rounded-lg p-6 shadow-sm bg-white flex flex-col transition
               ${
                 isCurrent
-                  ? "border-green-500 bg-green-50 cursor-not-allowed"
+                  ? "border-green-600 ring-2 ring-green-200"
                   : isSelected
-                  ? "border-blue-500 bg-blue-50"
-                  : "hover:bg-gray-100"
-              }`}
+                  ? "border-blue-600 ring-2 ring-blue-200"
+                  : "hover:shadow-md cursor-pointer"
+              }
+            `}
             onClick={() => handleSelect(plan)}
           >
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="font-semibold">{plan.name}</div>
-                <div className="text-sm text-gray-600">
-                  ${plan.price.toFixed(2)} / month
-                </div>
-              </div>
+            {/* Plan header */}
+            <h3 className="text-xl font-semibold">{plan.name}</h3>
 
-              {isCurrent && (
-                <span className="text-green-600 text-sm font-semibold">
-                  Current plan
-                </span>
+            <p className="text-sm text-gray-600 mt-1">
+              {plan.description || "Ideal for teams getting started."}
+            </p>
+
+            {/* Price */}
+            <div className="mt-4">
+              <span className="text-3xl font-bold">
+                ${plan.price.toFixed(2)}
+              </span>
+              <span className="text-gray-500"> / month</span>
+            </div>
+
+            {/* Features */}
+            {Array.isArray(plan.features) && (
+              <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                {plan.features.map((feature, i) => (
+                  <li key={i}>✓ {feature}</li>
+                ))}
+              </ul>
+            )}
+
+            {/* CTA */}
+            <div className="mt-auto pt-6">
+              {isCurrent ? (
+                <button
+                  disabled
+                  className="w-full bg-gray-200 text-gray-600 py-2 rounded"
+                >
+                  Current Plan
+                </button>
+              ) : (
+                <button
+                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                >
+                  {isSelected ? "Selected" : "Select Plan"}
+                </button>
               )}
             </div>
           </div>
