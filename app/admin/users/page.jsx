@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import SubscriptionGate from "@/app/components/SubscriptionGate";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function UsersPage() {
   }, []);
 
   // -----------------------------
-  // Load active users only
+  // Load users
   // -----------------------------
   const loadUsers = async () => {
     if (!tenant) return;
@@ -58,7 +59,7 @@ export default function UsersPage() {
   }, [tenant]);
 
   // -----------------------------
-  // Invite user
+  // Invite single user
   // -----------------------------
   const inviteUser = async () => {
     if (!firstName || !lastName || !email) {
@@ -77,7 +78,6 @@ export default function UsersPage() {
         }),
       });
 
-
       setStatus(res?.message || "Invitation sent");
       setFirstName("");
       setLastName("");
@@ -85,6 +85,42 @@ export default function UsersPage() {
       loadUsers();
     } catch {
       router.push("/login");
+    }
+  };
+
+  // -----------------------------
+  // Bulk invite via Excel
+  // -----------------------------
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+      const validUsers = sheet.filter(
+        (r) => r.first_name && r.last_name && r.email
+      );
+
+      if (validUsers.length === 0) {
+        setStatus("No valid users found in the Excel file");
+        return;
+      }
+
+      const res = await apiClient("/api/users/bulk_invite/", {
+        method: "POST",
+        tenant,
+        body: JSON.stringify({ users: validUsers }),
+      });
+
+      setStatus(res?.message || "Users invited successfully");
+      loadUsers();
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to upload users");
     }
   };
 
@@ -137,7 +173,7 @@ export default function UsersPage() {
 
           {status && <p className="mb-4 text-red-600">{status}</p>}
 
-          {/* Invite */}
+          {/* Invite single user */}
           <div className="mb-6 flex flex-col gap-2 w-80">
             <input
               placeholder="First Name"
@@ -164,6 +200,19 @@ export default function UsersPage() {
             >
               Send Invitation
             </button>
+          </div>
+
+          {/* Bulk invite */}
+          <div className="mb-6">
+            <label className="block mb-2 font-semibold">
+              Bulk Invite (Excel)
+            </label>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="p-2 border rounded"
+            />
           </div>
 
           {/* Search */}
