@@ -202,14 +202,12 @@ export default function UsersPage() {
             </button>
           </div>
 
-          {/* Bulk invite */}
+          {/* Excel Upload */}
           <div className="mb-6">
-            <label className="block mb-2 font-semibold">
-              Bulk Invite (Excel)
-            </label>
+            <label className="block mb-2 font-semibold">Upload Users via Excel:</label>
             <input
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx, .xls"
               onChange={handleFileUpload}
               className="p-2 border rounded"
             />
