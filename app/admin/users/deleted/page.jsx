@@ -144,6 +144,12 @@ export default function UsersRecycleBinPage() {
                         >
                           Restore
                         </button>
+                        <button
+                        onClick={() => hardDelete(u.id)}
+                        className="text-red-600 hover:underline"
+                      >
+                        Delete Permanently
+                      </button>
                       </td>
                     </tr>
                   ))
