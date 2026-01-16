@@ -37,6 +37,11 @@ const restoreSource = async (id) => {
   }
 };
 
+  const hardDelete = async (id) => {
+    if (!confirm("Delete permanently?")) return;
+    await apiClient(`/api/api-sources/${id}/hard_delete/`, { method: "DELETE" });
+    loadDeleted();
+  };
 
   if (loading) return <div className="p-10">Loading...</div>;
   if (!sources.length) return <div className="p-10 text-gray-600">Recycle bin is empty.</div>;
