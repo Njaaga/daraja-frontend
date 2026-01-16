@@ -68,6 +68,13 @@ export default function UsersRecycleBinPage() {
     loadDeletedUsers();
   };
 
+
+  const hardDelete = async (id) => {
+    if (!confirm("Delete permanently?")) return;
+    await apiClient(`/api/users/${id}/hard_delete/`, { method: "DELETE" });
+    loadDeletedUsers();
+  };
+
   // -----------------------------
   // Filtering & pagination
   // -----------------------------
