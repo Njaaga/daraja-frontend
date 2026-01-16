@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Layout from "@/app/components/Layout";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
+import Link from "next/link";
 
 export default function DashboardsPage() {
   const router = useRouter();
@@ -108,60 +109,70 @@ export default function DashboardsPage() {
             )}
           </div>
 
-          <input
-            type="text"
-            placeholder="Search dashboards..."
-            className="border rounded px-3 py-2 w-64"
-            value={search}
-            onChange={(e) => {
-              setPage(1);
-              setSearch(e.target.value);
-            }}
-          />
+          <div className="flex gap-4 items-center">
+            {/* Search */}
+            <input
+              type="text"
+              placeholder="Search dashboards..."
+              className="border rounded px-3 py-2 w-64"
+              value={search}
+              onChange={(e) => {
+                setPage(1);
+                setSearch(e.target.value);
+              }}
+            />
+
+            {/* Recycle Bin Link */}
+            <Link
+              href="/dashboards/recycle-bin"
+              className="text-sm text-red-600 font-semibold hover:underline"
+            >
+              ♻️ Recycle Bin
+            </Link>
+          </div>
         </div>
 
         {/* Error */}
         {error && <p className="text-red-600 mb-4">{error}</p>}
 
         {/* Empty */}
-        {filteredDashboards.length === 0 && !refreshing && (
+        {filteredDashboards.length === 0 && !refreshing ? (
           <p className="text-gray-500 text-lg">No dashboards found.</p>
-        )}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {paginatedDashboards.map((db) => (
+              <div
+                key={db.id}
+                onClick={() => router.push(`/dashboards/${db.id}`)}
+                className="relative bg-white p-6 shadow rounded-xl cursor-pointer hover:shadow-2xl hover:scale-[1.03] transition duration-200"
+              >
+                <h3 className="text-xl font-bold text-gray-800">
+                  {db.name}
+                </h3>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {paginatedDashboards.map((db) => (
-            <div
-              key={db.id}
-              onClick={() => router.push(`/dashboards/${db.id}`)}
-              className="relative bg-white p-6 shadow rounded-xl cursor-pointer hover:shadow-2xl hover:scale-[1.03] transition duration-200"
-            >
-              <h3 className="text-xl font-bold text-gray-800">
-                {db.name}
-              </h3>
+                <p className="text-gray-500 mt-2">
+                  {db.dashboard_charts?.length || 0} charts
+                </p>
 
-              <p className="text-gray-500 mt-2">
-                {db.dashboard_charts?.length || 0} charts
-              </p>
+                <div className="mt-6 flex justify-between items-center">
+                  <span className="text-blue-600 text-sm font-semibold">
+                    View Dashboard →
+                  </span>
 
-              <div className="mt-6 flex justify-between items-center">
-                <span className="text-blue-600 text-sm font-semibold">
-                  View Dashboard →
-                </span>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // prevent navigation
-                    deleteDashboard(db.id);
-                  }}
-                  className="text-red-600 text-sm hover:underline"
-                >
-                  Delete
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent navigation
+                      deleteDashboard(db.id);
+                    }}
+                    className="text-red-600 text-sm hover:underline"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Pagination */}
         <div className="flex justify-center items-center mt-6 gap-4">
