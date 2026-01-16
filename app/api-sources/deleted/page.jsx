@@ -66,6 +66,12 @@ const restoreSource = async (id) => {
                   >
                     Restore
                   </button>
+                    <button
+                      onClick={() => hardDelete(d.id)}
+                      className="text-red-600 hover:underline"
+                    >
+                      Delete Permanently
+                    </button>
                 </td>
               </tr>
             ))}
