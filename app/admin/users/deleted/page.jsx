@@ -71,7 +71,7 @@ export default function UsersRecycleBinPage() {
 
   const hardDelete = async (id) => {
     if (!confirm("Delete permanently?")) return;
-    await apiClient(`/api/users/${id}/hard_delete/`, { method: "DELETE" });
+    await apiClient(`/api/users/${id}/hard_delete/`, { method: "DELETE", tenant, });
     loadDeletedUsers();
   };
 
