@@ -14,12 +14,13 @@ export default function DeletedDashboardsPage() {
   const loadDeleted = async () => {
     setLoading(true);
     try {
+      // Ensure the backend supports `include_deleted` and returns dashboards with is_deleted=true
       const data = await apiClient(
         "/api/dashboards/?include_deleted=true"
       );
       setDashboards(
         Array.isArray(data)
-          ? data.filter((d) => !d.is_active)
+          ? data.filter((d) => d.is_deleted) // <-- use is_deleted
           : []
       );
     } finally {
@@ -32,7 +33,7 @@ export default function DeletedDashboardsPage() {
   }, []);
 
   // -----------------------------
-  // Restore
+  // Restore dashboard
   // -----------------------------
   const restoreDashboard = async (id) => {
     await apiClient(`/api/dashboards/${id}/restore/`, {
@@ -42,7 +43,7 @@ export default function DeletedDashboardsPage() {
   };
 
   // -----------------------------
-  // Hard delete
+  // Hard delete dashboard
   // -----------------------------
   const hardDelete = async (id) => {
     if (!confirm("Delete dashboard permanently?")) return;
