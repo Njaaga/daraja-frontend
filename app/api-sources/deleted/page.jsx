@@ -40,7 +40,7 @@ const restoreSource = async (id) => {
   const hardDelete = async (id) => {
     if (!confirm("Delete permanently?")) return;
     await apiClient(`/api/api-sources/${id}/hard_delete/`, { method: "DELETE" });
-    loadDeleted();
+    fetchDeleted();
   };
 
   if (loading) return <div className="p-10">Loading...</div>;
