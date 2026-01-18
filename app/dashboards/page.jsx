@@ -124,7 +124,7 @@ export default function DashboardsPage() {
 
             {/* Recycle Bin Link */}
             <Link
-              href="/dashboards/recycle-bin"
+              href="/dashboards/deleted"
               className="text-sm text-red-600 font-semibold hover:underline"
             >
               ♻️ Recycle Bin
