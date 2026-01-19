@@ -16,7 +16,7 @@ export default function DeletedDashboardsPage() {
     try {
       // Ensure the backend supports `include_deleted` and returns dashboards with is_deleted=true
       const data = await apiClient(
-        "/api/dashboards/?include_deleted=true"
+        "/api/dashboards/?include_deleted=True"
       );
       setDashboards(
         Array.isArray(data)
