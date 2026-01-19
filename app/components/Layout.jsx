@@ -40,6 +40,20 @@ export default function Layout({ children }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+
+  useEffect(() => {
+  const loadUser = async () => {
+    try {
+      const me = await apiClient("/api/users/me/");
+      setUser(me);
+    } catch (err) {
+      console.error("Failed to load user");
+    }
+  };
+
+  loadUser();
+}, []);
+  
   const isActive = (path) => pathname === path || pathname.startsWith(path);
 
   const handleLogout = () => {
@@ -58,7 +72,7 @@ export default function Layout({ children }) {
             onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
             className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
           >
-            <span>Admin</span>
+            <span>{user?.email || "Account"}</span>
           </button>
           {avatarMenuOpen && (
             <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow-lg border border-gray-200 z-50">
