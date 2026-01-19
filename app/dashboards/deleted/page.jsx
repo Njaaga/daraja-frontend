@@ -13,8 +13,9 @@ export default function DeletedDashboardsPage() {
   // -----------------------------
   const loadDeleted = async () => {
     const data = await apiClient("/api/dashboards/?include_deleted=true");
-    setDatasets(Array.isArray(data) ? data : []);
+    setDashboards(Array.isArray(data) ? data : []);
   };
+
 
   useEffect(() => {
     loadDeleted();
