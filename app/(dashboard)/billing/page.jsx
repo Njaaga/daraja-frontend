@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Layout from "@/app/components/Layout";
+import SubscriptionGate from "@/app/components/SubscriptionGate";
 import PackageSelector from "./components/PackageSelector";
 import PaymentMethodsList from "./components/PaymentMethodsList";
 import InvoicesList from "./components/InvoicesList";
@@ -108,6 +109,7 @@ export default function BillingPage() {
   }
 
   return (
+    <SubscriptionGate>
     <Layout>
       <div className="max-w-3xl mx-auto p-6 space-y-8">
         <h1 className="text-2xl font-bold">Billing</h1>
@@ -199,5 +201,6 @@ export default function BillingPage() {
         </div>
       </div>
     </Layout>
+    </SubscriptionGate>
   );
 }
