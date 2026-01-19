@@ -4,7 +4,8 @@ import SubscriptionGate from "@/app/components/SubscriptionGate"
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { logout as apiLogout, isSuperAdmin } from "@/lib/apiClient";
+import { apiClient, logout as apiLogout, isSuperAdmin } from "@/lib/apiClient";
+
 
 export default function Layout({ children }) {
   const pathname = usePathname();
@@ -40,7 +41,7 @@ export default function Layout({ children }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-
+const [user, setUser] = useState(null);
   useEffect(() => {
   const loadUser = async () => {
     try {
