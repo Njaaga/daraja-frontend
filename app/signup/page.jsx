@@ -58,7 +58,7 @@ export default function ClientSignup() {
             ? `${form.subdomain}.localhost`
             : `${form.subdomain}.${baseHost.split('.').slice(1).join('.')}`;
 
-        const subdomainUrl = `${protocol}//${domain}${port}/login`;
+        const subdomainUrl = `${API_URL}/login`;
         window.location.href = subdomainUrl;
       }
 
