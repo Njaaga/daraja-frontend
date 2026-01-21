@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AuthGuard from "@/app/components/AuthGuard";
+import Layout from "@/app/components/Layout";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 
 const AUTH_LABELS = {
@@ -22,59 +21,62 @@ const AUTH_BADGE_STYLES = {
   JWT_HS256: "bg-green-100 text-green-700",
 };
 
-export default function ApiSourceTable() {
-  const router = useRouter();
+export default function ApiSourcesPage() {
   const [sources, setSources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchSources = async () => {
-    setLoading(true);
+  // -----------------------------
+  // Load API sources (silent)
+  // -----------------------------
+  const loadSources = async () => {
+    setRefreshing(true);
     setError(null);
+
     try {
       const data = await apiClient("/api/api-sources/");
       setSources(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
-      setError("Error fetching API sources.");
+      console.error("Error loading API sources:", err);
+      setError("Failed to load API sources.");
+      setSources([]);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  // -----------------------------
+  // Initial load
+  // -----------------------------
   useEffect(() => {
-    fetchSources();
+    loadSources();
   }, []);
 
-  const deleteSource = async (id) => {
-    if (!confirm("Are you sure you want to delete this API source?")) return;
-    try {
-      // 🔹 Call DELETE to soft-delete
-      await apiClient(`/api/api-sources/${id}/`, { method: "DELETE" });
-      fetchSources();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete API source.");
-    }
+  const deleteSource = async (id: number) => {
+    if (!confirm("Move API source to recycle bin?")) return;
+    await apiClient(`/api/api-sources/${id}/`, { method: "DELETE" });
+    loadSources();
   };
 
-  if (loading) return <div className="p-10">Loading API sources...</div>;
-  if (error) return <div className="p-10 text-red-600">{error}</div>;
-  if (sources.length === 0)
-    return <div className="p-10 text-gray-600">No API sources found.</div>;
-
   return (
-    <AuthGuard>
-      <div className="p-6 bg-white rounded-2xl shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">API Data Sources</h2>
-          <div className="flex gap-2">
+    <Layout>
+      <div className="p-10">
+        {/* Header */}
+        <div className="flex justify-between mb-6 items-center">
+          <h1 className="text-2xl font-semibold">API Data Sources</h1>
+
+          <div className="flex items-center gap-4">
+            {refreshing && (
+              <span className="text-sm text-gray-500">Refreshing…</span>
+            )}
+
             <Link
               href="/api-sources/new"
               className="bg-blue-600 text-white px-4 py-2 rounded-lg"
             >
               + Add API Source
             </Link>
+
             <Link
               href="/api-sources/deleted"
               className="bg-gray-600 text-white px-4 py-2 rounded-lg"
@@ -84,48 +86,74 @@ export default function ApiSourceTable() {
           </div>
         </div>
 
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b text-sm text-gray-600">
-              <th className="p-3">Name</th>
-              <th className="p-3">Base URL</th>
-              <th className="p-3">Auth</th>
-              <th className="p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sources.map((src) => (
-              <tr key={src.id} className="border-b hover:bg-gray-50 transition">
-                <td className="p-3 font-medium">{src.name}</td>
-                <td className="p-3 text-sm text-gray-700 truncate max-w-xs">{src.base_url}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      AUTH_BADGE_STYLES[src.auth_type] || "bg-gray-100 text-gray-600"
-                    }`}
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {sources.length === 0 && !error ? (
+          <div className="bg-white shadow rounded-xl p-6 text-gray-600">
+            No API sources found.
+          </div>
+        ) : (
+          <div className="bg-white shadow rounded-xl p-6">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="p-3">Name</th>
+                  <th className="p-3">Base URL</th>
+                  <th className="p-3">Auth</th>
+                  <th className="p-3">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sources.map((src) => (
+                  <tr
+                    key={src.id}
+                    className="border-b hover:bg-gray-50"
                   >
-                    {AUTH_LABELS[src.auth_type] || src.auth_type}
-                  </span>
-                </td>
-                <td className="p-3 flex gap-2">
-                  <Link
-                    href={`/api-sources/${src.id}`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Edit
-                  </Link>
-                  <button
-                    onClick={() => deleteSource(src.id)}
-                    className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    <td className="p-3 font-medium">{src.name}</td>
+
+                    <td className="p-3 text-sm text-gray-700 truncate max-w-xs">
+                      {src.base_url}
+                    </td>
+
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          AUTH_BADGE_STYLES[src.auth_type] ||
+                          "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {AUTH_LABELS[src.auth_type] || src.auth_type}
+                      </span>
+                    </td>
+
+                    <td className="p-3">
+                      <Link
+                        href={`/api-sources/${src.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => deleteSource(src.id)}
+                        className="text-red-600 hover:underline ml-3"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-    </AuthGuard>
+    </Layout>
   );
 }
