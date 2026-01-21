@@ -7,6 +7,8 @@ import axios from "axios";
 const API_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
+const FRONTEND_URL = "https://reporting.darajatechnologies.ca"
+
 export default function ClientSignup() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -58,7 +60,7 @@ export default function ClientSignup() {
             ? `${form.subdomain}.localhost`
             : `${form.subdomain}.${baseHost.split('.').slice(1).join('.')}`;
 
-        const subdomainUrl = `${API_URL}/login`;
+        const subdomainUrl = `${FRONTEND_URL}/login`;
         window.location.href = subdomainUrl;
       }
 
