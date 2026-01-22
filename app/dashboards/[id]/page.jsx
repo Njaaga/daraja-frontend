@@ -37,7 +37,7 @@ export default function DashboardView() {
               i: dc.id.toString(),
               chartId: dc.chart,
               
-              title: dc.name,
+              title: dc.chart_detail.name,
               dataset: dc.chart_detail.dataset,
               type: dc.chart_detail.chart_type,
               xField: dc.chart_detail.x_field,
@@ -114,7 +114,7 @@ export default function DashboardView() {
             {charts.map((c) => (
               <div key={c.i} className="bg-white p-4 rounded shadow">
 
-              
+              <h3>{c.title}</h3>
                 <ChartRenderer
                   datasetId={c.datasetId}
                   excelData={c.excelData}
