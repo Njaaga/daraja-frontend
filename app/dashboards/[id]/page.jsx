@@ -37,7 +37,7 @@ export default function DashboardView() {
               i: dc.id.toString(),
               chartId: dc.chart,
               
-              title: dc.name || "Untitled Chart",
+              title: dc.name,
               dataset: dc.chart_detail.dataset,
               type: dc.chart_detail.chart_type,
               xField: dc.chart_detail.x_field,
