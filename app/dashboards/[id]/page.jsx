@@ -114,7 +114,7 @@ export default function DashboardView() {
             {charts.map((c) => (
               <div key={c.i} className="bg-white p-4 rounded shadow">
 
-                <h3>{c.title}</h3>
+              
                 <ChartRenderer
                   datasetId={c.datasetId}
                   excelData={c.excelData}
