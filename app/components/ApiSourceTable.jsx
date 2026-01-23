@@ -23,11 +23,11 @@ const AUTH_BADGE_STYLES = {
 
 export default function ApiSourcesPage() {
   const [sources, setSources] = useState([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // -----------------------------
-  // Load API sources (silent)
+  // Load API sources
   // -----------------------------
   const loadSources = async () => {
     setRefreshing(true);
@@ -52,7 +52,10 @@ export default function ApiSourcesPage() {
     loadSources();
   }, []);
 
-  const deleteSource = async (id: number) => {
+  // -----------------------------
+  // Delete source (JS version)
+  // -----------------------------
+  const deleteSource = async (id) => {
     if (!confirm("Move API source to recycle bin?")) return;
     await apiClient(`/api/api-sources/${id}/`, { method: "DELETE" });
     loadSources();
@@ -140,6 +143,7 @@ export default function ApiSourcesPage() {
                       >
                         Edit
                       </Link>
+
                       <button
                         onClick={() => deleteSource(src.id)}
                         className="text-red-600 hover:underline ml-3"
