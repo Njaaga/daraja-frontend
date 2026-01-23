@@ -95,27 +95,30 @@ const [user, setUser] = useState(null);
           <div className="p-4 font-bold border-b border-gray-700">Admin Panel</div>
           <nav className="p-4 flex flex-col gap-2 text-sm">
             {superAdmin && (
-              <Link
-                href="/charts"
-                className={`p-2 rounded ${isActive("/charts") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-              >
-                Dashboard Builder
-              </Link>
-            <>
-            <Link 
-              href="/api-sources"
-              className={`p-2 rounded ${isActive("/api-sources") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
-            >
-              API Sources
-            </Link>
-          <>
-            <Link
-              href="/datasets"
-              className={`p-2 rounded ${isActive("/datasets") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
-            >
-              Datasets
-            </Link>
-          )}
+              <>
+                <Link
+                  href="/charts"
+                  className={`p-2 rounded ${isActive("/charts") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
+                >
+                  Dashboard Builder
+                </Link>
+            
+                <Link
+                  href="/api-sources"
+                  className={`p-2 rounded ${isActive("/api-sources") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+                >
+                  API Sources
+                </Link>
+            
+                <Link
+                  href="/datasets"
+                  className={`p-2 rounded ${isActive("/datasets") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+                >
+                  Datasets
+                </Link>
+              </>
+            )}
+
             <Link
               href="/dashboards"
               className={`p-2 rounded ${isActive("/dashboards") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
