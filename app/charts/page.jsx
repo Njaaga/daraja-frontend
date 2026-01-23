@@ -882,8 +882,6 @@ const applyCalculatedFields = (rows, calcs) => {
             "Logic Gates",
             "Filters",
             "Charts",
-            "Layout",
-            "Publish",
           ].map((label, i) => (
             <div key={i} className={`px-3 py-1 rounded ${step === i ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
               {i + 1}. {label}
