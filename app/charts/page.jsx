@@ -413,8 +413,6 @@ export default function DashboardBuilder() {
     LOGIC_GATES: 4,
     FILTERS: 5,
     CHARTS: 6,
-    LAYOUT: 7,
-    PUBLISH: 8,
   };
   const [step, setStep] = useState(STEPS.SELECT_DATASET);
 
