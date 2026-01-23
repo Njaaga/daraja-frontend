@@ -121,14 +121,13 @@ const [user, setUser] = useState(null);
             >
               Dashboards
             </Link>
+          {superAdmin && (
               <Link
                 href="/admin/users"
                 className={`p-2 rounded ${isActive("/admin/users") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
               >
                 Users
               </Link>
-
-            {superAdmin && (
               <>
                 <Link
                   href="/admin/groups"
@@ -137,10 +136,10 @@ const [user, setUser] = useState(null);
                   Groups
                 </Link>
               </>
-              
-            )}
+              )}
           
             {/* Settings Menu */}
+          {superAdmin && (
             <div>
               <button
                 onClick={() => setSettingsOpen(!settingsOpen)}
@@ -159,9 +158,12 @@ const [user, setUser] = useState(null);
                   >
                     Billing
                   </Link>
+                  
                 </div>
               )}
+              
             </div>
+      )}
           </nav>
         </aside>
 
