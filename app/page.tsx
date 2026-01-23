@@ -8,7 +8,9 @@ export default function Home() {
             <div className="h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold">
               D
             </div>
-            <span className="font-semibold tracking-wide">Daraja</span>
+            <span className="font-semibold tracking-wide">
+              Daraja Reporting
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -22,7 +24,7 @@ export default function Home() {
               href="/signup"
               className="rounded-full bg-black text-white px-5 py-2 text-sm font-medium hover:bg-black/90 transition"
             >
-              Signup
+              Get Started
             </a>
           </div>
         </header>
@@ -31,13 +33,13 @@ export default function Home() {
         <main className="mt-20 grid gap-12 lg:grid-cols-2">
           <section className="space-y-6">
             <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
-              Simple. Secure. <br />
-              Built for modern teams.
+              Reporting made simple. <br />
+              Built for real teams.
             </h1>
 
             <p className="text-zinc-600 text-lg max-w-xl">
-              Manage users, subscriptions, and analytics in one powerful
-              platform designed for speed and clarity.
+              Daraja is an all-in-one reporting application that helps teams
+              turn data into clear, shared reports — without complexity.
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row">
@@ -45,25 +47,25 @@ export default function Home() {
                 href="/signup"
                 className="rounded-full bg-black text-white px-8 py-3 font-semibold hover:bg-black/90 transition"
               >
-                Get Started
+                Start Reporting
               </a>
               <a
                 href="/login"
                 className="rounded-full border border-black/20 px-8 py-3 font-semibold hover:bg-black/5 transition"
               >
-                Login
+                View Demo
               </a>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-600">
               <span className="rounded-full bg-zinc-100 px-4 py-2">
-                No credit card required
+                Reporting-first platform
               </span>
               <span className="rounded-full bg-zinc-100 px-4 py-2">
-                Free trial included
+                Built for teams & governance
               </span>
               <span className="rounded-full bg-zinc-100 px-4 py-2">
-                Next.js + Django backend
+                No BI complexity
               </span>
             </div>
           </section>
@@ -71,63 +73,126 @@ export default function Home() {
           {/* Preview Card */}
           <section className="rounded-2xl border border-black/10 bg-zinc-50 p-6">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">Live Overview</span>
-              <span className="text-xs text-zinc-500">Today</span>
+              <span className="font-semibold">Reporting Overview</span>
+              <span className="text-xs text-zinc-500">Live</span>
             </div>
 
             <div className="mt-6 space-y-4">
               <div className="rounded-xl bg-white border border-black/10 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Users</span>
-                  <span className="text-sm font-semibold">1,240</span>
+                  <span className="text-sm font-medium">
+                    Data Sources Connected
+                  </span>
+                  <span className="text-sm font-semibold">8</span>
                 </div>
               </div>
 
               <div className="rounded-xl bg-white border border-black/10 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    Active Subscriptions
+                    Active Reports
                   </span>
-                  <span className="text-sm font-semibold">684</span>
+                  <span className="text-sm font-semibold">42</span>
                 </div>
               </div>
 
               <div className="rounded-xl bg-white border border-black/10 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Monthly Revenue</span>
-                  <span className="text-sm font-semibold">$12.8K</span>
+                  <span className="text-sm font-medium">
+                    Teams Using Reports
+                  </span>
+                  <span className="text-sm font-semibold">6</span>
                 </div>
               </div>
             </div>
           </section>
         </main>
 
-        {/* Features */}
+        {/* What the App Does */}
+        <section className="mt-24">
+          <h2 className="text-2xl font-semibold">
+            What the Daraja Reporting Platform Does
+          </h2>
+
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              "Centralizes data from multiple sources",
+              "Creates clear, shareable dashboards",
+              "Keeps reporting consistent across teams",
+              "Controls access with built-in governance",
+              "Scales as your organization grows",
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-black/10 p-6 text-sm text-zinc-700"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Built For */}
         <section className="mt-20">
-          <h2 className="text-2xl font-semibold">Everything you need</h2>
-          <p className="text-zinc-600 mt-2 max-w-xl">
-            Built to scale with your business, from day one.
-          </p>
+          <h2 className="text-2xl font-semibold">Built For</h2>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+          <div className="mt-6 flex flex-wrap gap-3 text-sm">
+            {[
+              "Business leaders",
+              "Operations teams",
+              "Analysts",
+              "Growing organizations",
+            ].map((role) => (
+              <span
+                key={role}
+                className="rounded-full bg-zinc-100 px-4 py-2"
+              >
+                {role}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Why Different */}
+        <section className="mt-20">
+          <h2 className="text-2xl font-semibold">
+            Why Daraja Is Different
+          </h2>
+
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
             <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">User Management</h3>
-              <p className="text-sm text-zinc-600 mt-2">
-                Invite users, assign roles, and control access easily.
+              <h3 className="font-semibold">
+                Reporting First
+              </h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                Designed specifically for reporting — not a generic BI tool.
               </p>
             </div>
 
             <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">Billing & Subscriptions</h3>
-              <p className="text-sm text-zinc-600 mt-2">
-                Stripe-powered plans, invoices, and payments.
+              <h3 className="font-semibold">
+                Simple by Design
+              </h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                Easy to use, easy to understand, and easy to share.
               </p>
             </div>
 
             <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">Analytics</h3>
-              <p className="text-sm text-zinc-600 mt-2">
-                Real-time insights into growth and usage.
+              <h3 className="font-semibold">
+                All-in-One Platform
+              </h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                One reporting app instead of many disconnected tools.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-black/10 p-6">
+              <h3 className="font-semibold">
+                Built for Decisions
+              </h3>
+              <p className="mt-2 text-sm text-zinc-600">
+                Focused on clarity and understanding — not just charts.
               </p>
             </div>
           </div>
@@ -135,7 +200,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="mt-24 border-t border-black/10 pt-6 text-sm text-zinc-500">
-          © {new Date().getFullYear()} Daraja. All rights reserved.
+          © {new Date().getFullYear()} Daraja Reporting Platform. All rights reserved.
         </footer>
       </div>
     </div>
