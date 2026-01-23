@@ -123,6 +123,7 @@ export default function GroupsPage() {
         <Select
           isMulti
           className="mb-3"
+          placeholder="Select Dashboard..."
           value={selectedDashboards}
           onChange={setSelectedDashboards}
           options={dashboards.map((d) => ({
@@ -134,6 +135,7 @@ export default function GroupsPage() {
         <Select
           isMulti
           className="mb-3"
+          placeholder="Select User..."
           value={selectedUsers}
           onChange={setSelectedUsers}
           options={users.map((u) => ({
