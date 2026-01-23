@@ -125,22 +125,24 @@ const [user, setUser] = useState(null);
             >
               Dashboards
             </Link>
-          {superAdmin && (
-              <Link
-                href="/admin/users"
-                className={`p-2 rounded ${isActive("/admin/users") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-              >
-                Users
-              </Link>
-              <>
-                <Link
-                  href="/admin/groups"
-                  className={`p-2 rounded ${isActive("/admin/groups") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  Groups
-                </Link>
-      )}
-              </>
+              {superAdmin && (
+                <>
+                  <Link
+                    href="/admin/users"
+                    className={`p-2 rounded ${isActive("/admin/users") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
+                  >
+                    Users
+                  </Link>
+              
+                  <Link
+                    href="/admin/groups"
+                    className={`p-2 rounded ${isActive("/admin/groups") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
+                  >
+                    Groups
+                  </Link>
+                </>
+              )}
+
               
           
             {/* Settings Menu */}
