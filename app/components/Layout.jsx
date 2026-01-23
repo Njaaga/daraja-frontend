@@ -146,6 +146,8 @@ const [user, setUser] = useState(null);
               
           
             {/* Settings Menu */}
+            {superAdmin && (
+            <>
             <div>
               <button
                 onClick={() => setSettingsOpen(!settingsOpen)}
@@ -169,6 +171,8 @@ const [user, setUser] = useState(null);
               )}
               
             </div>
+            </>
+          )}
           </nav>
         </aside>
 
