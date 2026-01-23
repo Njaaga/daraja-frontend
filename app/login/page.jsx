@@ -50,7 +50,7 @@ export default function LoginPage() {
       saveUserRole(data.user?.role || "user");
 
       if (data.subscription && !data.subscription.is_active) {
-        router.push("/dashboards");
+        router.push("/charts");
       } else {
         router.push("/billing");
       }
