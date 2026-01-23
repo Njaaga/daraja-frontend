@@ -102,13 +102,30 @@ const [user, setUser] = useState(null);
                 Dashboard Builder
               </Link>
             )}
-
+            <Link
+              href="/api-sources"
+              className={`p-2 rounded ${isActive("/api-sources") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+            >
+              API Sources
+            </Link>
+            <Link
+              href="/datasets"
+              className={`p-2 rounded ${isActive("/datasets") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+            >
+              Datasets
+            </Link>
             <Link
               href="/dashboards"
               className={`p-2 rounded ${isActive("/dashboards") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
             >
               Dashboards
             </Link>
+              <Link
+                href="/admin/users"
+                className={`p-2 rounded ${isActive("/admin/users") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
+              >
+                Users
+              </Link>
 
             {superAdmin && (
               <>
@@ -117,24 +134,6 @@ const [user, setUser] = useState(null);
                   className={`p-2 rounded ${isActive("/admin/groups") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
                 >
                   Groups
-                </Link>
-                <Link
-                  href="/admin/users"
-                  className={`p-2 rounded ${isActive("/admin/users") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  Users
-                </Link>
-                <Link
-                  href="/api-sources"
-                  className={`p-2 rounded ${isActive("/api-sources") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  API Sources
-                </Link>
-                <Link
-                  href="/datasets"
-                  className={`p-2 rounded ${isActive("/datasets") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  Datasets
                 </Link>
               </>
               
