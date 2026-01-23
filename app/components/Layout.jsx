@@ -101,7 +101,7 @@ const [user, setUser] = useState(null);
               >
                 Dashboard Builder
               </Link>
-            )}
+            
             <Link
               href="/api-sources"
               className={`p-2 rounded ${isActive("/api-sources") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
@@ -114,6 +114,7 @@ const [user, setUser] = useState(null);
             >
               Datasets
             </Link>
+          )}
             <Link
               href="/dashboards"
               className={`p-2 rounded ${isActive("/dashboards") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
