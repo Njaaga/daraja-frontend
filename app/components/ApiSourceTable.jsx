@@ -62,7 +62,6 @@ export default function ApiSourcesPage() {
   };
 
   return (
-    <Layout>
       <div className="p-10">
         {/* Header */}
         <div className="flex justify-between mb-6 items-center">
@@ -158,6 +157,5 @@ export default function ApiSourcesPage() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }
