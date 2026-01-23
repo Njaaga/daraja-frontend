@@ -77,12 +77,6 @@ const [user, setUser] = useState(null);
           </button>
           {avatarMenuOpen && (
             <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow-lg border border-gray-200 z-50">
-              <Link
-                href="/reset-password"
-                className="block px-4 py-2 hover:bg-gray-100"
-              >
-                Reset Password
-              </Link>
               <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-2 hover:bg-gray-100"
