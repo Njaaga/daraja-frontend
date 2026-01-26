@@ -60,7 +60,7 @@ export default function ClientSignup() {
             ? `${form.subdomain}.localhost`
             : `${form.subdomain}.${baseHost.split('.').slice(1).join('.')}`;
 
-        const subdomainUrl = `${FRONTEND_URL}/login`;
+        const subdomainUrl = `${FRONTEND_URL}/verify-signup`;
         window.location.href = subdomainUrl;
       }
 
