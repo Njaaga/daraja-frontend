@@ -11,6 +11,7 @@ import * as XLSX from "xlsx";
 export default function UsersPage() {
   const router = useRouter();
 
+  // Data
   const [users, setUsers] = useState([]);
   const [tenant, setTenant] = useState("");
 
@@ -20,8 +21,7 @@ export default function UsersPage() {
   const [email, setEmail] = useState("");
 
   // UI
-  const [status, setStatus] = useState({ message: "", type: "" });
-  
+  const [status, setStatus] = useState(null); // { message, type } | null
   const [refreshing, setRefreshing] = useState(false);
 
   // Table
@@ -64,7 +64,10 @@ export default function UsersPage() {
   // -----------------------------
   const inviteUser = async () => {
     if (!firstName || !lastName || !email) {
-      setStatus("All fields are required");
+      setStatus({
+        message: "All fields are required",
+        type: "error",
+      });
       return;
     }
 
@@ -79,7 +82,11 @@ export default function UsersPage() {
         }),
       });
 
-      setStatus(res?.message || "Invitation sent");
+      setStatus({
+        message: res?.message || "Invitation sent",
+        type: "success",
+      });
+
       setFirstName("");
       setLastName("");
       setEmail("");
@@ -93,7 +100,7 @@ export default function UsersPage() {
   // Bulk invite via Excel
   // -----------------------------
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     try {
@@ -107,7 +114,10 @@ export default function UsersPage() {
       );
 
       if (validUsers.length === 0) {
-        setStatus("No valid users found in the Excel file");
+        setStatus({
+          message: "No valid users found in the Excel file",
+          type: "error",
+        });
         return;
       }
 
@@ -121,11 +131,14 @@ export default function UsersPage() {
         message: res?.message || "Users invited successfully",
         type: "success",
       });
-      
+
       loadUsers();
     } catch (err) {
       console.error(err);
-      setStatus("Failed to upload users");
+      setStatus({
+        message: "Failed to upload users",
+        type: "error",
+      });
     }
   };
 
@@ -176,7 +189,18 @@ export default function UsersPage() {
             </Link>
           </div>
 
-          {status && <p className="mb-4 text-red-600">{status}</p>}
+          {/* Status message */}
+          {status?.message && (
+            <div
+              className={`mb-4 p-3 rounded border ${
+                status.type === "success"
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}
+            >
+              {status.message}
+            </div>
+          )}
 
           {/* Invite single user */}
           <div className="mb-6 flex flex-col gap-2 w-80">
@@ -209,10 +233,12 @@ export default function UsersPage() {
 
           {/* Excel Upload */}
           <div className="mb-6">
-            <label className="block mb-2 font-semibold">Upload Users via Excel:</label>
+            <label className="block mb-2 font-semibold">
+              Upload Users via Excel:
+            </label>
             <input
               type="file"
-              accept=".xlsx, .xls"
+              accept=".xlsx,.xls"
               onChange={handleFileUpload}
               className="p-2 border rounded"
             />
