@@ -8,6 +8,11 @@ import SubscriptionGate from "@/app/components/SubscriptionGate";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 
+const STATUS = {
+  SUCCESS: "success",
+  ERROR: "error",
+};
+
 export default function UsersPage() {
   const router = useRouter();
 
@@ -20,8 +25,8 @@ export default function UsersPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
 
-  // UI
-  const [status, setStatus] = useState(null); // { message, type } | null
+  // UI state
+  const [status, setStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Table
@@ -48,7 +53,7 @@ export default function UsersPage() {
     try {
       const data = await apiClient("/api/users/", { tenant });
       setUsers(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
       router.push("/login");
     } finally {
       setRefreshing(false);
@@ -66,7 +71,7 @@ export default function UsersPage() {
     if (!firstName || !lastName || !email) {
       setStatus({
         message: "All fields are required",
-        type: "error",
+        type: STATUS.ERROR,
       });
       return;
     }
@@ -83,16 +88,19 @@ export default function UsersPage() {
       });
 
       setStatus({
-        message: res?.message || "Invitation sent",
-        type: "success",
+        message: res?.message || "User invited successfully",
+        type: STATUS.SUCCESS,
       });
 
       setFirstName("");
       setLastName("");
       setEmail("");
       loadUsers();
-    } catch {
-      router.push("/login");
+    } catch (err) {
+      setStatus({
+        message: "Failed to invite user",
+        type: STATUS.ERROR,
+      });
     }
   };
 
@@ -100,7 +108,7 @@ export default function UsersPage() {
   // Bulk invite via Excel
   // -----------------------------
   const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files[0];
     if (!file) return;
 
     try {
@@ -116,7 +124,7 @@ export default function UsersPage() {
       if (validUsers.length === 0) {
         setStatus({
           message: "No valid users found in the Excel file",
-          type: "error",
+          type: STATUS.ERROR,
         });
         return;
       }
@@ -129,7 +137,7 @@ export default function UsersPage() {
 
       setStatus({
         message: res?.message || "Users invited successfully",
-        type: "success",
+        type: STATUS.SUCCESS,
       });
 
       loadUsers();
@@ -137,7 +145,7 @@ export default function UsersPage() {
       console.error(err);
       setStatus({
         message: "Failed to upload users",
-        type: "error",
+        type: STATUS.ERROR,
       });
     }
   };
@@ -146,12 +154,19 @@ export default function UsersPage() {
   // Soft delete
   // -----------------------------
   const deleteUser = async (id) => {
-    await apiClient(`/api/users/${id}/`, {
-      method: "DELETE",
-      tenant,
-    });
+    try {
+      await apiClient(`/api/users/${id}/`, {
+        method: "DELETE",
+        tenant,
+      });
 
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch {
+      setStatus({
+        message: "Failed to delete user",
+        type: STATUS.ERROR,
+      });
+    }
   };
 
   // -----------------------------
@@ -193,9 +208,9 @@ export default function UsersPage() {
           {status?.message && (
             <div
               className={`mb-4 p-3 rounded border ${
-                status.type === "success"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : "bg-red-50 text-red-700 border-red-200"
+                status.type === STATUS.ERROR
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : "bg-green-50 text-green-700 border-green-200"
               }`}
             >
               {status.message}
@@ -231,7 +246,7 @@ export default function UsersPage() {
             </button>
           </div>
 
-          {/* Excel Upload */}
+          {/* Excel upload */}
           <div className="mb-6">
             <label className="block mb-2 font-semibold">
               Upload Users via Excel:
