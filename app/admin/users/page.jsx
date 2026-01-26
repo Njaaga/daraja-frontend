@@ -21,6 +21,7 @@ export default function UsersPage() {
 
   // UI
   const [status, setStatus] = useState({ message: "", type: "" });
+  
   const [refreshing, setRefreshing] = useState(false);
 
   // Table
@@ -116,7 +117,11 @@ export default function UsersPage() {
         body: JSON.stringify({ users: validUsers }),
       });
 
-      setStatus(res?.message || "Users invited successfully");
+      setStatus({
+        message: res?.message || "Users invited successfully",
+        type: "success",
+      });
+      
       loadUsers();
     } catch (err) {
       console.error(err);
