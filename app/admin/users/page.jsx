@@ -20,7 +20,7 @@ export default function UsersPage() {
   const [email, setEmail] = useState("");
 
   // UI
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState({ message: "", type: "" });
   const [refreshing, setRefreshing] = useState(false);
 
   // Table
