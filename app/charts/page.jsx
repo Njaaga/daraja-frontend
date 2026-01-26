@@ -990,7 +990,16 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 2 - Joins */}
         {step === STEPS.JOINS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
-            <h3 className="font-semibold mb-2">Define joins between datasets</h3> <InfoTooltip align="right" text="Combine datasets using inner, left, right, or full joins based on matching keys." />
+            <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold">
+                  Define joins between datasets
+                </h3>
+                <InfoTooltip
+                  align="right"
+                  text="Combine datasets using inner, left, right, or full joins based on matching keys."
+                />
+              </div>
+            
             <p className="text-sm text-gray-600 mb-2">Create inner/left/right/full joins between selected datasets. Excel can be used but will be joined client-side only.</p>
 
             <div className="space-y-2">
@@ -1044,7 +1053,16 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 3 - Calculated */}
         {step === STEPS.CALCULATED && (
           <div className="mb-4 bg-white p-4 rounded shadow">
-            <h3 className="font-semibold mb-2">Calculated fields</h3> <InfoTooltip align="right" text="Create new columns using formulas. Supports math, conditions, and aggregates like SUM and AVG." />
+            <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold">
+                  Calculated fields
+                </h3>
+                <InfoTooltip
+                  align="right"
+                  text="Create new columns using formulas. Supports math, conditions, and aggregates like SUM and AVG."
+                />
+              </div>
+            
             <p className="text-sm text-gray-600 mb-2">Add JS expressions referencing existing column names. Helper functions: SUM(arr), AVG(arr), LEN(x), IF(cond,a,b).</p>
 
             <div className="space-y-2">
@@ -1124,7 +1142,16 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 5 - Filters */}
         {step === STEPS.FILTERS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
-            <h3 className="font-semibold mb-2">Filters</h3> <InfoTooltip align="right" text="Apply rules to limit which rows appear in charts and tables." />
+            <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold">
+                 Filters
+                </h3>
+                <InfoTooltip
+                  align="right"
+                  text="Apply rules to limit which rows appear in charts and tables."
+                />
+              </div>
+            
             <p className="text-sm text-gray-600 mb-2">Add UI filters to further refine data.</p>
 
             <div className="space-y-2">
@@ -1196,7 +1223,15 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 6 - Charts */}
         {step === STEPS.CHARTS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
-            <h3 className="font-semibold mb-2">Create charts</h3> <InfoTooltip align="right" text="Visualize your data using bar, line, pie, or table charts." />
+            <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold">
+                 Create charts
+                </h3>
+                <InfoTooltip
+                  align="right"
+                  text="Visualize your data using bar, line, pie, or table charts."
+                />
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3">
               <input type="text" placeholder="Chart title" value={chartTitle} onChange={(e) => setChartTitle(e.target.value)} className="border p-2 rounded col-span-3" />
