@@ -159,20 +159,23 @@ export default function BillingPage() {
                 {new Date(subscription.start_date).toLocaleDateString()} –{" "}
                 {new Date(subscription.end_date).toLocaleDateString()}
               </p>
-
+            <div className="mt-4">
               <ToggleAutoRenewButton
                 autoRenew={subscription.auto_renew}
                 onToggle={(val) =>
                   setSubscription({ ...subscription, auto_renew: val })
                 }
               />
+            </div>
 
+            <div className="mt-2">
               <CancelSubscriptionButton
                 onCancel={() => {
                   setSubscription(null);
                   loadBillingData();
                 }}
               />
+            </div>
             </div>
           ) : (
             <p>No active subscription</p>
