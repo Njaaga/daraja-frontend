@@ -79,7 +79,7 @@ export default function ClientSignup() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Client Signup (You will need to verify your account before you are able to login)</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Signup</h2>
 
         {error && (
           <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>
