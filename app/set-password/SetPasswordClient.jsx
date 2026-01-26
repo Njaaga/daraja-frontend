@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+const STATUS = {
+  SUCCESS: "success",
+  ERROR: "error",
+};
 
 export default function SetPasswordClient() {
   const searchParams = useSearchParams();
@@ -14,25 +20,34 @@ export default function SetPasswordClient() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("");
+    setStatus(null);
 
     if (!password || !confirmPassword) {
-      setStatus("Please fill both fields");
+      setStatus({
+        message: "Please fill both fields",
+        type: STATUS.ERROR,
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      setStatus("Passwords do not match");
+      setStatus({
+        message: "Passwords do not match",
+        type: STATUS.ERROR,
+      });
       return;
     }
 
     if (!uid || !token) {
-      setStatus("Missing UID or token in the link");
+      setStatus({
+        message: "Invalid or expired password reset link",
+        type: STATUS.ERROR,
+      });
       return;
     }
 
@@ -44,17 +59,22 @@ export default function SetPasswordClient() {
         password,
       });
 
-      setStatus(res.data.message || "Password set successfully");
-
-      setTimeout(() => router.push("/login"), 2000);
+      setStatus({
+        message: res?.data?.message || "Password set successfully",
+        type: STATUS.SUCCESS,
+      });
 
       setPassword("");
       setConfirmPassword("");
+
+      setTimeout(() => router.push("/login"), 2000);
     } catch (err) {
       console.error(err.response?.data || err);
-      setStatus(
-        err.response?.data?.error || "Failed to set password"
-      );
+      setStatus({
+        message:
+          err.response?.data?.error || "Failed to set password",
+        type: STATUS.ERROR,
+      });
     } finally {
       setLoading(false);
     }
@@ -65,7 +85,18 @@ export default function SetPasswordClient() {
       <div className="w-full max-w-md bg-white p-6 rounded shadow">
         <h2 className="text-xl font-bold mb-4">Set Your Password</h2>
 
-        {status && <p className="mb-4 text-red-600">{status}</p>}
+        {/* Status message */}
+        {status?.message && (
+          <div
+            className={`mb-4 p-3 rounded border ${
+              status.type === STATUS.ERROR
+                ? "bg-red-50 text-red-700 border-red-200"
+                : "bg-green-50 text-green-700 border-green-200"
+            }`}
+          >
+            {status.message}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
@@ -86,7 +117,7 @@ export default function SetPasswordClient() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white p-2 rounded mt-2"
+            className="bg-blue-600 text-white p-2 rounded mt-2 hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Setting..." : "Set Password"}
           </button>
