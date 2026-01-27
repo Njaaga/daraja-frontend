@@ -1,6 +1,6 @@
 "use client";
 
-import SubscriptionGate from "@/app/components/SubscriptionGate"
+import SubscriptionGate from "@/app/components/SubscriptionGate";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,243 +14,166 @@ import {
   Settings,
   CreditCard,
   LifeBuoy,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-
-
 
 export default function Layout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
   const [superAdmin, setSuperAdmin] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
-  const avatarRef = useRef();
+  const avatarRef = useRef(null);
 
-  // Open Settings if current pathname is under it
-  const isSettingsRoute = pathname.startsWith("/billing") || pathname.startsWith("/support");;
-  const [settingsOpen, setSettingsOpen] = useState(isSettingsRoute);
+  const isSettingsRoute =
+    pathname.startsWith("/billing") || pathname.startsWith("/support");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSuperAdmin(isSuperAdmin());
-    }
-  }, []);
-
-  // Update settingsOpen dynamically if route changes
-  useEffect(() => {
+    setSuperAdmin(isSuperAdmin());
     setSettingsOpen(isSettingsRoute);
   }, [pathname]);
 
-  // Close avatar dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (avatarRef.current && !avatarRef.current.contains(event.target)) {
-        setAvatarMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    const close = (e) =>
+      avatarRef.current &&
+      !avatarRef.current.contains(e.target) &&
+      setAvatarMenuOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
   }, []);
 
-const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null);
   useEffect(() => {
-  const loadUser = async () => {
-    try {
-      const me = await apiClient("/api/users/me/");
-      setUser(me);
-    } catch (err) {
-      console.error("Failed to load user");
-    }
-  };
+    apiClient("/api/users/me/")
+      .then(setUser)
+      .catch(() => {});
+  }, []);
 
-  loadUser();
-}, []);
-  
-  const isActive = (path) => pathname === path || pathname.startsWith(path);
+  const isActive = (path) =>
+    pathname === path || pathname.startsWith(path);
 
-  const handleLogout = () => {
-    apiLogout();
-    router.push("/login");
-  };
+  const navItem = (href, label, Icon) => (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 p-2 rounded transition ${
+        isActive(href)
+          ? "bg-blue-600 font-semibold"
+          : "hover:bg-gray-700"
+      }`}
+      title={collapsed ? label : undefined}
+    >
+      <Icon size={18} />
+      {!collapsed && <span>{label}</span>}
+    </Link>
+  );
 
   return (
     <SubscriptionGate>
-    <div className="h-screen flex flex-col">
-      {/* Top Bar */}
-      <header className="h-14 bg-gray-900 text-white flex items-center justify-between px-6">
-        <h1 className="text-xl font-bold">Daraja App</h1>
-        <div className="relative" ref={avatarRef}>
-          <button
-            onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
-            className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
+      <div className="h-screen flex flex-col">
+        {/* Top bar */}
+        <header className="h-14 bg-gray-900 text-white flex items-center justify-between px-6">
+          <h1 className="text-lg font-bold">Daraja App</h1>
+
+          <div className="relative" ref={avatarRef}>
+            <button
+              onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+              className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
+            >
+              {user?.email || "Account"}
+            </button>
+
+            {avatarMenuOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow border z-50">
+                <button
+                  onClick={() => {
+                    apiLogout();
+                    router.push("/login");
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Body */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <aside
+            className={`bg-gray-800 text-white transition-all duration-300 ${
+              collapsed ? "w-20" : "w-64"
+            }`}
           >
-            <span>{user?.email || "Account"}</span>
-          </button>
-          {avatarMenuOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow-lg border border-gray-200 z-50">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              {!collapsed && <span className="font-bold">Admin Panel</span>}
               <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                onClick={() => setCollapsed(!collapsed)}
+                className="p-1 hover:bg-gray-700 rounded"
               >
-                Logout
+                {collapsed ? (
+                  <ChevronRight size={18} />
+                ) : (
+                  <ChevronLeft size={18} />
+                )}
               </button>
             </div>
-          )}
-        </div>
-      </header>
 
-      {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="bg-gray-800 text-white w-64">
-          <div className="p-4 font-bold border-b border-gray-700">Admin Panel</div>
-          <nav className="p-4 flex flex-col gap-2 text-sm">
-            {superAdmin && (
-              <>
-              <Link
-                href="/charts"
-                className={`p-2 rounded flex items-center gap-2 ${
-                  isActive("/charts")
-                    ? "bg-blue-600 font-semibold"
-                    : "hover:bg-gray-700"
-                }`}
-              >
-                <LayoutDashboard size={16} />
-                Dashboard Builder
-              </Link>
-
-            
-              <Link
-                href="/api-sources"
-                className={`p-2 rounded flex items-center gap-2 ${
-                  isActive("/api-sources")
-                    ? "bg-blue-500 font-semibold"
-                    : "hover:bg-gray-700"
-                }`}
-              >
-                <Database size={16} />
-                API Sources
-              </Link>
-
-            
-              <Link
-                href="/datasets"
-                className={`p-2 rounded flex items-center gap-2 ${
-                  isActive("/datasets")
-                    ? "bg-blue-500 font-semibold"
-                    : "hover:bg-gray-700"
-                }`}
-              >
-                <BarChart3 size={16} />
-                Datasets
-              </Link>
-
-              </>
-            )}
-
-            <Link
-              href="/dashboards"
-              className={`p-2 rounded flex items-center gap-2 ${
-                isActive("/dashboards")
-                  ? "bg-blue-600 font-semibold"
-                  : "hover:bg-gray-700"
-              }`}
-            >
-              <LayoutDashboard size={16} />
-              Dashboards
-            </Link>
-
+            {/* Nav */}
+            <nav className="p-3 flex flex-col gap-1 text-sm">
               {superAdmin && (
                 <>
-            <Link
-              href="/admin/users"
-              className={`p-2 rounded flex items-center gap-2 ${
-                isActive("/admin/users")
-                  ? "bg-blue-600 font-semibold"
-                  : "hover:bg-gray-700"
-              }`}
-            >
-              <Users size={16} />
-              Users
-            </Link>
-
-                  </>
+                  {navItem("/charts", "Dashboard Builder", LayoutDashboard)}
+                  {navItem("/api-sources", "API Sources", Database)}
+                  {navItem("/datasets", "Datasets", BarChart3)}
+                </>
               )}
-            <Link
-              href="/admin/groups"
-              className={`p-2 rounded flex items-center gap-2 ${
-                isActive("/admin/groups")
-                  ? "bg-blue-600 font-semibold"
-                  : "hover:bg-gray-700"
-              }`}
-            >
-              <UsersRound size={16} />
-              Groups
-            </Link>
 
-                
-              
+              {navItem("/dashboards", "Dashboards", LayoutDashboard)}
 
-              
-          
-            {/* Settings Menu */}
-            {superAdmin && (
-            <>
-            <div>
-              <button
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className={`w-full text-left p-2 rounded flex justify-between items-center
-                  ${isSettingsRoute ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-              >
-                <span className="flex items-center gap-2">
-                  <Settings size={16} />
-                  Settings
-                </span>
-                <span>{settingsOpen ? "▲" : "▼"}</span>
-              </button>
+              {superAdmin && navItem("/admin/users", "Users", Users)}
+              {navItem("/admin/groups", "Groups", UsersRound)}
 
-                  
-              {settingsOpen && (
-                <div className="ml-4 mt-1 flex flex-col gap-1 text-xs">
-                  <Link
-                    href="/billing"
-                    className={`p-2 rounded flex items-center gap-2 ${
-                      isActive("/billing")
-                        ? "bg-blue-500 font-semibold"
+              {/* Settings */}
+              {superAdmin && (
+                <>
+                  <button
+                    onClick={() => setSettingsOpen(!settingsOpen)}
+                    className={`flex items-center justify-between p-2 rounded ${
+                      isSettingsRoute
+                        ? "bg-blue-600 font-semibold"
                         : "hover:bg-gray-700"
                     }`}
                   >
-                    <CreditCard size={14} />
-                    Billing
-                  </Link>
+                    <span className="flex items-center gap-3">
+                      <Settings size={18} />
+                      {!collapsed && <span>Settings</span>}
+                    </span>
+                    {!collapsed && (settingsOpen ? "▲" : "▼")}
+                  </button>
 
-                  
-                  <Link
-                    href="/support"
-                    className={`p-2 rounded flex items-center gap-2 ${
-                      isActive("/support")
-                        ? "bg-blue-500 font-semibold"
-                        : "hover:bg-gray-700"
-                    }`}
-                  >
-                    <LifeBuoy size={14} />
-                    Support
-                  </Link>
-
-                  
-                </div>
+                  {settingsOpen && !collapsed && (
+                    <div className="ml-6 mt-1 flex flex-col gap-1 text-xs">
+                      {navItem("/billing", "Billing", CreditCard)}
+                      {navItem("/support", "Support", LifeBuoy)}
+                    </div>
+                  )}
+                </>
               )}
-              
-            </div>
-            </>
-          )}
-          </nav>
-        </aside>
+            </nav>
+          </aside>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6 bg-gray-100">{children}</main>
+          {/* Content */}
+          <main className="flex-1 overflow-auto bg-gray-100 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
     </SubscriptionGate>
   );
 }
