@@ -3,6 +3,17 @@
 import { useState } from "react";
 import Layout from "@/app/components/Layout";
 import { apiClient } from "@/lib/apiClient";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 export default function SupportPage() {
   const [form, setForm] = useState({
@@ -43,7 +54,11 @@ export default function SupportPage() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-2">Support</h1>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <LifeBuoy size={24} />
+          Support
+        </h2>
+
         <p className="text-gray-600 mb-6">
           Need help or have a question? Send us a message and we’ll respond as soon as possible.
         </p>
