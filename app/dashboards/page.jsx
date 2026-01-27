@@ -103,7 +103,11 @@ export default function DashboardsPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-3xl font-bold">📊 Dashboards</h2>
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <LayoutDashboard size={16} />
+              Dashboards
+            </h2>
+
             {refreshing && (
               <p className="text-sm text-gray-500">Refreshing…</p>
             )}
