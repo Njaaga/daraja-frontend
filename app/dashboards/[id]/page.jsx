@@ -72,12 +72,13 @@ export default function DashboardView() {
 
 
   const handleDeleteChart = async (chartId) => {
-    if (!confirm("Delete this chart? This cannot be undone.")) return;
+    if (!confirm("Delete this chart?")) return;
   
     try {
-      await apiClient.delete(`/api/charts/${chartId}/`);
+      await apiClient(`/api/charts/${chartId}/`, {
+        method: "DELETE",
+      });
   
-      // remove from UI immediately
       setCharts((prev) =>
         prev.filter((c) => c.chartId !== chartId)
       );
@@ -86,6 +87,7 @@ export default function DashboardView() {
       alert("Failed to delete chart");
     }
   };
+
 
 
   const handleExportPDF = async () => {
