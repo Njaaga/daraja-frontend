@@ -5,6 +5,17 @@ import Layout from "@/app/components/Layout";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 export default function DashboardsPage() {
   const router = useRouter();
