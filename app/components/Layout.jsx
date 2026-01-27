@@ -22,48 +22,69 @@ export default function Layout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [superAdmin, setSuperAdmin] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
   const avatarRef = useRef(null);
+  const settingsRef = useRef(null);
+
+  const isActive = (path) =>
+    pathname === path || pathname.startsWith(path);
 
   const isSettingsRoute =
     pathname.startsWith("/billing") || pathname.startsWith("/support");
 
+  /* ---------- Bootstrap ---------- */
   useEffect(() => {
     setSuperAdmin(isSuperAdmin());
+  }, []);
+
+  useEffect(() => {
     setSettingsOpen(isSettingsRoute);
   }, [pathname]);
 
-  useEffect(() => {
-    const close = (e) =>
-      avatarRef.current &&
-      !avatarRef.current.contains(e.target) &&
-      setAvatarMenuOpen(false);
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  const [user, setUser] = useState(null);
   useEffect(() => {
     apiClient("/api/users/me/")
       .then(setUser)
       .catch(() => {});
   }, []);
 
-  const isActive = (path) =>
-    pathname === path || pathname.startsWith(path);
+  /* ---------- Outside click ---------- */
+  useEffect(() => {
+    const close = (e) => {
+      if (
+        avatarRef.current &&
+        !avatarRef.current.contains(e.target)
+      ) {
+        setAvatarOpen(false);
+      }
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(e.target)
+      ) {
+        setSettingsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
 
-  const navItem = (href, label, Icon) => (
+  const handleLogout = () => {
+    apiLogout();
+    router.push("/login");
+  };
+
+  const NavItem = ({ href, icon: Icon, label }) => (
     <Link
       href={href}
-      className={`flex items-center gap-3 p-2 rounded transition ${
+      className={`flex items-center gap-3 p-2 rounded ${
         isActive(href)
           ? "bg-blue-600 font-semibold"
           : "hover:bg-gray-700"
       }`}
-      title={collapsed ? label : undefined}
     >
       <Icon size={18} />
       {!collapsed && <span>{label}</span>}
@@ -73,26 +94,23 @@ export default function Layout({ children }) {
   return (
     <SubscriptionGate>
       <div className="h-screen flex flex-col">
-        {/* Top bar */}
+        {/* ───────── Top Bar ───────── */}
         <header className="h-14 bg-gray-900 text-white flex items-center justify-between px-6">
-          <h1 className="text-lg font-bold">Daraja App</h1>
+          <h1 className="font-bold">Daraja App</h1>
 
           <div className="relative" ref={avatarRef}>
             <button
-              onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+              onClick={() => setAvatarOpen(!avatarOpen)}
               className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
             >
               {user?.email || "Account"}
             </button>
 
-            {avatarMenuOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow border z-50">
+            {avatarOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow">
                 <button
-                  onClick={() => {
-                    apiLogout();
-                    router.push("/login");
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100"
                 >
                   Logout
                 </button>
@@ -101,50 +119,71 @@ export default function Layout({ children }) {
           </div>
         </header>
 
-        {/* Body */}
+        {/* ───────── Main ───────── */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
+          {/* ───────── Sidebar ───────── */}
           <aside
-            className={`bg-gray-800 text-white transition-all duration-300 ${
-              collapsed ? "w-20" : "w-64"
+            className={`bg-gray-800 text-white transition-all duration-200 ${
+              collapsed ? "w-16" : "w-64"
             }`}
           >
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              {!collapsed && <span className="font-bold">Admin Panel</span>}
+              {!collapsed && <span className="font-bold">Admin</span>}
               <button
                 onClick={() => setCollapsed(!collapsed)}
-                className="p-1 hover:bg-gray-700 rounded"
+                className="hover:bg-gray-700 p-1 rounded"
               >
-                {collapsed ? (
-                  <ChevronRight size={18} />
-                ) : (
-                  <ChevronLeft size={18} />
-                )}
+                {collapsed ? <ChevronRight /> : <ChevronLeft />}
               </button>
             </div>
 
-            {/* Nav */}
-            <nav className="p-3 flex flex-col gap-1 text-sm">
+            <nav className="p-2 flex flex-col gap-1 text-sm">
               {superAdmin && (
                 <>
-                  {navItem("/charts", "Dashboard Builder", LayoutDashboard)}
-                  {navItem("/api-sources", "API Sources", Database)}
-                  {navItem("/datasets", "Datasets", BarChart3)}
+                  <NavItem
+                    href="/charts"
+                    icon={LayoutDashboard}
+                    label="Dashboard Builder"
+                  />
+                  <NavItem
+                    href="/api-sources"
+                    icon={Database}
+                    label="API Sources"
+                  />
+                  <NavItem
+                    href="/datasets"
+                    icon={BarChart3}
+                    label="Datasets"
+                  />
                 </>
               )}
 
-              {navItem("/dashboards", "Dashboards", LayoutDashboard)}
+              <NavItem
+                href="/dashboards"
+                icon={LayoutDashboard}
+                label="Dashboards"
+              />
 
-              {superAdmin && navItem("/admin/users", "Users", Users)}
-              {navItem("/admin/groups", "Groups", UsersRound)}
-
-              {/* Settings */}
               {superAdmin && (
-                <>
+                <NavItem
+                  href="/admin/users"
+                  icon={Users}
+                  label="Users"
+                />
+              )}
+
+              <NavItem
+                href="/admin/groups"
+                icon={UsersRound}
+                label="Groups"
+              />
+
+              {/* ───────── Settings ───────── */}
+              {superAdmin && (
+                <div className="relative" ref={settingsRef}>
                   <button
                     onClick={() => setSettingsOpen(!settingsOpen)}
-                    className={`flex items-center justify-between p-2 rounded ${
+                    className={`w-full flex items-center justify-between p-2 rounded ${
                       isSettingsRoute
                         ? "bg-blue-600 font-semibold"
                         : "hover:bg-gray-700"
@@ -152,24 +191,49 @@ export default function Layout({ children }) {
                   >
                     <span className="flex items-center gap-3">
                       <Settings size={18} />
-                      {!collapsed && <span>Settings</span>}
+                      {!collapsed && "Settings"}
                     </span>
                     {!collapsed && (settingsOpen ? "▲" : "▼")}
                   </button>
 
+                  {/* Expanded */}
                   {settingsOpen && !collapsed && (
                     <div className="ml-6 mt-1 flex flex-col gap-1 text-xs">
-                      {navItem("/billing", "Billing", CreditCard)}
-                      {navItem("/support", "Support", LifeBuoy)}
+                      <NavItem
+                        href="/billing"
+                        icon={CreditCard}
+                        label="Billing"
+                      />
+                      <NavItem
+                        href="/support"
+                        icon={LifeBuoy}
+                        label="Support"
+                      />
                     </div>
                   )}
-                </>
+
+                  {/* Collapsed Popover */}
+                  {settingsOpen && collapsed && (
+                    <div className="absolute left-full top-0 ml-2 w-40 bg-gray-800 border border-gray-700 rounded shadow z-50">
+                      <NavItem
+                        href="/billing"
+                        icon={CreditCard}
+                        label="Billing"
+                      />
+                      <NavItem
+                        href="/support"
+                        icon={LifeBuoy}
+                        label="Support"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
             </nav>
           </aside>
 
-          {/* Content */}
-          <main className="flex-1 overflow-auto bg-gray-100 p-6">
+          {/* ───────── Content ───────── */}
+          <main className="flex-1 overflow-auto p-6 bg-gray-100">
             {children}
           </main>
         </div>
