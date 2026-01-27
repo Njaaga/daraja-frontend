@@ -128,7 +128,7 @@ export default function Layout({ children }) {
             }`}
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              {!collapsed && <span className="font-bold">Admin</span>}
+              {!collapsed && <span className="font-bold">Reporting</span>}
               <button
                 onClick={() => setCollapsed(!collapsed)}
                 className="hover:bg-gray-700 p-1 rounded"
