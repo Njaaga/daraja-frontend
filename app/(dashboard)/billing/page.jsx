@@ -10,6 +10,17 @@ import CancelSubscriptionButton from "./components/CancelSubscriptionButton";
 import ToggleAutoRenewButton from "./components/ToggleAutoRenewButton";
 import AddCardForm from "./components/AddCardForm";
 import { apiClient, getTenant } from "@/lib/apiClient";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 export default function BillingPage() {
   const tenant = getTenant(); // sync, instant
@@ -99,7 +110,11 @@ export default function BillingPage() {
     return (
       <Layout>
         <div className="p-6 max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">Billing</h1>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <CreditCard size={24} />
+            Billing
+          </h2>
+
           <p className="text-red-600">
             Tenant not detected. Please log in again.
           </p>
