@@ -120,44 +120,74 @@ const [user, setUser] = useState(null);
               </Link>
 
             
-                <Link
-                  href="/api-sources"
-                  className={`p-2 rounded ${isActive("/api-sources") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  API Sources
-                </Link>
+              <Link
+                href="/api-sources"
+                className={`p-2 rounded flex items-center gap-2 ${
+                  isActive("/api-sources")
+                    ? "bg-blue-500 font-semibold"
+                    : "hover:bg-gray-700"
+                }`}
+              >
+                <Database size={16} />
+                API Sources
+              </Link>
+
             
-                <Link
-                  href="/datasets"
-                  className={`p-2 rounded ${isActive("/datasets") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  Datasets
-                </Link>
+              <Link
+                href="/datasets"
+                className={`p-2 rounded flex items-center gap-2 ${
+                  isActive("/datasets")
+                    ? "bg-blue-500 font-semibold"
+                    : "hover:bg-gray-700"
+                }`}
+              >
+                <BarChart3 size={16} />
+                Datasets
+              </Link>
+
               </>
             )}
 
             <Link
               href="/dashboards"
-              className={`p-2 rounded ${isActive("/dashboards") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
+              className={`p-2 rounded flex items-center gap-2 ${
+                isActive("/dashboards")
+                  ? "bg-blue-600 font-semibold"
+                  : "hover:bg-gray-700"
+              }`}
             >
+              <LayoutDashboard size={16} />
               Dashboards
             </Link>
+
               {superAdmin && (
                 <>
-                  <Link
-                    href="/admin/users"
-                    className={`p-2 rounded ${isActive("/admin/users") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-                  >
-                    Users
-                  </Link>
+            <Link
+              href="/admin/users"
+              className={`p-2 rounded flex items-center gap-2 ${
+                isActive("/admin/users")
+                  ? "bg-blue-600 font-semibold"
+                  : "hover:bg-gray-700"
+              }`}
+            >
+              <Users size={16} />
+              Users
+            </Link>
+
                   </>
               )}
-                  <Link
-                    href="/admin/groups"
-                    className={`p-2 rounded ${isActive("/admin/groups") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-                  >
-                    Groups
-                  </Link>
+            <Link
+              href="/admin/groups"
+              className={`p-2 rounded flex items-center gap-2 ${
+                isActive("/admin/groups")
+                  ? "bg-blue-600 font-semibold"
+                  : "hover:bg-gray-700"
+              }`}
+            >
+              <UsersRound size={16} />
+              Groups
+            </Link>
+
                 
               
 
@@ -172,25 +202,41 @@ const [user, setUser] = useState(null);
                 className={`w-full text-left p-2 rounded flex justify-between items-center
                   ${isSettingsRoute ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
               >
-                <span>Settings</span>
+                <span className="flex items-center gap-2">
+                  <Settings size={16} />
+                  Settings
+                </span>
                 <span>{settingsOpen ? "▲" : "▼"}</span>
               </button>
+
                   
               {settingsOpen && (
                 <div className="ml-4 mt-1 flex flex-col gap-1 text-xs">
                   <Link
                     href="/billing"
-                    className={`p-2 rounded ${isActive("/billing") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+                    className={`p-2 rounded flex items-center gap-2 ${
+                      isActive("/billing")
+                        ? "bg-blue-500 font-semibold"
+                        : "hover:bg-gray-700"
+                    }`}
                   >
+                    <CreditCard size={14} />
                     Billing
                   </Link>
+
                   
                   <Link
                     href="/support"
-                    className={`p-2 rounded ${isActive("/support") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+                    className={`p-2 rounded flex items-center gap-2 ${
+                      isActive("/support")
+                        ? "bg-blue-500 font-semibold"
+                        : "hover:bg-gray-700"
+                    }`}
                   >
+                    <LifeBuoy size={14} />
                     Support
                   </Link>
+
                   
                 </div>
               )}
