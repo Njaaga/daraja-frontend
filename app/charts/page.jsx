@@ -868,7 +868,7 @@ const applyCalculatedFields = (rows, calcs) => {
     <SuperadminGate>
     <Layout>
       <div className="p-6">
-        <h2 className="text-2xl font-bold mb-4">📊 Dashboard Builder</h2>
+        <h2 className="text-2xl font-bold mb-4"><LayoutDashboard size={16} /> Dashboard Builder</h2>
 
         {/* progress */}
         <div className="mb-4 flex gap-2">
