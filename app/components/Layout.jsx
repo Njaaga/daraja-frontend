@@ -107,12 +107,18 @@ const [user, setUser] = useState(null);
           <nav className="p-4 flex flex-col gap-2 text-sm">
             {superAdmin && (
               <>
-                <Link
-                  href="/charts"
-                  className={`p-2 rounded ${isActive("/charts") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
-                >
-                  Dashboard Builder
-                </Link>
+              <Link
+                href="/charts"
+                className={`p-2 rounded flex items-center gap-2 ${
+                  isActive("/charts")
+                    ? "bg-blue-600 font-semibold"
+                    : "hover:bg-gray-700"
+                }`}
+              >
+                <LayoutDashboard size={16} />
+                Dashboard Builder
+              </Link>
+
             
                 <Link
                   href="/api-sources"
