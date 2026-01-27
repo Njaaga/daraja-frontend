@@ -127,7 +127,10 @@ export default function BillingPage() {
     <SubscriptionGate>
     <Layout>
       <div className="max-w-3xl mx-auto p-6 space-y-8">
-        <h1 className="text-2xl font-bold">Billing</h1>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <CreditCard size={24} />
+            Billing
+          </h2>
 
         {refreshing && (
           <p className="text-sm text-gray-500">Refreshing billing data…</p>
