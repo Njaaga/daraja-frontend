@@ -55,7 +55,11 @@ export default function DatasetsPage() {
     <Layout>
       <div className="p-10">
         <div className="flex justify-between mb-6 items-center">
-          <h1 className="text-2xl font-semibold">Datasets</h1>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <BarChart3 size={24} />
+            Datasets
+          </h2>
+
 
           <div className="flex items-center gap-4">
             {refreshing && (
