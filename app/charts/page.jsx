@@ -13,6 +13,17 @@ import "react-datepicker/dist/react-datepicker.css";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import InfoTooltip from "@/app/components/InfoTooltip";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 /**
  * DashboardBuilder - enhanced full-featured replacement for your original component
