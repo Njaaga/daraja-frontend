@@ -133,15 +133,16 @@ const [user, setUser] = useState(null);
                   >
                     Users
                   </Link>
-              
+                  </>
+              )}
                   <Link
                     href="/admin/groups"
                     className={`p-2 rounded ${isActive("/admin/groups") ? "bg-blue-600 font-semibold" : "hover:bg-gray-700"}`}
                   >
                     Groups
                   </Link>
-                </>
-              )}
+                
+              
 
               
           
