@@ -70,6 +70,24 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
+
+  const handleDeleteChart = async (chartId) => {
+    if (!confirm("Delete this chart? This cannot be undone.")) return;
+  
+    try {
+      await apiClient.delete(`/api/charts/${chartId}/`);
+  
+      // remove from UI immediately
+      setCharts((prev) =>
+        prev.filter((c) => c.chartId !== chartId)
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete chart");
+    }
+  };
+
+
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
 
@@ -113,8 +131,16 @@ export default function DashboardView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {charts.map((c) => (
               <div key={c.i} className="bg-white p-4 rounded shadow">
-
-              <h3>{c.title}</h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">{c.title}</h3>
+              
+                  <button
+                    onClick={() => handleDeleteChart(c.chartId)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </div>
                 <ChartRenderer
                   datasetId={c.datasetId}
                   excelData={c.excelData}
