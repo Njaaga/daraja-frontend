@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import Layout from "@/app/components/Layout";
 import Link from "next/link";
 import { apiClient } from "@/lib/apiClient";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 const AUTH_LABELS = {
   NONE: "None",
@@ -65,7 +76,11 @@ export default function ApiSourcesPage() {
       <div className="p-10">
         {/* Header */}
         <div className="flex justify-between mb-6 items-center">
-          <h1 className="text-2xl font-semibold">API Data Sources</h1>
+          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+            <Database  size={24} />
+            API Data Sources
+          </h2>
+
 
           <div className="flex items-center gap-4">
             {refreshing && (
