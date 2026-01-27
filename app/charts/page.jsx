@@ -880,7 +880,7 @@ const applyCalculatedFields = (rows, calcs) => {
     <Layout>
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <LayoutDashboard size={16} />
+          <LayoutDashboard size={24} />
           Dashboard Builder
         </h2>
 
