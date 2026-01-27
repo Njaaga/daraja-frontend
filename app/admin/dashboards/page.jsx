@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import Layout from "@/app/components/Layout";
 import Link from "next/link";
 import axiosClient from "@/utils/axiosClient"; // axios instance with refresh
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
 
 export default function DashboardsPage() {
   const [dashboards, setDashboards] = useState([]);
@@ -54,7 +64,11 @@ export default function DashboardsPage() {
   return (
     <Layout>
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Dashboards</h2>
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <CreditCard  size={24} />
+        Billing
+      </h2>
+
 
       {error && <div className="text-red-600 mb-4">{error}</div>}
 
