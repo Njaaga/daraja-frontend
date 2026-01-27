@@ -5,6 +5,17 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiClient, logout as apiLogout, isSuperAdmin } from "@/lib/apiClient";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 
 export default function Layout({ children }) {
