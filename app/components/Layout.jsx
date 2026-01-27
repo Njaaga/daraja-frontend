@@ -16,7 +16,7 @@ export default function Layout({ children }) {
   const avatarRef = useRef();
 
   // Open Settings if current pathname is under it
-  const isSettingsRoute = pathname.startsWith("/billing");
+  const isSettingsRoute = pathname.startsWith("/billing") || pathname.startsWith("/support");;
   const [settingsOpen, setSettingsOpen] = useState(isSettingsRoute);
 
   useEffect(() => {
