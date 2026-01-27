@@ -7,6 +7,17 @@ import { apiClient } from "@/lib/apiClient";
 import SubscriptionGate from "@/app/components/SubscriptionGate";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 const STATUS = {
   SUCCESS: "success",
@@ -195,7 +206,11 @@ export default function UsersPage() {
       <Layout>
         <div className="p-10">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Users</h2>
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Users size={24} />
+              Users
+            </h2>
+
             <Link
               href="/admin/users/deleted"
               className="text-sm text-blue-600 hover:underline"
