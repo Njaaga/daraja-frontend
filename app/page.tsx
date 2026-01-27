@@ -22,7 +22,7 @@ export default function Home() {
             </a>
             <a
               href="/signup"
-              className="rounded-full bg-black text-white px-5 py-2 text-sm font-medium hover:bg-black/90 transition"
+              className="rounded-full bg-blue-600 text-white px-5 py-2 text-sm font-medium hover:bg-black/90 transition"
             >
               Get Started
             </a>
@@ -45,7 +45,7 @@ export default function Home() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <a
                 href="/signup"
-                className="rounded-full bg-black text-white px-8 py-3 font-semibold hover:bg-black/90 transition"
+                className="rounded-full bg-blue-600 text-white px-8 py-3 font-semibold hover:bg-black/90 transition"
               >
                 Start Reporting
               </a>
