@@ -168,6 +168,15 @@ const [user, setUser] = useState(null);
                   </Link>
                   
                 </div>
+                <div className="ml-4 mt-1 flex flex-col gap-1 text-xs">
+                  <Link
+                    href="/support"
+                    className={`p-2 rounded ${isActive("/support") ? "bg-blue-500 font-semibold" : "hover:bg-gray-700"}`}
+                  >
+                    Support
+                  </Link>
+                  
+                </div>
               )}
               
             </div>
