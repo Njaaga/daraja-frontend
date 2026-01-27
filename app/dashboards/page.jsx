@@ -104,7 +104,7 @@ export default function DashboardsPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <LayoutDashboard size={16} />
+              <LayoutDashboard size={24} />
               Dashboards
             </h2>
 
