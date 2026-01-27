@@ -5,6 +5,17 @@ import { useEffect, useState } from "react";
 import { apiClient, isSuperAdmin } from "@/lib/apiClient";
 import Select from "react-select";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 export default function GroupsPage() {
   const [tenant, setTenant] = useState("");
@@ -111,7 +122,11 @@ export default function GroupsPage() {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Groups</h1>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <UsersRound size={24} />
+          Groups
+        </h2>
+
 
         {superAdmin && (
           <Link
