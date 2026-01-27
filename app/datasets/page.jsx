@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import Layout from "@/app/components/Layout";
 import Link from "next/link";
 import { apiClient } from "@/lib/apiClient";
+import {
+  LayoutDashboard,
+  Database,
+  BarChart3,
+  Users,
+  UsersRound,
+  Settings,
+  CreditCard,
+  LifeBuoy,
+} from "lucide-react";
+
 
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState([]);
