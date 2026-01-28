@@ -7,8 +7,6 @@ import { useRouter, useParams } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { lab, rgb } from "d3-color";
 
 export default function DashboardView() {
   const { id } = useParams();
@@ -19,10 +17,10 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const dashboardRef = useRef(); // Capture dashboard DOM
+  const chartRefs = useRef({}); // store refs to each chart container
 
   // -----------------------------
-  // Fetch dashboard data
+  // Fetch dashboard
   // -----------------------------
   useEffect(() => {
     if (!id) return;
@@ -52,17 +50,6 @@ export default function DashboardView() {
               logicExpression: chartDetail.logic_expression || null,
               joins: chartDetail.joins || [],
               excelData: chartDetail.excel_data || null,
-              // Safe colors: convert LAB -> RGB
-              colors: (chartDetail.colors || []).map((c) => {
-                if (c.startsWith("lab")) {
-                  try {
-                    return rgb(lab(c)).toString();
-                  } catch {
-                    return "#000"; // fallback
-                  }
-                }
-                return c;
-              }),
             };
           });
 
@@ -99,38 +86,39 @@ export default function DashboardView() {
   };
 
   // -----------------------------
-  // Export dashboard as PDF
+  // Export to PDF
   // -----------------------------
   const handleExportPDF = async () => {
-    if (!dashboardRef.current) return;
-
-    // Clone dashboard DOM to safely modify colors
-    const clone = dashboardRef.current.cloneNode(true);
-
-    // Convert any inline LAB colors to RGB
-    clone.querySelectorAll("*").forEach((el) => {
-      const style = window.getComputedStyle(el);
-      ["color", "backgroundColor", "borderColor"].forEach((prop) => {
-        const val = style[prop];
-        if (val && val.startsWith("lab")) {
-          try {
-            el.style[prop] = rgb(lab(val)).toString();
-          } catch {
-            el.style[prop] = "#000";
-          }
-        }
-      });
-    });
-
-    // Render clone for PDF
-    const canvas = await html2canvas(clone, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
+    if (!charts.length) return alert("No charts to export.");
 
     const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yOffset = 10;
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    for (let i = 0; i < charts.length; i++) {
+      const c = charts[i];
+      const chartContainer = chartRefs.current[c.i];
+      if (!chartContainer) continue;
+
+      // Render chart container as canvas
+      const canvas = await html2canvas(chartContainer, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pageWidth - 20;
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      // Check if we need a new page
+      if (yOffset + pdfHeight > pageHeight) {
+        pdf.addPage();
+        yOffset = 10;
+      }
+
+      pdf.addImage(imgData, "PNG", 10, yOffset, pdfWidth, pdfHeight);
+      yOffset += pdfHeight + 10;
+    }
+
     pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
   };
 
@@ -146,12 +134,6 @@ export default function DashboardView() {
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
             <div className="flex gap-3">
               <button
-                onClick={() => router.push("/dashboards")}
-                className="text-blue-600 underline"
-              >
-                ← Back
-              </button>
-              <button
                 onClick={handleExportPDF}
                 className="bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700"
               >
@@ -161,39 +143,40 @@ export default function DashboardView() {
           </div>
 
           {/* Charts */}
-          <div ref={dashboardRef}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {charts.length === 0 && (
               <p className="text-gray-500">No charts yet.</p>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {charts.map((c) => (
-                <div key={c.i} className="bg-white p-4 rounded shadow">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">{c.title}</h3>
-                    <button
-                      onClick={() => handleDeleteChart(c.chartId)}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                  <ChartRenderer
-                    datasetId={c.datasetId}
-                    excelData={c.excelData}
-                    type={c.type}
-                    xField={c.xField}
-                    yField={c.yField}
-                    filters={c.filters}
-                    logicRules={c.logicRules}
-                    logicExpression={c.logicExpression}
-                    joins={c.joins}
-                    colors={c.colors} // Safe colors
-                  />
+            {charts.map((c) => (
+              <div
+                key={c.i}
+                className="bg-white p-4 rounded shadow"
+                ref={(el) => (chartRefs.current[c.i] = el)}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">{c.title}</h3>
+                  <button
+                    onClick={() => handleDeleteChart(c.chartId)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
                 </div>
-              ))}
-            </div>
+
+                <ChartRenderer
+                  datasetId={c.datasetId}
+                  excelData={c.excelData}
+                  type={c.type}
+                  xField={c.xField}
+                  yField={c.yField}
+                  filters={c.filters}
+                  logicRules={c.logicRules}
+                  logicExpression={c.logicExpression}
+                  joins={c.joins}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </Layout>
