@@ -13,6 +13,7 @@ import {
   Settings,
   CreditCard,
   LifeBuoy,
+  Trash2,
 } from "lucide-react";
 
 
@@ -98,6 +99,7 @@ export default function ApiSourcesPage() {
               href="/api-sources/deleted"
               className="bg-gray-600 text-white px-4 py-2 rounded-lg"
             >
+              <Trash2 size={20} />
               Recycle Bin
             </Link>
           </div>
