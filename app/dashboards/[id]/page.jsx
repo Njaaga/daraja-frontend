@@ -7,7 +7,24 @@ import { useRouter, useParams } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import jsPDF from "jspdf";
+import { lab, rgb } from "d3-color";
 import html2canvas from "html2canvas";
+
+/**
+ * Convert any "lab(...)" color strings to hex
+ */
+function sanitizeColor(color) {
+  if (!color || typeof color !== "string") return color;
+  if (color.startsWith("lab(")) {
+    try {
+      return rgb(lab(color)).formatHex(); // convert lab() → hex
+    } catch (e) {
+      console.warn("Failed to parse LAB color:", color);
+      return "#000"; // fallback
+    }
+  }
+  return color;
+}
 
 export default function DashboardView() {
   const { id } = useParams();
@@ -37,10 +54,19 @@ export default function DashboardView() {
         if (db.dashboard_charts) {
           const mappedCharts = db.dashboard_charts.map((dc) => {
             const chartDetail = dc.chart_detail;
+
+            // sanitize all colors in chartDetail
+            if (chartDetail.colors && Array.isArray(chartDetail.colors)) {
+              chartDetail.colors = chartDetail.colors.map(sanitizeColor);
+            }
+
             return {
               i: dc.id.toString(),
               chartId: dc.chart,
-              title: chartDetail.name || chartDetail.label || chartDetail.y_field,
+              title:
+                chartDetail.name ||
+                chartDetail.label ||
+                chartDetail.y_field,
               datasetId: chartDetail.dataset,
               type: chartDetail.chart_type,
               xField: chartDetail.x_field,
@@ -51,6 +77,7 @@ export default function DashboardView() {
               logicExpression: chartDetail.logic_expression || null,
               joins: chartDetail.joins || [],
               excelData: chartDetail.excel_data || null,
+              colors: chartDetail.colors || [],
             };
           });
 
@@ -87,7 +114,7 @@ export default function DashboardView() {
   };
 
   // -----------------------------
-  // Export to PDF
+  // Export PDF
   // -----------------------------
   const handleExportPDF = async () => {
     if (!charts.length) return alert("No charts to export.");
@@ -110,7 +137,6 @@ export default function DashboardView() {
       const pdfWidth = pageWidth - 20;
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-      // Check if we need a new page
       if (yOffset + pdfHeight > pageHeight) {
         pdf.addPage();
         yOffset = 10;
@@ -134,6 +160,12 @@ export default function DashboardView() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
             <div className="flex gap-3">
+              <button
+                onClick={() => router.push("/dashboards")}
+                className="text-blue-600 underline"
+              >
+                ← Back
+              </button>
               <button
                 onClick={handleExportPDF}
                 className="bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700"
@@ -175,6 +207,7 @@ export default function DashboardView() {
                   logicRules={c.logicRules}
                   logicExpression={c.logicExpression}
                   joins={c.joins}
+                  colors={c.colors}
                 />
               </div>
             ))}
