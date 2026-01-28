@@ -112,25 +112,47 @@ export default function DashboardView() {
   // -----------------------------
   // Export PDF (NO iframes, NO lab())
   // -----------------------------
-  const handleExportPDF = async () => {
-    if (!charts.length) {
-      alert("No charts to export.");
-      return;
-    }
+const handleExportPDF = async () => {
+  if (!charts.length) {
+    alert("No charts to export.");
+    return;
+  }
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+  const pdf = new jsPDF("p", "mm", "a4");
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  let y = 10;
 
-    let y = 10;
+  for (const c of charts) {
+    const source = chartRefs.current[c.key];
+    if (!source) continue;
 
-    for (const c of charts) {
-      const node = chartRefs.current[c.key];
-      if (!node) continue;
+    // 🔥 CLONE NODE (do NOT use live DOM)
+    const clone = source.cloneNode(true);
 
-      const canvas = await html2canvas(node, {
+    // 🔥 FORCE SAFE COLORS
+    clone.style.background = "#ffffff";
+    clone.style.color = "#000000";
+
+    // 🔥 REMOVE ALL INLINE STYLES THAT MAY CONTAIN lab()
+    clone.querySelectorAll("*").forEach((el) => {
+      el.style.color = "#000000";
+      el.style.backgroundColor = "#ffffff";
+      el.style.borderColor = "#cccccc";
+      el.style.boxShadow = "none";
+    });
+
+    // Attach offscreen
+    clone.style.position = "fixed";
+    clone.style.left = "-10000px";
+    clone.style.top = "0";
+    document.body.appendChild(clone);
+
+    try {
+      const canvas = await html2canvas(clone, {
         scale: 2,
         backgroundColor: "#ffffff",
+        foreignObjectRendering: false,
         useCORS: true,
         ignoreElements: (el) => el.tagName === "IFRAME",
       });
@@ -148,10 +170,14 @@ export default function DashboardView() {
 
       pdf.addImage(img, "PNG", 10, y, width, height);
       y += height + 10;
+    } finally {
+      document.body.removeChild(clone);
     }
+  }
 
-    pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
-  };
+  pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
+};
+
 
   // -----------------------------
   // Render states
