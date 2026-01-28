@@ -97,10 +97,10 @@ export default function ApiSourcesPage() {
 
             <Link
               href="/api-sources/deleted"
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg"
+              className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
             >
               <Trash2 size={20} />
-              Recycle Bin
+              <span>Recycle Bin</span>
             </Link>
           </div>
         </div>
