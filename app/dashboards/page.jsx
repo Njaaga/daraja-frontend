@@ -14,6 +14,7 @@ import {
   Settings,
   CreditCard,
   LifeBuoy,
+  Trash2,
 } from "lucide-react";
 
 
@@ -140,9 +141,10 @@ export default function DashboardsPage() {
             {/* Recycle Bin Link */}
             <Link
               href="/dashboards/deleted"
-              className="text-sm text-red-600 font-semibold hover:underline"
+              className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
             >
-              ♻️ Recycle Bin
+              <Trash2 size={20} />
+              <span>Recycle Bin</span>
             </Link>
           </div>
         </div>
