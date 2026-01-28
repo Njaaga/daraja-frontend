@@ -1,250 +1,136 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 import Layout from "@/app/components/Layout";
 import AuthGuard from "@/app/components/AuthGuard";
 import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { lab, rgb } from "d3-color";
+import { jsPDF } from "jspdf";
+import { Download } from "lucide-react";
 
-/**
- * Convert CSS lab() colors → hex (html2canvas does NOT support lab())
- */
-function sanitizeColor(color) {
-  if (!color || typeof color !== "string") return color;
-
-  if (color.startsWith("lab(")) {
-    try {
-      return rgb(lab(color)).formatHex();
-    } catch {
-      return "#000000";
-    }
-  }
-
-  return color;
-}
-
-export default function DashboardView() {
-  const { id } = useParams();
-  const router = useRouter();
+export default function DashboardView({ params }) {
+  const { id } = params;
 
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const chartRefs = useRef({});
+  // Store base64 images of charts
+  const chartImagesRef = useRef({});
 
-  // -----------------------------
-  // Fetch dashboard
-  // -----------------------------
+  /* ============================
+     FETCH DASHBOARD
+  ============================ */
   useEffect(() => {
-    if (!id) return;
-
-    const fetchDashboard = async () => {
-      setLoading(true);
-      setError("");
-
+    async function load() {
       try {
-        const db = await apiClient(`/api/dashboards/${id}/`);
-        setDashboard(db);
-
-        const mapped =
-          db.dashboard_charts?.map((dc) => {
-            const d = dc.chart_detail || {};
-
-            const colors = Array.isArray(d.colors)
-              ? d.colors.map(sanitizeColor)
-              : [];
-
-            return {
-              key: String(dc.id),
-              chartId: dc.chart,
-              title: d.name || d.label || d.y_field || "Chart",
-              datasetId: d.dataset,
-              type: d.chart_type,
-              xField: d.x_field,
-              yField: d.y_field,
-              aggregation: d.aggregation,
-              filters: d.filters || {},
-              logicRules: d.logic_rules || [],
-              logicExpression: d.logic_expression || null,
-              joins: d.joins || [],
-              excelData: d.excel_data || null,
-              colors,
-            };
-          }) || [];
-
-        setCharts(mapped);
+        const res = await apiClient.get(`/dashboards/${id}/`);
+        setDashboard(res.data);
+        setCharts(res.data.charts || []);
       } catch (err) {
-        console.error(err);
-        setError(
-          err?.status === 403
-            ? "You do not have permission to view this dashboard."
-            : "Dashboard not found."
-        );
+        console.error("Failed to load dashboard", err);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchDashboard();
+    load();
   }, [id]);
 
-  // -----------------------------
-  // Delete chart
-  // -----------------------------
-  const handleDeleteChart = async (chartId) => {
-    if (!confirm("Delete this chart?")) return;
-
-    try {
-      await apiClient(`/api/charts/${chartId}/`, { method: "DELETE" });
-      setCharts((prev) => prev.filter((c) => c.chartId !== chartId));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete chart");
+  /* ============================
+     PDF EXPORT (SAFE VERSION)
+  ============================ */
+  const handleExportPDF = () => {
+    if (!charts.length) {
+      alert("No charts to export.");
+      return;
     }
-  };
 
-  // -----------------------------
-  // Export PDF (NO iframes, NO lab())
-  // -----------------------------
-const handleExportPDF = async () => {
-  if (!charts.length) {
-    alert("No charts to export.");
-    return;
-  }
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-  const pdf = new jsPDF("p", "mm", "a4");
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  let y = 10;
+    let y = 15;
 
-  for (const c of charts) {
-    const source = chartRefs.current[c.key];
-    if (!source) continue;
+    // Dashboard title
+    pdf.setFontSize(18);
+    pdf.text(dashboard?.name || "Dashboard", 10, y);
+    y += 10;
 
-    // 🔥 CLONE NODE (do NOT use live DOM)
-    const clone = source.cloneNode(true);
+    charts.forEach((chart, index) => {
+      const img = chartImagesRef.current[chart.i];
+      if (!img) return;
 
-    // 🔥 FORCE SAFE COLORS
-    clone.style.background = "#ffffff";
-    clone.style.color = "#000000";
+      const imgProps = pdf.getImageProperties(img);
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
 
-    // 🔥 REMOVE ALL INLINE STYLES THAT MAY CONTAIN lab()
-    clone.querySelectorAll("*").forEach((el) => {
-      el.style.color = "#000000";
-      el.style.backgroundColor = "#ffffff";
-      el.style.borderColor = "#cccccc";
-      el.style.boxShadow = "none";
-    });
-
-    // Attach offscreen
-    clone.style.position = "fixed";
-    clone.style.left = "-10000px";
-    clone.style.top = "0";
-    document.body.appendChild(clone);
-
-    try {
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        foreignObjectRendering: false,
-        useCORS: true,
-        ignoreElements: (el) => el.tagName === "IFRAME",
-      });
-
-      const img = canvas.toDataURL("image/png");
-      const props = pdf.getImageProperties(img);
-
-      const width = pageWidth - 20;
-      const height = (props.height * width) / props.width;
-
-      if (y + height > pageHeight) {
+      if (y + imgHeight > pageHeight - 10) {
         pdf.addPage();
-        y = 10;
+        y = 15;
       }
 
-      pdf.addImage(img, "PNG", 10, y, width, height);
-      y += height + 10;
-    } finally {
-      document.body.removeChild(clone);
-    }
+      // Chart title
+      pdf.setFontSize(12);
+      pdf.text(chart.title || `Chart ${index + 1}`, 10, y);
+      y += 5;
+
+      pdf.addImage(img, "PNG", 10, y, imgWidth, imgHeight);
+      y += imgHeight + 10;
+    });
+
+    pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
+  };
+
+  /* ============================
+     RENDER
+  ============================ */
+  if (loading) {
+    return (
+      <Layout>
+        <div className="p-6">Loading dashboard…</div>
+      </Layout>
+    );
   }
-
-  pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
-};
-
-
-  // -----------------------------
-  // Render states
-  // -----------------------------
-  if (loading) return <p className="p-6">Loading dashboard…</p>;
-  if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <AuthGuard>
       <Layout>
-        <div className="p-6">
+        <div className="p-6 space-y-6">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">{dashboard?.name}</h2>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold">
+              {dashboard?.name}
+            </h1>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push("/dashboards")}
-                className="text-blue-600 underline"
-              >
-                ← Back
-              </button>
-
-              <button
-                onClick={handleExportPDF}
-                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-              >
-                Export to PDF
-              </button>
-            </div>
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              <Download size={18} />
+              Export PDF
+            </button>
           </div>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {charts.length === 0 && (
-              <p className="text-gray-500">No charts yet.</p>
-            )}
-
-            {charts.map((c) => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {charts.map((chart) => (
               <div
-                key={c.key}
-                ref={(el) => (chartRefs.current[c.key] = el)}
-                className="bg-white p-4 rounded shadow"
+                key={chart.i}
+                className="bg-white rounded-xl shadow p-4"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold">{c.title}</h3>
-
-                  <button
-                    onClick={() => handleDeleteChart(c.chartId)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <h3 className="font-medium mb-3">
+                  {chart.title}
+                </h3>
 
                 <ChartRenderer
-                  datasetId={c.datasetId}
-                  excelData={c.excelData}
-                  type={c.type}
-                  xField={c.xField}
-                  yField={c.yField}
-                  aggregation={c.aggregation}
-                  filters={c.filters}
-                  logicRules={c.logicRules}
-                  logicExpression={c.logicExpression}
-                  joins={c.joins}
-                  colors={c.colors}
+                  chart={chart}
+                  onReady={(chartInstance) => {
+                    if (chartInstance?.toBase64Image) {
+                      chartImagesRef.current[chart.i] =
+                        chartInstance.toBase64Image();
+                    }
+                  }}
                 />
               </div>
             ))}
