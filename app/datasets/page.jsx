@@ -13,6 +13,7 @@ import {
   Settings,
   CreditCard,
   LifeBuoy,
+  Trash2,
 } from "lucide-react";
 
 
