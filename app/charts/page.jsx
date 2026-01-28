@@ -1305,6 +1305,12 @@ const applyCalculatedFields = (rows, calcs) => {
                 {charts.map((c) => (
                   <div key={c.i} className="bg-gray-50 p-3 rounded">
                     <h5 className="font-semibold mb-2">{c.name}</h5>
+                  <button
+                    onClick={() => handleDeleteChart(c.chartId)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
                     {c.type === "table" ? (
                       <TableRenderer dataset={c.excelData || datasetRows[c.dataset] || []} />
                     ) : (
