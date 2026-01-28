@@ -84,22 +84,7 @@ const detectType = (v) => {
   return typeof v;
 };
 
-  const handleDeleteChart = async (chartId) => {
-    if (!confirm("Delete this chart?")) return;
-  
-    try {
-      await apiClient(`/api/charts/${chartId}/`, {
-        method: "DELETE",
-      });
-  
-      setCharts((prev) =>
-        prev.filter((c) => c.chartId !== chartId)
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete chart");
-    }
-  };
+
 
 // Convert dataset rows to safe JSON-exportable rows (flatten arrays to strings)
 const normalizeForExport = (rows) =>
@@ -473,6 +458,23 @@ export default function DashboardBuilder() {
   // charts & layout
   const [charts, setCharts] = useState([]);
   const [layout, setLayout] = useState([]);
+
+  const handleDeleteChart = async (chartId) => {
+    if (!confirm("Delete this chart?")) return;
+  
+    try {
+      await apiClient(`/api/charts/${chartId}/`, {
+        method: "DELETE",
+      });
+  
+      setCharts((prev) =>
+        prev.filter((c) => c.chartId !== chartId)
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete chart");
+    }
+  };
 
   // chart builder temp
   const [chartType, setChartType] = useState("bar");
