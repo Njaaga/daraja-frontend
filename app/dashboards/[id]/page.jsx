@@ -2,24 +2,23 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import AuthGuard from "@/app/components/AuthGuard";
 import Layout from "@/app/components/Layout";
-import ChartRenderer from "@/app/components/ChartRenderer";
+import AuthGuard from "@/app/components/AuthGuard";
 import { apiClient } from "@/lib/apiClient";
+import ChartRenderer from "@/app/components/ChartRenderer";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { lab, rgb } from "d3-color";
 
-/* -----------------------------------------------------
-   Helpers
------------------------------------------------------ */
-
-function sanitizeColor(color?: string) {
+/**
+ * Convert CSS lab() colors → hex (html2canvas does NOT support lab())
+ */
+function sanitizeColor(color) {
   if (!color || typeof color !== "string") return color;
 
   if (color.startsWith("lab(")) {
     try {
-      return rgb(lab(color)).formatHex(); // lab() → hex
+      return rgb(lab(color)).formatHex();
     } catch {
       return "#000000";
     }
@@ -28,48 +27,43 @@ function sanitizeColor(color?: string) {
   return color;
 }
 
-/* -----------------------------------------------------
-   Component
------------------------------------------------------ */
-
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
 
-  const [dashboard, setDashboard] = useState<any>(null);
-  const [charts, setCharts] = useState<any[]>([]);
+  const [dashboard, setDashboard] = useState(null);
+  const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const chartRefs = useRef({});
 
-  /* -----------------------------------------------------
-     Fetch dashboard
-  ----------------------------------------------------- */
+  // -----------------------------
+  // Fetch dashboard
+  // -----------------------------
   useEffect(() => {
     if (!id) return;
 
-    let mounted = true;
-
-    const loadDashboard = async () => {
+    const fetchDashboard = async () => {
       setLoading(true);
       setError("");
 
       try {
         const db = await apiClient(`/api/dashboards/${id}/`);
-
-        if (!mounted) return;
-
         setDashboard(db);
 
         const mapped =
-          db?.dashboard_charts?.map((dc) => {
+          db.dashboard_charts?.map((dc) => {
             const d = dc.chart_detail || {};
 
+            const colors = Array.isArray(d.colors)
+              ? d.colors.map(sanitizeColor)
+              : [];
+
             return {
-              key: dc.id.toString(),
+              key: String(dc.id),
               chartId: dc.chart,
-              title: d.name || d.label || d.y_field || "Untitled chart",
+              title: d.name || d.label || d.y_field || "Chart",
               datasetId: d.dataset,
               type: d.chart_type,
               xField: d.x_field,
@@ -80,14 +74,12 @@ export default function DashboardView() {
               logicExpression: d.logic_expression || null,
               joins: d.joins || [],
               excelData: d.excel_data || null,
-              colors: Array.isArray(d.colors)
-                ? d.colors.map(sanitizeColor)
-                : [],
+              colors,
             };
           }) || [];
 
         setCharts(mapped);
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
         setError(
           err?.status === 403
@@ -95,21 +87,17 @@ export default function DashboardView() {
             : "Dashboard not found."
         );
       } finally {
-        mounted && setLoading(false);
+        setLoading(false);
       }
     };
 
-    loadDashboard();
-
-    return () => {
-      mounted = false;
-    };
+    fetchDashboard();
   }, [id]);
 
-  /* -----------------------------------------------------
-     Delete chart
-  ----------------------------------------------------- */
-  const handleDeleteChart = async (chartId: number) => {
+  // -----------------------------
+  // Delete chart
+  // -----------------------------
+  const handleDeleteChart = async (chartId) => {
     if (!confirm("Delete this chart?")) return;
 
     try {
@@ -121,9 +109,9 @@ export default function DashboardView() {
     }
   };
 
-  /* -----------------------------------------------------
-     Export PDF
-  ----------------------------------------------------- */
+  // -----------------------------
+  // Export PDF (NO iframes, NO lab())
+  // -----------------------------
   const handleExportPDF = async () => {
     if (!charts.length) {
       alert("No charts to export.");
@@ -137,35 +125,37 @@ export default function DashboardView() {
     let y = 10;
 
     for (const c of charts) {
-      const el = chartRefs.current[c.key];
-      if (!el) continue;
+      const node = chartRefs.current[c.key];
+      if (!node) continue;
 
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(node, {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
+        ignoreElements: (el) => el.tagName === "IFRAME",
       });
 
       const img = canvas.toDataURL("image/png");
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const props = pdf.getImageProperties(img);
 
-      if (y + imgHeight > pageHeight) {
+      const width = pageWidth - 20;
+      const height = (props.height * width) / props.width;
+
+      if (y + height > pageHeight) {
         pdf.addPage();
         y = 10;
       }
 
-      pdf.addImage(img, "PNG", 10, y, imgWidth, imgHeight);
-      y += imgHeight + 10;
+      pdf.addImage(img, "PNG", 10, y, width, height);
+      y += height + 10;
     }
 
     pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
   };
 
-  /* -----------------------------------------------------
-     Render
-  ----------------------------------------------------- */
-
+  // -----------------------------
+  // Render states
+  // -----------------------------
   if (loading) return <p className="p-6">Loading dashboard…</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
 
@@ -195,43 +185,44 @@ export default function DashboardView() {
           </div>
 
           {/* Charts */}
-          {charts.length === 0 ? (
-            <p className="text-gray-500">No charts yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {charts.map((c) => (
-                <div
-                  key={c.key}
-                  ref={(el) => (chartRefs.current[c.key] = el)}
-                  className="bg-white p-4 rounded shadow"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">{c.title}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {charts.length === 0 && (
+              <p className="text-gray-500">No charts yet.</p>
+            )}
 
-                    <button
-                      onClick={() => handleDeleteChart(c.chartId)}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
+            {charts.map((c) => (
+              <div
+                key={c.key}
+                ref={(el) => (chartRefs.current[c.key] = el)}
+                className="bg-white p-4 rounded shadow"
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">{c.title}</h3>
 
-                  <ChartRenderer
-                    datasetId={c.datasetId}
-                    excelData={c.excelData}
-                    type={c.type}
-                    xField={c.xField}
-                    yField={c.yField}
-                    filters={c.filters}
-                    logicRules={c.logicRules}
-                    logicExpression={c.logicExpression}
-                    joins={c.joins}
-                    colors={c.colors}
-                  />
+                  <button
+                    onClick={() => handleDeleteChart(c.chartId)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
+
+                <ChartRenderer
+                  datasetId={c.datasetId}
+                  excelData={c.excelData}
+                  type={c.type}
+                  xField={c.xField}
+                  yField={c.yField}
+                  aggregation={c.aggregation}
+                  filters={c.filters}
+                  logicRules={c.logicRules}
+                  logicExpression={c.logicExpression}
+                  joins={c.joins}
+                  colors={c.colors}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </Layout>
     </AuthGuard>
