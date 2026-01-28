@@ -5,7 +5,7 @@ export default function Home() {
         {/* Top Nav */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center font-bold">
+            <div className="h-10 w-10 rounded-xl bg-black text-white flex items-center justify-center font-bold">
               D
             </div>
             <span className="font-semibold tracking-wide">
@@ -16,7 +16,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <a
               href="/login"
-              className="rounded-full px-5 py-2 text-sm font-medium hover:bg-black/5 transition"
+              className="rounded-full px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition"
             >
               Login
             </a>
@@ -38,10 +38,12 @@ export default function Home() {
             </h1>
 
             <p className="text-zinc-600 text-lg max-w-xl">
-              Daraja is an all-in-one reporting application that helps teams
-              turn data into clear, shared reports — without complexity.
+              Daraja is a reporting-first platform that helps teams turn
+              distributed data into clear, shared insight — without BI
+              complexity.
             </p>
 
+            {/* Primary actions */}
             <div className="flex flex-col gap-4 sm:flex-row">
               <a
                 href="/signup"
@@ -51,59 +53,58 @@ export default function Home() {
               </a>
               <a
                 href="/login"
-                className="rounded-full border border-black/20 px-8 py-3 font-semibold hover:bg-black/5 transition"
+                className="rounded-full border border-black/20 px-8 py-3 font-semibold text-zinc-800 hover:bg-zinc-100 transition"
               >
                 View Demo
               </a>
             </div>
 
+            {/* Informational tags (non-CTA) */}
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-600">
-              <span className="rounded-full bg-zinc-100 px-4 py-2">
-                Reporting-first platform
-              </span>
-              <span className="rounded-full bg-zinc-100 px-4 py-2">
-                Built for teams & governance
-              </span>
-              <span className="rounded-full bg-zinc-100 px-4 py-2">
-                No BI complexity
-              </span>
+              {[
+                "Reporting-first platform",
+                "Built for teams & governance",
+                "No BI complexity",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full bg-zinc-100 px-3 py-1.5"
+                >
+                  {item}
+                </span>
+              ))}
             </div>
           </section>
 
-          {/* Preview Card */}
-          <section className="rounded-2xl border border-black/10 bg-zinc-50 p-6">
+          {/* Preview (read-only) */}
+          <section className="rounded-2xl border border-black/5 bg-zinc-50 p-6">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">Reporting Overview</span>
+              <span className="font-semibold text-zinc-800">
+                Reporting Overview
+              </span>
               <span className="text-xs text-zinc-500">Live</span>
             </div>
 
             <div className="mt-6 space-y-4">
-              <div className="rounded-xl bg-white border border-black/10 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    Data Sources Connected
-                  </span>
-                  <span className="text-sm font-semibold">8</span>
+              {[
+                ["Data Sources Connected", "8"],
+                ["Active Reports", "42"],
+                ["Teams Using Reports", "6"],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-lg bg-zinc-100/60 border border-black/5 p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-zinc-600">
+                      {label}
+                    </span>
+                    <span className="text-sm font-semibold text-zinc-800">
+                      {value}
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              <div className="rounded-xl bg-white border border-black/10 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    Active Reports
-                  </span>
-                  <span className="text-sm font-semibold">42</span>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-white border border-black/10 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    Teams Using Reports
-                  </span>
-                  <span className="text-sm font-semibold">6</span>
-                </div>
-              </div>
+              ))}
             </div>
           </section>
         </main>
@@ -121,10 +122,10 @@ export default function Home() {
               "Keeps reporting consistent across teams",
               "Controls access with built-in governance",
               "Scales as your organization grows",
-            ].map((item, i) => (
+            ].map((item) => (
               <div
-                key={i}
-                className="rounded-2xl border border-black/10 p-6 text-sm text-zinc-700"
+                key={item}
+                className="rounded-xl border border-black/5 bg-zinc-50 p-6 text-sm text-zinc-700"
               >
                 {item}
               </div>
@@ -136,7 +137,7 @@ export default function Home() {
         <section className="mt-20">
           <h2 className="text-2xl font-semibold">Built For</h2>
 
-          <div className="mt-6 flex flex-wrap gap-3 text-sm">
+          <div className="mt-6 flex flex-wrap gap-3 text-sm text-zinc-600">
             {[
               "Business leaders",
               "Operations teams",
@@ -145,7 +146,7 @@ export default function Home() {
             ].map((role) => (
               <span
                 key={role}
-                className="rounded-full bg-zinc-100 px-4 py-2"
+                className="rounded-full bg-zinc-100 px-3 py-1.5"
               >
                 {role}
               </span>
@@ -160,41 +161,36 @@ export default function Home() {
           </h2>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">
-                Reporting First
-              </h3>
-              <p className="mt-2 text-sm text-zinc-600">
-                Designed specifically for reporting — not a generic BI tool.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">
-                Simple by Design
-              </h3>
-              <p className="mt-2 text-sm text-zinc-600">
-                Easy to use, easy to understand, and easy to share.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">
-                All-in-One Platform
-              </h3>
-              <p className="mt-2 text-sm text-zinc-600">
-                One reporting app instead of many disconnected tools.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-black/10 p-6">
-              <h3 className="font-semibold">
-                Built for Decisions
-              </h3>
-              <p className="mt-2 text-sm text-zinc-600">
-                Focused on clarity and understanding — not just charts.
-              </p>
-            </div>
+            {[
+              {
+                title: "Reporting First",
+                text: "Designed specifically for reporting — not a generic BI tool.",
+              },
+              {
+                title: "Simple by Design",
+                text: "Easy to use, easy to understand, and easy to share.",
+              },
+              {
+                title: "All-in-One Platform",
+                text: "One reporting application instead of many disconnected tools.",
+              },
+              {
+                title: "Built for Decisions",
+                text: "Focused on clarity and understanding — not just charts.",
+              },
+            ].map(({ title, text }) => (
+              <div
+                key={title}
+                className="rounded-xl border border-black/5 bg-white p-6"
+              >
+                <h3 className="font-semibold text-zinc-800">
+                  {title}
+                </h3>
+                <p className="mt-2 text-sm text-zinc-600">
+                  {text}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 
