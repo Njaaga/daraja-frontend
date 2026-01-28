@@ -84,6 +84,23 @@ const detectType = (v) => {
   return typeof v;
 };
 
+  const handleDeleteChart = async (chartId) => {
+    if (!confirm("Delete this chart?")) return;
+  
+    try {
+      await apiClient(`/api/charts/${chartId}/`, {
+        method: "DELETE",
+      });
+  
+      setCharts((prev) =>
+        prev.filter((c) => c.chartId !== chartId)
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete chart");
+    }
+  };
+
 // Convert dataset rows to safe JSON-exportable rows (flatten arrays to strings)
 const normalizeForExport = (rows) =>
   (rows || []).map((r) => {
