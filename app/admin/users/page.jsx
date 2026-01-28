@@ -16,6 +16,7 @@ import {
   Settings,
   CreditCard,
   LifeBuoy,
+  Trash2,
 } from "lucide-react";
 
 
@@ -213,9 +214,10 @@ export default function UsersPage() {
 
             <Link
               href="/admin/users/deleted"
-              className="text-sm text-blue-600 hover:underline"
+              className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
             >
-              Recycle Bin
+              <Trash2 size={20} />
+              <span>Recycle Bin</span>
             </Link>
           </div>
 
