@@ -123,15 +123,8 @@ export default function DashboardView({ params }) {
                   {chart.title}
                 </h3>
 
-                <ChartRenderer
-                  chart={chart}
-                  onReady={(chartInstance) => {
-                    if (chartInstance?.toBase64Image) {
-                      chartImagesRef.current[chart.i] =
-                        chartInstance.toBase64Image();
-                    }
-                  }}
-                />
+                <ChartRenderer chart={chart} />
+
               </div>
             ))}
           </div>
