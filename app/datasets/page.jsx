@@ -85,9 +85,10 @@ export default function DatasetsPage() {
             </Link>
             <Link
               href="/datasets/deleted"
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg"
+              className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
             >
-              Recycle Bin
+              <Trash2 size={20} />
+              <span>Recycle Bin</span>
             </Link>
           </div>
         </div>
