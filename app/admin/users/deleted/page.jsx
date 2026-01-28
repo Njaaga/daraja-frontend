@@ -102,12 +102,6 @@ export default function UsersRecycleBinPage() {
         <div className="p-10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">User Recycle Bin</h2>
-            <Link
-              href="/admin/users"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              ← Back to Users
-            </Link>
           </div>
 
           {refreshing && (
