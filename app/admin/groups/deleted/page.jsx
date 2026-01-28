@@ -46,9 +46,6 @@ export default function DeletedGroupsPage() {
     <Layout>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Deleted Groups</h1>
-        <Link href="/admin/groups" className="underline">
-          Back to Groups
-        </Link>
       </div>
 
       {groups.length === 0 && (
