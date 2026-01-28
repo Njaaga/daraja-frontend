@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { lab, rgb } from "d3-color";
 
 export default function DashboardView() {
   const { id } = useParams();
@@ -18,7 +19,7 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const dashboardRef = useRef(); // Capture dashboard DOM for PDF
+  const dashboardRef = useRef(); // Capture dashboard DOM
 
   // -----------------------------
   // Fetch dashboard data
@@ -51,6 +52,17 @@ export default function DashboardView() {
               logicExpression: chartDetail.logic_expression || null,
               joins: chartDetail.joins || [],
               excelData: chartDetail.excel_data || null,
+              // Safe colors: convert LAB -> RGB
+              colors: (chartDetail.colors || []).map((c) => {
+                if (c.startsWith("lab")) {
+                  try {
+                    return rgb(lab(c)).toString();
+                  } catch {
+                    return "#000"; // fallback
+                  }
+                }
+                return c;
+              }),
             };
           });
 
@@ -92,20 +104,34 @@ export default function DashboardView() {
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
 
-    try {
-      const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
-      const imgData = canvas.toDataURL("image/png");
+    // Clone dashboard DOM to safely modify colors
+    const clone = dashboardRef.current.cloneNode(true);
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    // Convert any inline LAB colors to RGB
+    clone.querySelectorAll("*").forEach((el) => {
+      const style = window.getComputedStyle(el);
+      ["color", "backgroundColor", "borderColor"].forEach((prop) => {
+        const val = style[prop];
+        if (val && val.startsWith("lab")) {
+          try {
+            el.style[prop] = rgb(lab(val)).toString();
+          } catch {
+            el.style[prop] = "#000";
+          }
+        }
+      });
+    });
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to export PDF");
-    }
+    // Render clone for PDF
+    const canvas = await html2canvas(clone, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
   };
 
   if (loading) return <p className="p-6">Loading dashboard...</p>;
@@ -163,6 +189,7 @@ export default function DashboardView() {
                     logicRules={c.logicRules}
                     logicExpression={c.logicExpression}
                     joins={c.joins}
+                    colors={c.colors} // Safe colors
                   />
                 </div>
               ))}
