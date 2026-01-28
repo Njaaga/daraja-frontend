@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function DashboardView() {
   const { id } = useParams();
