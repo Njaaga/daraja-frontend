@@ -14,6 +14,7 @@ import {
   Settings,
   CreditCard,
   LifeBuoy,
+  Trash2,
 } from "lucide-react";
 
 
@@ -129,12 +130,13 @@ export default function GroupsPage() {
 
 
         {superAdmin && (
-          <Link
-            href="/admin/groups/deleted"
-            className="text-red-600 underline"
-          >
-            View Deleted Groups
-          </Link>
+            <Link
+              href="/admin/groups/deleted"
+              className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+            >
+              <Trash2 size={20} />
+              <span>Recycle Bin</span>
+            </Link>
         )}
       </div>
 
