@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import ReCAPTCHA from "react-google-recaptcha";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 const FRONTEND_URL = "https://reporting.darajatechnologies.ca";
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
 
@@ -19,11 +20,11 @@ export default function ClientSignup() {
     confirmPassword: "",
     acceptTerms: false,
   });
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -31,25 +32,23 @@ export default function ClientSignup() {
     }));
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Validate fields
     if (!form.companyName || !form.subdomain || !form.email || !form.password) {
       setError("All fields are required");
       return;
     }
-
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-
     if (!form.acceptTerms) {
       setError("You must accept the Terms & Conditions to continue");
       return;
     }
-
     if (!captchaToken) {
       setError("Please complete the CAPTCHA");
       return;
@@ -67,10 +66,10 @@ export default function ClientSignup() {
       });
 
       if (res.status === 201) {
-        const subdomainUrl = `${FRONTEND_URL}/verify-signup`;
-        window.location.href = subdomainUrl;
+        // Redirect to verification page
+        window.location.href = `${FRONTEND_URL}/verify-signup`;
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       if (err.response) {
         setError(err.response.data?.error || "Signup failed. Check your input.");
@@ -158,7 +157,7 @@ export default function ClientSignup() {
             />
           </div>
 
-          {/* Terms & Conditions */}
+          {/* Terms & Privacy */}
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -166,29 +165,20 @@ export default function ClientSignup() {
               checked={form.acceptTerms}
               onChange={handleChange}
               className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              required
             />
             <label className="ml-2 text-sm text-gray-700">
               I agree to the{" "}
-              <a
-                href="/terms"
-                target="_blank"
-                className="text-blue-600 hover:underline"
-              >
+              <a href="/terms" target="_blank" className="text-blue-600 hover:underline">
                 Terms & Conditions
               </a>{" "}
               and{" "}
-              <a
-                href="/privacy"
-                target="_blank"
-                className="text-blue-600 hover:underline"
-              >
+              <a href="/privacy" target="_blank" className="text-blue-600 hover:underline">
                 Privacy Policy
               </a>
             </label>
           </div>
 
-          {/* Google reCAPTCHA */}
+          {/* reCAPTCHA */}
           <div className="mt-2">
             <ReCAPTCHA
               sitekey={RECAPTCHA_SITE_KEY}
