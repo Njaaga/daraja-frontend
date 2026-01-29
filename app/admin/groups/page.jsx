@@ -124,11 +124,16 @@ export default function GroupsPage() {
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <UsersRound size={24} />
-          Groups
-        </h2>
-
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <UsersRound size={24} />
+                Groups
+              </h2>
+              <InfoTooltip
+                align="right"
+                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+              />
+            </div>
 
         {superAdmin && (
             <Link
