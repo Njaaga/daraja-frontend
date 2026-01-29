@@ -115,11 +115,16 @@ export default function DashboardsPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <LayoutDashboard size={24} />
-              Dashboards
-            </h2>
-
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <LayoutDashboard size={24} />
+                Dashboards
+              </h2>
+              <InfoTooltip
+                align="right"
+                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+              />
+            </div>
             {refreshing && (
               <p className="text-sm text-gray-500">Refreshing…</p>
             )}
