@@ -49,6 +49,14 @@ export default function DeletedDashboardsPage() {
   return (
     <Layout>
       <div className="p-10">
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => router.push("/dashboards")}
+          className="text-sm text-gray-600 hover:underline"
+        >
+          ← Back to datasets
+        </button>
+      </div>
         <h1 className="text-2xl font-semibold mb-6">
           Deleted Dashboards
         </h1>
