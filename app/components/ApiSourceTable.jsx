@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Layout from "@/app/components/Layout";
 import Link from "next/link";
 import { apiClient } from "@/lib/apiClient";
+import InfoTooltip from "@/app/components/InfoTooltip";
 import {
   LayoutDashboard,
   Database,
