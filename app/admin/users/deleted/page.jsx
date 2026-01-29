@@ -97,7 +97,7 @@ export default function UsersRecycleBinPage() {
           {/* Back button */}
           <div className="flex items-center gap-3 mb-4">
             <button
-              onClick={() => router.push("/users")}
+              onClick={() => router.push("/admin/users")}
               className="text-sm text-gray-600 hover:underline"
             >
               ← Back to Users
