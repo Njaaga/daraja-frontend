@@ -113,6 +113,7 @@ export default function GroupsPage() {
   };
 
   const deleteGroup = async (id) => {
+    if (!confirm("Move group to recycle bin?")) return;
     await apiClient(`/api/groups/${id}/`, {
       method: "DELETE",
       tenant,
