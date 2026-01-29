@@ -67,10 +67,16 @@ export default function DatasetsPage() {
     <Layout>
       <div className="p-10">
         <div className="flex justify-between mb-6 items-center">
-          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <BarChart3 size={24} />
-            Datasets
-          </h2>
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <BarChart3 size={24} />
+                Datasets
+              </h2>
+              <InfoTooltip
+                align="right"
+                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+              />
+            </div>
 
 
           <div className="flex items-center gap-4">
