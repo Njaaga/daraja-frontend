@@ -45,6 +45,12 @@ export default function Home() {
     }
   };
 
+  const listItemClasses = `
+    p-4 rounded-xl bg-gradient-to-r from-white via-zinc-50 to-white 
+    border border-zinc-200 shadow-sm
+    hover:shadow-md hover:scale-[1.02] transition-transform duration-200
+  `;
+
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="mx-auto max-w-6xl px-6 py-10">
@@ -193,7 +199,7 @@ export default function Home() {
             What the Daraja Reporting Platform Does
           </h2>
 
-          <ul className="mt-6 space-y-2 text-sm text-zinc-700">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Centralizes data from multiple sources",
               "Creates clear, shareable dashboards",
@@ -201,29 +207,29 @@ export default function Home() {
               "Controls access with built-in governance",
               "Scales as your organization grows",
             ].map((item) => (
-              <li key={item} className="flex items-start gap-2 pl-4 border-l-2 border-zinc-200">
+              <div key={item} className={listItemClasses}>
                 {item}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
         {/* Built For */}
         <section className="mt-20">
           <h2 className="text-2xl font-semibold">Built For</h2>
 
-          <ul className="mt-4 space-y-1 text-sm text-zinc-600">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               "Business leaders",
               "Operations teams",
               "Analysts",
               "Growing organizations",
             ].map((role) => (
-              <li key={role} className="pl-4 border-l-2 border-zinc-200">
+              <div key={role} className={listItemClasses}>
                 {role}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
         {/* Why Different */}
@@ -232,7 +238,7 @@ export default function Home() {
             Why Daraja Is Different
           </h2>
 
-          <ul className="mt-6 space-y-3 text-sm text-zinc-700">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {[
               {
                 title: "Reporting First",
@@ -251,11 +257,12 @@ export default function Home() {
                 text: "Focused on clarity and understanding — not just charts.",
               },
             ].map(({ title, text }) => (
-              <li key={title} className="pl-4 border-l-2 border-zinc-200">
-                <span className="font-semibold">{title}:</span> {text}
-              </li>
+              <div key={title} className={listItemClasses}>
+                <h3 className="font-semibold text-zinc-800 mb-1">{title}</h3>
+                <p className="text-sm text-zinc-600">{text}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
         {/* Footer */}
