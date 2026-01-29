@@ -5,7 +5,6 @@ import Layout from "@/app/components/Layout";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import SubscriptionGate from "@/app/components/SubscriptionGate";
-import Link from "next/link";
 
 export default function UsersRecycleBinPage() {
   const router = useRouter();
@@ -14,13 +13,13 @@ export default function UsersRecycleBinPage() {
   const [tenant, setTenant] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Table
+  // Table state
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
   // -----------------------------
-  // Tenant
+  // Detect tenant from hostname
   // -----------------------------
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -36,15 +35,10 @@ export default function UsersRecycleBinPage() {
 
     setRefreshing(true);
     try {
-      const data = await apiClient(
-        "/api/users/?include_deleted=true",
-        { tenant }
-      );
+      const data = await apiClient("/api/users/?include_deleted=true", { tenant });
 
       setUsers(
-        Array.isArray(data)
-          ? data.filter((u) => !u.is_active)
-          : []
+        Array.isArray(data) ? data.filter((u) => !u.is_active) : []
       );
     } catch {
       router.push("/login");
@@ -58,20 +52,20 @@ export default function UsersRecycleBinPage() {
   }, [tenant]);
 
   // -----------------------------
-  // Restore
+  // Restore user
   // -----------------------------
   const restoreUser = async (id) => {
-    await apiClient(`/api/users/${id}/restore/`, {
-      method: "POST",
-      tenant,
-    });
+    if (!confirm("Restore this user?")) return;
+    await apiClient(`/api/users/${id}/restore/`, { method: "POST", tenant });
     loadDeletedUsers();
   };
 
-
+  // -----------------------------
+  // Hard delete user
+  // -----------------------------
   const hardDelete = async (id) => {
-    if (!confirm("Delete permanently?")) return;
-    await apiClient(`/api/users/${id}/hard_delete/`, { method: "DELETE", tenant, });
+    if (!confirm("Delete this user permanently?")) return;
+    await apiClient(`/api/users/${id}/hard_delete/`, { method: "DELETE", tenant });
     loadDeletedUsers();
   };
 
@@ -100,13 +94,21 @@ export default function UsersRecycleBinPage() {
     <SubscriptionGate>
       <Layout>
         <div className="p-10">
+          {/* Back button */}
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => router.push("/users")}
+              className="text-sm text-gray-600 hover:underline"
+            >
+              ← Back to Users
+            </button>
+          </div>
+
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">User Recycle Bin</h2>
           </div>
 
-          {refreshing && (
-            <p className="text-sm text-gray-500 mb-2">Refreshing…</p>
-          )}
+          {refreshing && <p className="text-sm text-gray-500 mb-2">Refreshing…</p>}
 
           <input
             placeholder="Search deleted users..."
@@ -138,7 +140,7 @@ export default function UsersRecycleBinPage() {
                       <td className="px-4 py-2">{u.first_name}</td>
                       <td className="px-4 py-2">{u.last_name}</td>
                       <td className="px-4 py-2">{u.email}</td>
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-2 flex gap-2">
                         <button
                           onClick={() => restoreUser(u.id)}
                           className="bg-green-600 text-white px-3 py-1 rounded"
@@ -146,11 +148,11 @@ export default function UsersRecycleBinPage() {
                           Restore
                         </button>
                         <button
-                        onClick={() => hardDelete(u.id)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Delete Permanently
-                      </button>
+                          onClick={() => hardDelete(u.id)}
+                          className="text-red-600 hover:underline"
+                        >
+                          Delete Permanently
+                        </button>
                       </td>
                     </tr>
                   ))
