@@ -82,7 +82,10 @@ export default function ApiSourcesPage() {
             <Database  size={24} />
             API Data Sources
           </h2>
-
+                <InfoTooltip
+                  align="right"
+                  text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+                />
 
           <div className="flex items-center gap-4">
             {refreshing && (
