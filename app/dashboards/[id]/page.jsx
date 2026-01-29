@@ -126,53 +126,55 @@ export default function DashboardView() {
     <Layout>
       <div className="p-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            {!renaming ? (
-              <>
-                <h2 className="text-2xl font-bold">{dashboard.name}</h2>
-                <button
-                  onClick={() => setRenaming(true)}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Rename
-                </button>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="border rounded px-2 py-1"
-                  disabled={savingName}
-                />
-                <button
-                  onClick={handleRename}
-                  disabled={savingName}
-                  className="bg-green-600 text-white px-3 py-1 rounded"
-                >
-                  {savingName ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => {
-                    setRenaming(false);
-                    setNewName(dashboard.name);
-                  }}
-                  className="text-gray-600 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
+<div className="flex justify-between items-center mb-6">
+  <div className="flex items-center gap-3">
+    {/* Back button */}
+    <button
+      onClick={() => router.push("/dashboards")}
+      className="text-sm text-gray-600 hover:underline"
+    >
+      ← Back to dashboards
+    </button>
 
-          <button
-            onClick={handleExportPDF}
-            className="bg-gray-700 text-white px-4 py-2 rounded"
-          >
-            Export PDF
-          </button>
-        </div>
+    {!renaming ? (
+      <>
+        <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+        <button
+          onClick={() => setRenaming(true)}
+          className="text-sm text-blue-600 hover:underline"
+        >
+          Rename
+        </button>
+      </>
+    ) : (
+      <div className="flex items-center gap-2">
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          className="border rounded px-2 py-1"
+          disabled={savingName}
+        />
+        <button
+          onClick={handleRename}
+          disabled={savingName}
+          className="bg-green-600 text-white px-3 py-1 rounded"
+        >
+          {savingName ? "Saving..." : "Save"}
+        </button>
+        <button
+          onClick={() => {
+            setRenaming(false);
+            setNewName(dashboard.name);
+          }}
+          className="text-gray-600 text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+
 
         {/* Dashboard Content */}
         <div ref={dashboardRef}>
