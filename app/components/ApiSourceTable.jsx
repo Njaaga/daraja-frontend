@@ -79,15 +79,16 @@ export default function ApiSourcesPage() {
         {/* Header */}
         <div className="flex justify-between mb-6 items-center">
             <div className="flex items-center gap-2 mb-2">
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <Database  size={24} />
-                  API Data Sources
-                </h2>
-                <InfoTooltip
-                  align="right"
-                  text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
-                />
-              </div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Database size={24} />
+                API Data Sources
+              </h2>
+              <InfoTooltip
+                align="right"
+                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+              />
+            </div>
+
           
           <div className="flex items-center gap-4">
             {refreshing && (
