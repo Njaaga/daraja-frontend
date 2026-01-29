@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { apiClient, isSuperAdmin } from "@/lib/apiClient";
 import Select from "react-select";
 import Link from "next/link";
+import InfoTooltip from "@/app/components/InfoTooltip";
 import {
   LayoutDashboard,
   Database,
