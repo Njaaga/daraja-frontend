@@ -17,6 +17,10 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
   const dashboardRef = useRef(null);
 
   useEffect(() => {
@@ -29,6 +33,7 @@ export default function DashboardView() {
       try {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
+        setNewName(db.name);
 
         if (db.dashboard_charts) {
           const mapped = db.dashboard_charts.map((dc) => {
@@ -64,6 +69,30 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
+  const handleRename = async () => {
+    if (!newName.trim()) {
+      alert("Dashboard name cannot be empty");
+      return;
+    }
+
+    setSavingName(true);
+
+    try {
+      const res = await apiClient(`/api/dashboards/${id}/`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: newName }),
+      });
+
+      setDashboard((prev) => ({ ...prev, name: newName }));
+      setRenaming(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to rename dashboard");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   const handleDeleteChart = async (chartId) => {
     if (!confirm("Delete this chart?")) return;
 
@@ -96,11 +125,56 @@ export default function DashboardView() {
   return (
     <Layout>
       <div className="p-6">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+          <div className="flex items-center gap-3">
+            {!renaming ? (
+              <>
+                <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+                <button
+                  onClick={() => setRenaming(true)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Rename
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="border rounded px-2 py-1"
+                  disabled={savingName}
+                />
+                <button
+                  onClick={handleRename}
+                  disabled={savingName}
+                  className="bg-green-600 text-white px-3 py-1 rounded"
+                >
+                  {savingName ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setRenaming(false);
+                    setNewName(dashboard.name);
+                  }}
+                  className="text-gray-600 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
 
+          <button
+            onClick={handleExportPDF}
+            className="bg-gray-700 text-white px-4 py-2 rounded"
+          >
+            Export PDF
+          </button>
         </div>
 
+        {/* Dashboard Content */}
         <div ref={dashboardRef}>
           {charts.length === 0 && <p>No charts yet.</p>}
 
