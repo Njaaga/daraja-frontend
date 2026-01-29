@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { LifeBuoy, Database, BarChart3, Users, Settings, CreditCard, UsersRound } from "lucide-react";
+import { LifeBuoy, Database, BarChart3, Users, UsersRound, Settings, CreditCard } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
-
-const icons = [Database, BarChart3, Users, Settings, CreditCard, UsersRound];
 
 export default function Home() {
   const [form, setForm] = useState<{ name: string; email: string; message: string }>({
@@ -43,7 +41,6 @@ export default function Home() {
     }
   };
 
-  // ✅ Define once as a constant
   const panelClasses = "flex items-start gap-2 p-4 rounded-xl bg-gradient-to-r from-white via-zinc-50 to-white border-l-4 border-blue-300 text-zinc-700";
 
   return (
@@ -112,20 +109,17 @@ export default function Home() {
           <h2 className="text-2xl font-semibold">What the Daraja Reporting Platform Does</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              "Centralizes data from multiple sources",
-              "Creates clear, shareable dashboards",
-              "Keeps reporting consistent across teams",
-              "Controls access with built-in governance",
-              "Scales as your organization grows",
-            ].map((item, idx) => {
-              const Icon = icons[idx % icons.length];
-              return (
-                <div key={item} className={panelClasses}>
-                  <Icon size={20} className="text-blue-400 mt-1"/>
-                  <p className="ml-1">{item}</p>
-                </div>
-              );
-            })}
+              { text: "Centralizes data from multiple sources", icon: Database },
+              { text: "Creates clear, shareable dashboards", icon: BarChart3 },
+              { text: "Keeps reporting consistent across teams", icon: Users },
+              { text: "Controls access with built-in governance", icon: Settings },
+              { text: "Scales as your organization grows", icon: UsersRound },
+            ].map(({ text, icon: Icon }) => (
+              <div key={text} className={panelClasses}>
+                <Icon size={20} className="text-blue-400 mt-1" />
+                <p className="ml-2">{text}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -133,39 +127,38 @@ export default function Home() {
         <section className="mt-20">
           <h2 className="text-2xl font-semibold">Built For</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {["Business leaders", "Operations teams", "Analysts", "Growing organizations"].map((role, idx) => {
-              const Icon = icons[idx % icons.length];
-              return (
-                <div key={role} className={panelClasses}>
-                  <Icon size={20} className="text-blue-400 mt-1"/>
-                  <p className="ml-1">{role}</p>
-                </div>
-              );
-            })}
+            {[
+              { text: "Business leaders", icon: Users },
+              { text: "Operations teams", icon: Settings },
+              { text: "Analysts", icon: BarChart3 },
+              { text: "Growing organizations", icon: Database },
+            ].map(({ text, icon: Icon }) => (
+              <div key={text} className={panelClasses}>
+                <Icon size={20} className="text-blue-400 mt-1" />
+                <p className="ml-2">{text}</p>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Why Different */}
+        {/* Why Daraja Is Different */}
         <section className="mt-20">
           <h2 className="text-2xl font-semibold">Why Daraja Is Different</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {[
-              { title: "Reporting First", text: "Designed specifically for reporting — not a generic BI tool." },
-              { title: "Simple by Design", text: "Easy to use, easy to understand, and easy to share." },
-              { title: "All-in-One Platform", text: "One reporting application instead of many disconnected tools." },
-              { title: "Built for Decisions", text: "Focused on clarity and understanding — not just charts." },
-            ].map(({ title, text }, idx) => {
-              const Icon = icons[idx % icons.length];
-              return (
-                <div key={title} className={panelClasses}>
-                  <div className="flex items-center gap-2">
-                    <Icon size={20} className="text-blue-400"/>
-                    <h3 className="font-semibold text-zinc-800">{title}</h3>
-                  </div>
-                  <p className="ml-7 mt-1 text-sm text-zinc-600">{text}</p>
+              { title: "Reporting First", text: "Designed specifically for reporting — not a generic BI tool.", icon: BarChart3 },
+              { title: "Simple by Design", text: "Easy to use, easy to understand, and easy to share.", icon: LifeBuoy },
+              { title: "All-in-One Platform", text: "One reporting application instead of many disconnected tools.", icon: Database },
+              { title: "Built for Decisions", text: "Focused on clarity and understanding — not just charts.", icon: CreditCard },
+            ].map(({ title, text, icon: Icon }) => (
+              <div key={title} className={panelClasses}>
+                <div className="flex items-center gap-2">
+                  <Icon size={20} className="text-blue-400"/>
+                  <h3 className="font-semibold text-zinc-800">{title}</h3>
                 </div>
-              );
-            })}
+                <p className="ml-7 mt-1 text-sm text-zinc-600">{text}</p>
+              </div>
+            ))}
           </div>
         </section>
 
