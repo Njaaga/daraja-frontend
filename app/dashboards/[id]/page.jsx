@@ -99,21 +99,6 @@ export default function DashboardView() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">{dashboard.name}</h2>
 
-          <div className="flex gap-4">
-            <button
-              onClick={() => router.push("/dashboards")}
-              className="text-blue-600 underline"
-            >
-              ← Back
-            </button>
-
-            <button
-              onClick={handleExportPDF}
-              className="bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700"
-            >
-              Export to PDF
-            </button>
-          </div>
         </div>
 
         <div ref={dashboardRef}>
