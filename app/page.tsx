@@ -1,24 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { LifeBuoy } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 
 export default function Home() {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    email: string;
+    message: string;
+  }>({
     name: "",
     email: "",
     message: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -32,7 +38,7 @@ export default function Home() {
 
       setSuccess("Your message has been sent. We’ll get back to you shortly.");
       setForm({ name: "", email: "", message: "" });
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -72,7 +78,7 @@ export default function Home() {
 
         {/* Hero */}
         <main className="mt-20 grid gap-12 lg:grid-cols-2">
-          {/* Left */}
+          {/* Left Hero */}
           <section className="space-y-6">
             <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
               Reporting made simple. <br />
@@ -116,7 +122,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Right — Support */}
+          {/* Right — Support Form */}
           <section className="rounded-2xl border border-black/5 bg-zinc-50 p-6">
             <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-800">
               <LifeBuoy size={20} />
@@ -255,12 +261,8 @@ export default function Home() {
                 key={title}
                 className="rounded-xl border border-black/5 bg-white p-6"
               >
-                <h3 className="font-semibold text-zinc-800">
-                  {title}
-                </h3>
-                <p className="mt-2 text-sm text-zinc-600">
-                  {text}
-                </p>
+                <h3 className="font-semibold text-zinc-800">{title}</h3>
+                <p className="mt-2 text-sm text-zinc-600">{text}</p>
               </div>
             ))}
           </div>
