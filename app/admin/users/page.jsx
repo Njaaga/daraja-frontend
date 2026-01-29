@@ -208,11 +208,16 @@ export default function UsersPage() {
       <Layout>
         <div className="p-10">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Users size={24} />
-              Users
-            </h2>
-
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Users size={24} />
+                Users
+              </h2>
+              <InfoTooltip
+                align="right"
+                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+              />
+            </div>
             <Link
               href="/admin/users/deleted"
               className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
