@@ -1,7 +1,48 @@
+"use client";
+
+import { useState } from "react";
+import { LifeBuoy } from "lucide-react";
+import { apiClient } from "@/lib/apiClient";
+
 export default function Home() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await apiClient("/api/support/", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+
+      setSuccess("Your message has been sent. We’ll get back to you shortly.");
+      setForm({ name: "", email: "", message: "" });
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="mx-auto max-w-6xl px-6 py-10">
+
         {/* Top Nav */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -31,6 +72,7 @@ export default function Home() {
 
         {/* Hero */}
         <main className="mt-20 grid gap-12 lg:grid-cols-2">
+          {/* Left */}
           <section className="space-y-6">
             <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
               Reporting made simple. <br />
@@ -43,7 +85,6 @@ export default function Home() {
               complexity.
             </p>
 
-            {/* Primary actions */}
             <div className="flex flex-col gap-4 sm:flex-row">
               <a
                 href="/signup"
@@ -59,7 +100,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Informational tags (non-CTA) */}
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-zinc-600">
               {[
                 "Reporting-first platform",
@@ -76,36 +116,68 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Preview (read-only) */}
+          {/* Right — Support */}
           <section className="rounded-2xl border border-black/5 bg-zinc-50 p-6">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-zinc-800">
-                Reporting Overview
-              </span>
-              <span className="text-xs text-zinc-500">Live</span>
-            </div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-800">
+              <LifeBuoy size={20} />
+              Contact Support
+            </h3>
 
-            <div className="mt-6 space-y-4">
-              {[
-                ["Data Sources Connected", "8"],
-                ["Active Reports", "42"],
-                ["Teams Using Reports", "6"],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-lg bg-zinc-100/60 border border-black/5 p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-600">
-                      {label}
-                    </span>
-                    <span className="text-sm font-semibold text-zinc-800">
-                      {value}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mt-2 text-sm text-zinc-600">
+              Have a question or need help? Send us a message and we’ll respond shortly.
+            </p>
+
+            {success && (
+              <div className="mt-4 rounded bg-green-100 p-3 text-sm text-green-700">
+                {success}
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 rounded bg-red-100 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <input
+                type="text"
+                name="name"
+                placeholder="Your name"
+                required
+                value={form.name}
+                onChange={handleChange}
+                className="w-full rounded border border-black/10 px-3 py-2 text-sm"
+              />
+
+              <input
+                type="email"
+                name="email"
+                placeholder="Your email"
+                required
+                value={form.email}
+                onChange={handleChange}
+                className="w-full rounded border border-black/10 px-3 py-2 text-sm"
+              />
+
+              <textarea
+                name="message"
+                rows={4}
+                placeholder="How can we help?"
+                required
+                value={form.message}
+                onChange={handleChange}
+                className="w-full rounded border border-black/10 px-3 py-2 text-sm"
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600/90 disabled:opacity-50"
+              >
+                {loading ? "Sending..." : "Send Message"}
+              </button>
+            </form>
           </section>
         </main>
 
