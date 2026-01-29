@@ -193,7 +193,7 @@ export default function Home() {
             What the Daraja Reporting Platform Does
           </h2>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-6 space-y-2 text-sm text-zinc-700">
             {[
               "Centralizes data from multiple sources",
               "Creates clear, shareable dashboards",
@@ -201,35 +201,29 @@ export default function Home() {
               "Controls access with built-in governance",
               "Scales as your organization grows",
             ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-black/5 bg-zinc-50 p-6 text-sm text-zinc-700"
-              >
+              <li key={item} className="flex items-start gap-2 pl-4 border-l-2 border-zinc-200">
                 {item}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
         {/* Built For */}
         <section className="mt-20">
           <h2 className="text-2xl font-semibold">Built For</h2>
 
-          <div className="mt-6 flex flex-wrap gap-3 text-sm text-zinc-600">
+          <ul className="mt-4 space-y-1 text-sm text-zinc-600">
             {[
               "Business leaders",
               "Operations teams",
               "Analysts",
               "Growing organizations",
             ].map((role) => (
-              <span
-                key={role}
-                className="rounded-full bg-zinc-100 px-3 py-1.5"
-              >
+              <li key={role} className="pl-4 border-l-2 border-zinc-200">
                 {role}
-              </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
         {/* Why Different */}
@@ -238,7 +232,7 @@ export default function Home() {
             Why Daraja Is Different
           </h2>
 
-          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+          <ul className="mt-6 space-y-3 text-sm text-zinc-700">
             {[
               {
                 title: "Reporting First",
@@ -257,15 +251,11 @@ export default function Home() {
                 text: "Focused on clarity and understanding — not just charts.",
               },
             ].map(({ title, text }) => (
-              <div
-                key={title}
-                className="rounded-xl border border-black/5 bg-white p-6"
-              >
-                <h3 className="font-semibold text-zinc-800">{title}</h3>
-                <p className="mt-2 text-sm text-zinc-600">{text}</p>
-              </div>
+              <li key={title} className="pl-4 border-l-2 border-zinc-200">
+                <span className="font-semibold">{title}:</span> {text}
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
         {/* Footer */}
