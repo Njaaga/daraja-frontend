@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/apiClient";
 import SubscriptionGate from "@/app/components/SubscriptionGate";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import InfoTooltip from "@/app/components/InfoTooltip";
 import {
   LayoutDashboard,
   Database,
