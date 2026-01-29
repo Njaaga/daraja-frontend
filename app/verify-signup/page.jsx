@@ -28,7 +28,7 @@ export default function VerifyEmailPage() {
           </Link>
 
           <p className="text-xs text-gray-500">
-            Didn’t receive the email? Please reach out to the support team.
+            Didn’t receive the email? Please reach out to the <a href="/">support team</a>.
           </p>
         </div>
       </div>
