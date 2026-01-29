@@ -5,6 +5,7 @@ import Layout from "@/app/components/Layout";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import Link from "next/link";
+import InfoTooltip from "@/app/components/InfoTooltip";
 import {
   LayoutDashboard,
   Database,
