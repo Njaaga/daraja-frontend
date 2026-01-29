@@ -10,10 +10,17 @@ import CancelSubscriptionButton from "./components/CancelSubscriptionButton";
 import ToggleAutoRenewButton from "./components/ToggleAutoRenewButton";
 import AddCardForm from "./components/AddCardForm";
 import { apiClient, getTenant } from "@/lib/apiClient";
-import { CreditCard } from "lucide-react";
+import {
+  CreditCard,
+  Database,
+  Users,
+  BarChart3,
+  UsersRound,
+  LifeBuoy,
+} from "lucide-react";
 
 export default function BillingPage() {
-  const tenant = getTenant();
+  const tenant = getTenant(); // synchronous
 
   const [tenantMissing, setTenantMissing] = useState(!tenant);
   const [subscription, setSubscription] = useState(null);
@@ -24,17 +31,18 @@ export default function BillingPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   // -----------------------------
-  // Load billing + usage
+  // Load all billing & usage data
   // -----------------------------
   const loadBillingData = async () => {
     if (!tenant) return;
+
     setRefreshing(true);
     try {
       const [subRes, pmRes, invRes, usageRes] = await Promise.all([
         apiClient("/api/subscription/status/"),
         apiClient("/api/subscription/list-payment-methods/"),
         apiClient("/api/subscription/list-invoices/"),
-        apiClient("/api/subscription/usage/"), // Usage endpoint
+        apiClient("/api/subscription/usage/"), // <-- usage endpoint
       ]);
 
       setSubscription(subRes?.current_plan || null);
@@ -50,6 +58,9 @@ export default function BillingPage() {
     }
   };
 
+  // -----------------------------
+  // Initial load
+  // -----------------------------
   useEffect(() => {
     if (tenant) loadBillingData();
   }, [tenant]);
@@ -58,6 +69,7 @@ export default function BillingPage() {
   // Actions
   // -----------------------------
   const handleChangePlan = async (planId) => {
+    if (!planId) return;
     try {
       const res = await apiClient("/api/subscription/change-plan/", {
         method: "POST",
@@ -85,10 +97,8 @@ export default function BillingPage() {
   };
 
   // -----------------------------
-  // Usage helper
+  // Render
   // -----------------------------
-  const percentUsed = (used, limit) => (limit ? Math.min(Math.round((used / limit) * 100), 100) : 0);
-
   if (tenantMissing) {
     return (
       <Layout>
@@ -107,54 +117,14 @@ export default function BillingPage() {
       <Layout>
         <div className="max-w-3xl mx-auto p-6 space-y-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <CreditCard size={24} /> Billing & Usage
+            <CreditCard size={24} /> Billing
           </h2>
 
           {refreshing && <p className="text-sm text-gray-500">Refreshing billing data…</p>}
 
-          {/* ---------------- Usage Overview ---------------- */}
-          {usage && subscription && (
-            <div className="border p-4 rounded-lg bg-white shadow-sm space-y-4">
-              <h3 className="text-lg font-semibold">Plan Usage</h3>
-
-              {[
-                { name: "Datasets", key: "datasets" },
-                { name: "API Rows", key: "api_rows" },
-                { name: "Users", key: "users" },
-                { name: "Groups", key: "groups" },
-                { name: "Dashboards", key: "dashboards" },
-              ].map((item) => {
-                const used = usage.usage[item.key] || 0;
-                const limit = usage.limits[item.key] || 0;
-                const pct = percentUsed(used, limit);
-
-                return (
-                  <div key={item.key}>
-                    <div className="flex justify-between mb-1">
-                      <span>{item.name}</span>
-                      <span>{used} / {limit}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded h-3">
-                      <div
-                        className={`h-3 rounded ${
-                          pct >= 90
-                            ? "bg-red-500"
-                            : pct >= 70
-                            ? "bg-yellow-400"
-                            : "bg-green-500"
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ---------------- Package Selection ---------------- */}
+          {/* Package Selection */}
           <div className="border p-4 rounded-lg bg-white shadow-sm">
-            <h3 className="text-xl font-semibold mb-2">Select Package</h3>
+            <h2 className="text-xl font-semibold mb-2">Select Package</h2>
             <PackageSelector currentPlanId={subscription?.id} onSelect={setSelectedPlan} />
             {selectedPlan && subscription && (
               <button
@@ -174,9 +144,9 @@ export default function BillingPage() {
             )}
           </div>
 
-          {/* ---------------- Current Subscription ---------------- */}
+          {/* Current Subscription */}
           <div className="border p-4 rounded-lg bg-white shadow-sm">
-            <h3 className="text-xl font-semibold mb-2">Current Subscription</h3>
+            <h2 className="text-xl font-semibold mb-2">Current Subscription</h2>
             {subscription ? (
               <div className="space-y-1">
                 <p>Plan: {subscription.name}</p>
@@ -189,7 +159,9 @@ export default function BillingPage() {
                 <div className="mt-4">
                   <ToggleAutoRenewButton
                     autoRenew={subscription.auto_renew}
-                    onToggle={(val) => setSubscription({ ...subscription, auto_renew: val })}
+                    onToggle={(val) =>
+                      setSubscription({ ...subscription, auto_renew: val })
+                    }
                   />
                 </div>
                 <div className="mt-2">
@@ -206,21 +178,45 @@ export default function BillingPage() {
             )}
           </div>
 
-          {/* ---------------- Add Card ---------------- */}
+          {/* Usage Display */}
+          {usage && (
+            <div className="border p-4 rounded-lg bg-white shadow-sm">
+              <h2 className="text-xl font-semibold mb-2">Subscription Usage</h2>
+              <ul className="space-y-1">
+                <li>
+                  <Database className="inline mr-2" /> Datasets: {usage.usage.datasets} / {usage.limits.datasets ?? "∞"}
+                </li>
+                <li>
+                  <UsersRound className="inline mr-2" /> Users: {usage.usage.users} / {usage.limits.users ?? "∞"}
+                </li>
+                <li>
+                  <Users className="inline mr-2" /> Groups: {usage.usage.groups} / {usage.limits.groups ?? "∞"}
+                </li>
+                <li>
+                  <BarChart3 className="inline mr-2" /> Dashboards: {usage.usage.dashboards} / {usage.limits.dashboards ?? "∞"}
+                </li>
+                <li>
+                  <LifeBuoy className="inline mr-2" /> API Rows: {usage.usage.api_rows} / {usage.limits.api_rows ?? "∞"}
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {/* Add Card */}
           <div className="border p-4 rounded-lg bg-white shadow-sm">
-            <h3 className="text-xl font-semibold mb-2">Add Payment Method</h3>
+            <h2 className="text-xl font-semibold mb-2">Add Payment Method</h2>
             <AddCardForm onCardAdded={loadBillingData} />
           </div>
 
-          {/* ---------------- Payment Methods ---------------- */}
+          {/* Payment Methods */}
           <div className="border p-4 rounded-lg bg-white shadow-sm">
-            <h3 className="text-xl font-semibold mb-2">Payment Methods</h3>
+            <h2 className="text-xl font-semibold mb-2">Payment Methods</h2>
             <PaymentMethodsList methods={paymentMethods} onUpdated={loadBillingData} />
           </div>
 
-          {/* ---------------- Invoices ---------------- */}
+          {/* Invoices */}
           <div className="border p-4 rounded-lg bg-white shadow-sm">
-            <h3 className="text-xl font-semibold mb-2">Invoices</h3>
+            <h2 className="text-xl font-semibold mb-2">Invoices</h2>
             <InvoicesList invoices={invoices} />
           </div>
         </div>
