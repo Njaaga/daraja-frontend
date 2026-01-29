@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react";
 import Layout from "@/app/components/Layout";
 import SubscriptionGate from "@/app/components/SubscriptionGate";
