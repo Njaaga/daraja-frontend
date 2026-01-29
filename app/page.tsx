@@ -4,7 +4,6 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { LifeBuoy, Database, BarChart3, Users, Settings, CreditCard, UsersRound } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 
-// small icons for items
 const icons = [Database, BarChart3, Users, Settings, CreditCard, UsersRound];
 
 export default function Home() {
@@ -44,10 +43,8 @@ export default function Home() {
     }
   };
 
-  const panelClasses = `
-    flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-white via-zinc-50 to-white 
-    border-l-4 border-blue-300 text-zinc-700
-  `;
+  // ✅ Define once as a constant
+  const panelClasses = "flex items-start gap-2 p-4 rounded-xl bg-gradient-to-r from-white via-zinc-50 to-white border-l-4 border-blue-300 text-zinc-700";
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -172,15 +169,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="mt-24 border-t border-black/10 pt-6 text-sm text-zinc-500">
           © {new Date().getFullYear()} Daraja Reporting Platform. All rights reserved.
         </footer>
       </div>
     </div>
   );
-
-  function panelClasses() {
-    return "flex items-start gap-2 p-4 rounded-xl bg-gradient-to-r from-white via-zinc-50 to-white border-l-4 border-blue-300 text-zinc-700";
-  }
 }
