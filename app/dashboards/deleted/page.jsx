@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import { apiClient } from "@/lib/apiClient";
 
 export default function DeletedDashboardsPage() {
+  const router = useRouter();
   const [dashboards, setDashboards] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -12,10 +14,16 @@ export default function DeletedDashboardsPage() {
   // Load deleted dashboards
   // -----------------------------
   const loadDeleted = async () => {
-    const data = await apiClient("/api/dashboards/?include_deleted=true");
-    setDashboards(Array.isArray(data) ? data : []);
+    setLoading(true);
+    try {
+      const data = await apiClient("/api/dashboards/?include_deleted=true");
+      setDashboards(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
-
 
   useEffect(() => {
     loadDeleted();
@@ -25,10 +33,15 @@ export default function DeletedDashboardsPage() {
   // Restore dashboard
   // -----------------------------
   const restoreDashboard = async (id) => {
-    await apiClient(`/api/dashboards/${id}/restore/`, {
-      method: "POST",
-    });
-    loadDeleted();
+    try {
+      await apiClient(`/api/dashboards/${id}/restore/`, {
+        method: "POST",
+      });
+      loadDeleted();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to restore dashboard.");
+    }
   };
 
   // -----------------------------
@@ -37,10 +50,15 @@ export default function DeletedDashboardsPage() {
   const hardDelete = async (id) => {
     if (!confirm("Delete dashboard permanently?")) return;
 
-    await apiClient(`/api/dashboards/${id}/hard_delete/`, {
-      method: "DELETE",
-    });
-    loadDeleted();
+    try {
+      await apiClient(`/api/dashboards/${id}/hard_delete/`, {
+        method: "DELETE",
+      });
+      loadDeleted();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete dashboard.");
+    }
   };
 
   // -----------------------------
@@ -49,14 +67,16 @@ export default function DeletedDashboardsPage() {
   return (
     <Layout>
       <div className="p-10">
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => router.push("/dashboards")}
-          className="text-sm text-gray-600 hover:underline"
-        >
-          ← Back to datasets
-        </button>
-      </div>
+        {/* Back button */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => router.push("/dashboards")}
+            className="text-sm text-gray-600 hover:underline"
+          >
+            ← Back to dashboards
+          </button>
+        </div>
+
         <h1 className="text-2xl font-semibold mb-6">
           Deleted Dashboards
         </h1>
@@ -74,14 +94,14 @@ export default function DeletedDashboardsPage() {
             <thead>
               <tr className="border-b">
                 <th className="p-3 text-left">Name</th>
-                <th className="p-3">Actions</th>
+                <th className="p-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {dashboards.map((d) => (
                 <tr key={d.id} className="border-b">
                   <td className="p-3">{d.name}</td>
-                  <td className="p-3 flex gap-4">
+                  <td className="p-3 flex justify-center gap-4">
                     <button
                       onClick={() => restoreDashboard(d.id)}
                       className="text-green-600 hover:underline"
