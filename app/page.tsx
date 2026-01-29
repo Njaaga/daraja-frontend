@@ -31,7 +31,7 @@ export default function Home() {
     setSuccess("");
 
     try {
-      await apiClient("/api/support/", {
+      await apiClient("/api/support-guest/", {
         method: "POST",
         body: JSON.stringify(form),
       });
