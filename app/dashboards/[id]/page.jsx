@@ -1,135 +1,154 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Layout from "@/app/components/Layout";
-import AuthGuard from "@/app/components/AuthGuard";
+import { useRouter, useParams } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import ChartRenderer from "@/app/components/ChartRenderer";
-import { jsPDF } from "jspdf";
-import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
-export default function DashboardView({ params }) {
-  const { id } = params;
+export default function DashboardView() {
+  const { id } = useParams();
+  const router = useRouter();
 
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Store base64 images of charts
-  const chartImagesRef = useRef({});
+  const dashboardRef = useRef(null);
 
-  /* ============================
-     FETCH DASHBOARD
-  ============================ */
   useEffect(() => {
-    async function load() {
+    if (!id) return;
+
+    const fetchDashboard = async () => {
+      setLoading(true);
+      setError("");
+
       try {
-        const res = await apiClient.get(`/dashboards/${id}/`);
-        setDashboard(res.data);
-        setCharts(res.data.charts || []);
+        const db = await apiClient(`/api/dashboards/${id}/`);
+        setDashboard(db);
+
+        if (db.dashboard_charts) {
+          const mapped = db.dashboard_charts.map((dc) => {
+            const cd = dc.chart_detail;
+
+            return {
+              i: dc.id.toString(),
+              chartId: dc.chart,
+              title: cd.name || cd.y_field,
+              datasetId: cd.dataset,
+              type: cd.chart_type,
+              xField: cd.x_field,
+              yField: cd.y_field,
+              aggregation: cd.aggregation,
+              filters: cd.filters || {},
+              logicRules: cd.logic_rules || [],
+              logicExpression: cd.logic_expression || null,
+              joins: cd.joins || [],
+              excelData: cd.excel_data || null,
+            };
+          });
+
+          setCharts(mapped);
+        }
       } catch (err) {
-        console.error("Failed to load dashboard", err);
+        console.error(err);
+        setError("Dashboard not found or access denied.");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    load();
+    fetchDashboard();
   }, [id]);
 
-  /* ============================
-     PDF EXPORT (SAFE VERSION)
-  ============================ */
-  const handleExportPDF = () => {
-    if (!charts.length) {
-      alert("No charts to export.");
-      return;
+  const handleDeleteChart = async (chartId) => {
+    if (!confirm("Delete this chart?")) return;
+
+    try {
+      await apiClient(`/api/charts/${chartId}/`, { method: "DELETE" });
+      setCharts((prev) => prev.filter((c) => c.chartId !== chartId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete chart");
     }
+  };
+
+  const handleExportPDF = async () => {
+    if (!dashboardRef.current) return;
+
+    const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
 
     const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    let y = 15;
-
-    // Dashboard title
-    pdf.setFontSize(18);
-    pdf.text(dashboard?.name || "Dashboard", 10, y);
-    y += 10;
-
-    charts.forEach((chart, index) => {
-      const img = chartImagesRef.current[chart.i];
-      if (!img) return;
-
-      const imgProps = pdf.getImageProperties(img);
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-      if (y + imgHeight > pageHeight - 10) {
-        pdf.addPage();
-        y = 15;
-      }
-
-      // Chart title
-      pdf.setFontSize(12);
-      pdf.text(chart.title || `Chart ${index + 1}`, 10, y);
-      y += 5;
-
-      pdf.addImage(img, "PNG", 10, y, imgWidth, imgHeight);
-      y += imgHeight + 10;
-    });
-
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save(`${dashboard?.name || "dashboard"}.pdf`);
   };
 
-  /* ============================
-     RENDER
-  ============================ */
-  if (loading) {
-    return (
-      <Layout>
-        <div className="p-6">Loading dashboard…</div>
-      </Layout>
-    );
-  }
+  if (loading) return <p className="p-6">Loading dashboard...</p>;
+  if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
-    <AuthGuard>
-      <Layout>
-        <div className="p-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold">
-              {dashboard?.name}
-            </h1>
+    <Layout>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => router.push("/dashboards")}
+              className="text-blue-600 underline"
+            >
+              ← Back
+            </button>
 
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className="bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700"
             >
-              <Download size={18} />
-              Export PDF
+              Export to PDF
             </button>
           </div>
+        </div>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {charts.map((chart) => (
-              <div
-                key={chart.i}
-                className="bg-white rounded-xl shadow p-4"
-              >
-                <h3 className="font-medium mb-3">
-                  {chart.title}
-                </h3>
+        <div ref={dashboardRef}>
+          {charts.length === 0 && <p>No charts yet.</p>}
 
-                <ChartRenderer chart={chart} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {charts.map((c) => (
+              <div key={c.i} className="bg-white p-4 rounded shadow">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold">{c.title}</h3>
 
+                  <button
+                    onClick={() => handleDeleteChart(c.chartId)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                <ChartRenderer
+                  datasetId={c.datasetId}
+                  excelData={c.excelData}
+                  type={c.type}
+                  xField={c.xField}
+                  yField={c.yField}
+                  filters={c.filters}
+                  logicRules={c.logicRules}
+                  logicExpression={c.logicExpression}
+                  joins={c.joins}
+                />
               </div>
             ))}
           </div>
         </div>
-      </Layout>
-    </AuthGuard>
+      </div>
+    </Layout>
   );
 }
