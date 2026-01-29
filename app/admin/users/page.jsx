@@ -167,6 +167,7 @@ export default function UsersPage() {
   // -----------------------------
   const deleteUser = async (id) => {
     try {
+      if (!confirm("Move user to recycle bin?")) return;
       await apiClient(`/api/users/${id}/`, {
         method: "DELETE",
         tenant,
