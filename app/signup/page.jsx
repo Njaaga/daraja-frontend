@@ -1,13 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react";
+import { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-const FRONTEND_URL = "https://reporting.darajatechnologies.ca"
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const FRONTEND_URL = "https://reporting.darajatechnologies.ca";
 
 export default function ClientSignup() {
   const router = useRouter();
@@ -17,15 +15,20 @@ export default function ClientSignup() {
     email: "",
     password: "",
     confirmPassword: "",
+    acceptTerms: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -36,6 +39,11 @@ export default function ClientSignup() {
 
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+
+    if (!form.acceptTerms) {
+      setError("You must accept the Terms & Conditions to continue");
       return;
     }
 
@@ -50,21 +58,11 @@ export default function ClientSignup() {
       });
 
       if (res.status === 201) {
-        const protocol = window.location.protocol; // http: or https:
-        const port = window.location.port ? `:${window.location.port}` : "";
-        const baseHost = window.location.hostname;
-
-        // Handle localhost specially
-        const domain =
-          baseHost === "localhost"
-            ? `${form.subdomain}.localhost`
-            : `${form.subdomain}.${baseHost.split('.').slice(1).join('.')}`;
-
+        // Redirect to verification page
         const subdomainUrl = `${FRONTEND_URL}/verify-signup`;
         window.location.href = subdomainUrl;
       }
-
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       if (err.response) {
         setError(err.response.data?.error || "Signup failed. Check your input.");
@@ -77,9 +75,9 @@ export default function ClientSignup() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center">Signup</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
 
         {error && (
           <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>
@@ -150,6 +148,36 @@ export default function ClientSignup() {
               className="w-full border border-gray-300 p-2 rounded"
               required
             />
+          </div>
+
+          {/* Terms & Conditions */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              name="acceptTerms"
+              checked={form.acceptTerms}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              required
+            />
+            <label className="ml-2 text-sm text-gray-700">
+              I agree to the{" "}
+              <a
+                href="/terms"
+                target="_blank"
+                className="text-blue-600 hover:underline"
+              >
+                Terms & Conditions
+              </a>{" "}
+              and{" "}
+              <a
+                href="/privacy"
+                target="_blank"
+                className="text-blue-600 hover:underline"
+              >
+                Privacy Policy
+              </a>
+            </label>
           </div>
 
           <button
