@@ -3,9 +3,11 @@
 import { useState, ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import ReCAPTCHA from "react-google-recaptcha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 const FRONTEND_URL = "https://reporting.darajatechnologies.ca";
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
 
 export default function ClientSignup() {
   const router = useRouter();
@@ -17,6 +19,7 @@ export default function ClientSignup() {
     confirmPassword: "",
     acceptTerms: false,
   });
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -47,6 +50,11 @@ export default function ClientSignup() {
       return;
     }
 
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -55,10 +63,10 @@ export default function ClientSignup() {
         subdomain: form.subdomain,
         email: form.email,
         password: form.password,
+        captcha: captchaToken,
       });
 
       if (res.status === 201) {
-        // Redirect to verification page
         const subdomainUrl = `${FRONTEND_URL}/verify-signup`;
         window.location.href = subdomainUrl;
       }
@@ -178,6 +186,14 @@ export default function ClientSignup() {
                 Privacy Policy
               </a>
             </label>
+          </div>
+
+          {/* Google reCAPTCHA */}
+          <div className="mt-2">
+            <ReCAPTCHA
+              sitekey={RECAPTCHA_SITE_KEY}
+              onChange={(token) => setCaptchaToken(token)}
+            />
           </div>
 
           <button
