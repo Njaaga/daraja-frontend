@@ -123,7 +123,7 @@ export default function DashboardsPage() {
               </h2>
               <InfoTooltip
                 align="right"
-                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+                text="Dashboards organize charts and metrics into a single view for monitoring and analysis."
               />
             </div>
             {refreshing && (
