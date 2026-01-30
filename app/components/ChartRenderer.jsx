@@ -36,6 +36,22 @@ function applyLogic(data, rules) {
 }
 
 // ---------------------
+// Prune fields
+// ---------------------
+function pruneFields(rows, selectedFields) {
+  if (!Array.isArray(rows)) return rows;
+  if (!selectedFields || selectedFields.length === 0) return rows;
+
+  return rows.map(row => {
+    const out = {};
+    selectedFields.forEach(f => {
+      if (f in row) out[f] = row[f];
+    });
+    return out;
+  });
+}
+
+// ---------------------
 // Main ChartRenderer
 // ---------------------
 export default function ChartRenderer({
@@ -47,6 +63,7 @@ export default function ChartRenderer({
   filters = {},
   excelData = null,
   logicRules = [],
+  selectedFields = null,
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,19 +91,18 @@ export default function ChartRenderer({
     fetchDataset();
   }, [datasetId, excelData]);
 
-  // --- Apply filters + logic rules ---
+  // --- Apply filters, logic, and prune fields ---
   const filteredData = useMemo(() => {
     if (!data || !data.length) return [];
 
     let output = [...data];
 
-    if (logicRules?.length) {
-      output = applyLogic(output, logicRules);
-    }
+    // Logic rules
+    if (logicRules?.length) output = applyLogic(output, logicRules);
 
+    // Filters
     Object.entries(filters).forEach(([field, rule]) => {
-      if (!rule) return;
-      if (!output.some(r => field in r)) return;
+      if (!rule || !output.some(r => field in r)) return;
 
       if (rule.type === "text" && rule.value) {
         output = output.filter(r =>
@@ -107,13 +123,15 @@ export default function ChartRenderer({
       }
     });
 
-    return output;
-  }, [data, filters, logicRules]);
+    // Prune only selected fields
+    output = pruneFields(output, selectedFields);
 
-  // --- Table Pagination State ---
+    return output;
+  }, [data, filters, logicRules, selectedFields]);
+
+  // --- Table pagination ---
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
-
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * rowsPerPage;
@@ -122,17 +140,15 @@ export default function ChartRenderer({
 
   // --- Map chart data ---
   const chartData = useMemo(() => {
-    if (type === "kpi") {
-      return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
-    }
+    if (type === "kpi") return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
 
     if (type === "stacked_bar") {
       return filteredData.map(row => {
         const obj = { x: row[xField] };
-        const finalFields = stackedFields.length
+        const fieldsToUse = stackedFields.length
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
-        finalFields.forEach(f => obj[f] = Number(row[f] || 0));
+        fieldsToUse.forEach(f => obj[f] = Number(row[f] || 0));
         return obj;
       });
     }
@@ -144,26 +160,25 @@ export default function ChartRenderer({
     return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
 
-  // --- UI Output ---
+  // --- Render ---
   if (loading) return <div>Loading dataset...</div>;
-  if (!filteredData.length) return <div>No matching data after filters</div>;
+  if (!filteredData.length) return <div>No matching data</div>;
 
   switch (type) {
     case "line": return <LineChart data={chartData} />;
     case "bar": return <BarChart data={chartData} />;
-    case "stacked_bar":
+    case "stacked_bar": {
       const finalStackedFields = stackedFields.length
         ? stackedFields
         : filteredData.length
           ? Object.keys(filteredData[0]).filter(k => k !== xField)
           : [];
       return <StackedBarChart data={chartData} xKey={xField} yKeys={finalStackedFields} />;
+    }
     case "pie": return <PieChart data={chartData} xKey={xField} yKey={yField} />;
     case "kpi": return <KPI value={chartData} label={yField} />;
-    case "scatter": 
-      return <ScatterChart data={chartData} xKey={xField} yKey={yField} />;
-    case "area": 
-      return <AreaChart data={chartData} xKey={xField} yKey={yField} />;
+    case "scatter": return <ScatterChart data={chartData} xKey={xField} yKey={yField} />;
+    case "area": return <AreaChart data={chartData} xKey={xField} yKey={yField} />;
     case "table":
       return (
         <div className="overflow-x-auto">
@@ -190,7 +205,7 @@ export default function ChartRenderer({
             <div className="flex justify-center items-center gap-2 mt-2 flex-wrap">
               <button
                 className="px-2 py-1 border rounded disabled:opacity-50"
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
               >
                 Prev
@@ -203,7 +218,7 @@ export default function ChartRenderer({
                   min={1}
                   max={totalPages}
                   value={currentPage}
-                  onChange={(e) => {
+                  onChange={e => {
                     const val = Number(e.target.value);
                     if (val >= 1 && val <= totalPages) setCurrentPage(val);
                   }}
@@ -212,7 +227,7 @@ export default function ChartRenderer({
               </span>
               <button
                 className="px-2 py-1 border rounded disabled:opacity-50"
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
               >
                 Next
@@ -220,7 +235,7 @@ export default function ChartRenderer({
               <select
                 className="border rounded px-2 py-1"
                 value={rowsPerPage}
-                onChange={(e) => {
+                onChange={e => {
                   setRowsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
