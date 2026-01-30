@@ -883,11 +883,10 @@ const addChart = async () => {
   }
   if (!chartX || !chartY) return alert("Select X and Y fields");
 
-  // Convert selectedFields object into an array
-  // Example: { "id": true, "username": false } → ["id"]
+  // Build selected fields
   const selectedFieldsArray = Object.entries(selectedFields || {})
-    .filter(([key, val]) => val)
-    .map(([key]) => key);
+    .filter(([_, isChecked]) => isChecked)
+    .map(([fieldName]) => fieldName);
 
   // Create dashboard if needed
   let id = dashboardId;
