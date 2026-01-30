@@ -920,6 +920,18 @@ const applyCalculatedFields = (rows, calcs) => {
 };
 
 
+const getSelectableFields = (datasetId) => {
+  if (!datasetId) return [];
+
+  const fields = datasetFields[datasetId] || [];
+  const selection = selectedFields[datasetId];
+
+  // If user never touched checkboxes → allow all fields
+  if (!selection) return fields;
+
+  // Otherwise only include checked fields
+  return fields.filter((f) => selection[f] !== false);
+};
   
 
   /* ---------- layout change handler ---------- */
@@ -1096,85 +1108,79 @@ const applyCalculatedFields = (rows, calcs) => {
     </p>
 
     <div className="space-y-2">
-      {joins.map((j, i) => {
-        // Only include fields that were selected in Step 1
-        const leftFields = j.leftDataset
-          ? Object.entries(selectedFields[j.leftDataset] || {})
-              .filter(([field, included]) => included)
-              .map(([field]) => field)
-          : [];
+{joins.map((j, i) => {
+  const leftFields = getSelectableFields(j.leftDataset);
+  const rightFields = getSelectableFields(j.rightDataset);
 
-        const rightFields = j.rightDataset
-          ? Object.entries(selectedFields[j.rightDataset] || {})
-              .filter(([field, included]) => included)
-              .map(([field]) => field)
-          : [];
+  return (
+    <div key={j.id} className="flex gap-2 items-center flex-wrap">
+      <select
+        value={j.leftDataset}
+        onChange={(e) => updateJoin(i, "leftDataset", e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="">Left dataset</option>
+        {selectedDatasets.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+        {excelData && <option value="excel">Excel</option>}
+      </select>
 
-        return (
-          <div key={j.id} className="flex gap-2 items-center flex-wrap">
-            {/* Left dataset */}
-            <select
-              value={j.leftDataset}
-              onChange={(e) => updateJoin(i, "leftDataset", e.target.value)}
-              className="border p-2 rounded"
-            >
-              <option value="">Left dataset</option>
-              {selectedDatasets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              {excelData && <option value="excel">Excel</option>}
-            </select>
+      <select
+        value={j.leftField}
+        onChange={(e) => updateJoin(i, "leftField", e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="">Left field</option>
+        {leftFields.map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
 
-            {/* Left field */}
-            <select
-              value={j.leftField}
-              onChange={(e) => updateJoin(i, "leftField", e.target.value)}
-              className="border p-2 rounded"
-            >
-              <option value="">Left field</option>
-              {leftFields.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
+      <select
+        value={j.type}
+        onChange={(e) => updateJoin(i, "type", e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="inner">Inner</option>
+        <option value="left">Left</option>
+        <option value="right">Right</option>
+        <option value="full">Full</option>
+      </select>
 
-            {/* Join type */}
-            <select
-              value={j.type}
-              onChange={(e) => updateJoin(i, "type", e.target.value)}
-              className="border p-2 rounded"
-            >
-              <option value="inner">Inner</option>
-              <option value="left">Left</option>
-              <option value="right">Right</option>
-              <option value="full">Full</option>
-            </select>
+      <select
+        value={j.rightDataset}
+        onChange={(e) => updateJoin(i, "rightDataset", e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="">Right dataset</option>
+        {selectedDatasets.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+        {excelData && <option value="excel">Excel</option>}
+      </select>
 
-            {/* Right dataset */}
-            <select
-              value={j.rightDataset}
-              onChange={(e) => updateJoin(i, "rightDataset", e.target.value)}
-              className="border p-2 rounded"
-            >
-              <option value="">Right dataset</option>
-              {selectedDatasets.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              {excelData && <option value="excel">Excel</option>}
-            </select>
+      <select
+        value={j.rightField}
+        onChange={(e) => updateJoin(i, "rightField", e.target.value)}
+        className="border p-2 rounded"
+      >
+        <option value="">Right field</option>
+        {rightFields.map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
 
-            {/* Right field */}
-            <select
-              value={j.rightField}
-              onChange={(e) => updateJoin(i, "rightField", e.target.value)}
-              className="border p-2 rounded"
-            >
-              <option value="">Right field</option>
-              {rightFields.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
+      <button
+        onClick={() => removeJoin(i)}
+        className="bg-red-500 text-white px-2 rounded"
+      >
+        ✕
+      </button>
+    </div>
+  );
+})}
 
-            <button
-              onClick={() => removeJoin(i)}
-              className="bg-red-500 text-white px-2 rounded"
-            >
-              ✕
-            </button>
-          </div>
-        );
-      })}
 
       <button
         onClick={addJoin}
