@@ -11,8 +11,10 @@ import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
 // ---------------------
-// Logic evaluation
+// Helpers
 // ---------------------
+
+// Evaluate logic rule for a single row
 function evaluateRule(row, rule) {
   const { field, operator, value } = rule;
   if (!(field in row)) return true;
@@ -31,29 +33,18 @@ function evaluateRule(row, rule) {
 }
 
 function applyLogic(data, rules) {
-  if (!rules || !Array.isArray(rules) || rules.length === 0) return data;
+  if (!rules || rules.length === 0) return data;
   return data.filter(row => rules.every(rule => evaluateRule(row, rule)));
 }
 
-// ---------------------
-// Prune fields
-// ---------------------
-function pruneFields(rows, selectedFields) {
-  if (!Array.isArray(rows)) return rows;
-  const fields = Array.isArray(selectedFields) ? selectedFields : [];
-  if (fields.length === 0) return rows;
-
-  return rows.map(row => {
-    const out = {};
-    fields.forEach(f => {
-      if (f in row) out[f] = row[f];
-    });
-    return out;
-  });
+// Resolve nested paths like "address.street" safely
+function getValueByPath(obj, path) {
+  if (!path) return undefined;
+  return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
 }
 
 // ---------------------
-// ChartRenderer Component
+// Main ChartRenderer
 // ---------------------
 export default function ChartRenderer({
   datasetId,
@@ -64,12 +55,12 @@ export default function ChartRenderer({
   filters = {},
   excelData = null,
   logicRules = [],
-  selectedFields = [],
+  selectedFields = null, // array of field paths
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- Load data ---
+  // --- Load base data ---
   useEffect(() => {
     if (!datasetId) {
       setData(excelData || []);
@@ -85,15 +76,14 @@ export default function ChartRenderer({
       } catch (err) {
         console.error("Error loading dataset", err);
         setData([]);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchDataset();
   }, [datasetId, excelData]);
 
-  // --- Apply filters, logic rules, selected fields ---
+  // --- Apply filters, logic, and prune fields ---
   const filteredData = useMemo(() => {
     if (!data || !data.length) return [];
 
@@ -106,35 +96,35 @@ export default function ChartRenderer({
     Object.entries(filters).forEach(([field, rule]) => {
       if (!rule || !output.some(r => field in r)) return;
 
-      switch (rule.type) {
-        case "text":
-          if (rule.value)
-            output = output.filter(r =>
-              String(r[field]).toLowerCase().includes(String(rule.value).toLowerCase())
-            );
-          break;
-        case "min":
-          if (rule.value !== "")
-            output = output.filter(r => Number(r[field]) >= Number(rule.value));
-          break;
-        case "max":
-          if (rule.value !== "")
-            output = output.filter(r => Number(r[field]) <= Number(rule.value));
-          break;
-        case "date_range":
-          if (rule.start && rule.end)
-            output = output.filter(r => {
-              const d = new Date(r[field]);
-              return d >= new Date(rule.start) && d <= new Date(rule.end);
-            });
-          break;
-        default:
-          break;
+      if (rule.type === "text" && rule.value) {
+        output = output.filter(r =>
+          String(getValueByPath(r, field)).toLowerCase().includes(String(rule.value).toLowerCase())
+        );
+      }
+      if (rule.type === "min" && rule.value !== "") {
+        output = output.filter(r => Number(getValueByPath(r, field)) >= Number(rule.value));
+      }
+      if (rule.type === "max" && rule.value !== "") {
+        output = output.filter(r => Number(getValueByPath(r, field)) <= Number(rule.value));
+      }
+      if (rule.type === "date_range" && rule.start && rule.end) {
+        output = output.filter(r => {
+          const d = new Date(getValueByPath(r, field));
+          return d >= new Date(rule.start) && d <= new Date(rule.end);
+        });
       }
     });
 
-    // Prune fields
-    output = pruneFields(output, selectedFields);
+    // Only keep selected fields
+    if (selectedFields?.length) {
+      output = output.map(row => {
+        const pruned = {};
+        selectedFields.forEach(f => {
+          pruned[f] = getValueByPath(row, f);
+        });
+        return pruned;
+      });
+    }
 
     return output;
   }, [data, filters, logicRules, selectedFields]);
@@ -149,36 +139,26 @@ export default function ChartRenderer({
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, currentPage, rowsPerPage]);
 
-  // --- Prepare chart data ---
+  // --- Map chart data ---
   const chartData = useMemo(() => {
-    if (!filteredData || !filteredData.length) return [];
+    if (type === "kpi") return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
 
-    switch (type) {
-      case "kpi":
-        return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
-
-      case "stacked_bar":
-        return filteredData.map(row => {
-          const obj = { x: row[xField] };
-          const fieldsToUse = stackedFields.length
-            ? stackedFields
-            : Object.keys(row).filter(k => k !== xField);
-          fieldsToUse.forEach(f => obj[f] = Number(row[f] || 0));
-          return obj;
-        });
-
-      case "line":
-      case "bar":
-      case "pie":
-      case "area":
-      case "scatter":
-        if (xField && yField)
-          return filteredData.map(row => ({ x: row[xField], y: Number(row[yField] || 0) }));
-        return filteredData;
-
-      default:
-        return filteredData;
+    if (type === "stacked_bar") {
+      return filteredData.map(row => {
+        const obj = { x: row[xField] };
+        const fieldsToUse = stackedFields.length
+          ? stackedFields
+          : Object.keys(row).filter(k => k !== xField);
+        fieldsToUse.forEach(f => obj[f] = Number(row[f] || 0));
+        return obj;
+      });
     }
+
+    if (xField && yField) {
+      return filteredData.map(row => ({ x: row[xField], y: Number(row[yField] || 0) }));
+    }
+
+    return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
 
   // --- Render ---
@@ -200,24 +180,22 @@ export default function ChartRenderer({
     case "kpi": return <KPI value={chartData} label={yField} />;
     case "scatter": return <ScatterChart data={chartData} xKey={xField} yKey={yField} />;
     case "area": return <AreaChart data={chartData} xKey={xField} yKey={yField} />;
-
     case "table":
       return (
         <div className="overflow-x-auto">
           <table className="border w-full">
             <thead>
               <tr>
-                {filteredData.length > 0 &&
-                  Object.keys(filteredData[0]).map(key => (
-                    <th key={key} className="border p-2">{key}</th>
-                  ))}
+                {selectedFields.map(f => (
+                  <th key={f} className="border p-2">{f}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {paginatedData.map((row, i) => (
                 <tr key={i}>
-                  {Object.keys(row).map((key, j) => (
-                    <td key={j} className="border p-2">{String(row[key])}</td>
+                  {selectedFields.map((f, j) => (
+                    <td key={j} className="border p-2">{String(row[f] ?? "")}</td>
                   ))}
                 </tr>
               ))}
