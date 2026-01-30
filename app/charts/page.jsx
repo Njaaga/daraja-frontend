@@ -548,7 +548,7 @@ export default function DashboardBuilder() {
       setDatasetRows((m) => ({ ...m, [ds.id]: rows }));
       const sample = rows && rows.length ? rows[0] : {};
       const flat = flattenObject(sample);
-      setDatasetFields((m) => ({ ...m, [ds.id]: Object.keys(flat) }));
+      setDatasetFields((m) => ({ ...m, [String(ds.id)]: Object.keys(flat) }));
     } else {
       // removing — optionally remove cached rows
       // setDatasetRows((m) => { const nm = {...m}; delete nm[ds.id]; return nm; });
@@ -912,15 +912,15 @@ const applyCalculatedFields = (rows, calcs) => {
 const getSelectableFields = (datasetId) => {
   if (!datasetId) return [];
 
-  const fields = datasetFields[datasetId] || [];
-  const selection = selectedFields[datasetId];
+  const fields = datasetFields[String(datasetId)] || [];
+  const selection = selectedFields[String(datasetId)];
 
-  // If user never touched checkboxes → allow all fields
+  // If user never touched fields → include all
   if (!selection) return fields;
 
-  // Otherwise only include checked fields
   return fields.filter((f) => selection[f] !== false);
 };
+
   
 
   /* ---------- layout change handler ---------- */
