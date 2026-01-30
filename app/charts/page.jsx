@@ -429,6 +429,22 @@ export default function DashboardBuilder() {
   };
   const [step, setStep] = useState(STEPS.SELECT_DATASET);
 
+  const pruneRowsBySelectedFields = (rows, datasetId) => {
+  const selection = selectedFields[String(datasetId)];
+  if (!selection) return rows;
+
+  return rows.map((row) => {
+    const out = {};
+    for (const k of Object.keys(row)) {
+      if (selection[k] !== false) {
+        out[k] = row[k];
+      }
+    }
+    return out;
+  });
+};
+
+
   // Core meta
   const [dashboardName, setDashboardName] = useState("");
   const [dashboardId, setDashboardId] = useState(null);
@@ -737,8 +753,22 @@ const applyCalculatedFields = (rows, calcs) => {
     (async () => {
       setLoadingPreview(true);
       try {
-        const sourcesMap = { ...datasetRows };
-        if (excelData) sourcesMap["excel"] = excelData;
+          const sourcesMap = {};
+          
+          // API datasets
+          for (const ds of selectedDatasets) {
+            const id = String(ds.id);
+            const raw = datasetRows[id] || [];
+            const flattened = raw.map(r => flattenObject(r));
+            sourcesMap[id] = pruneRowsBySelectedFields(flattened, id);
+          }
+          
+          // Excel
+          if (excelData) {
+            const flatExcel = excelData.map(r => flattenObject(r));
+            sourcesMap["excel"] = pruneRowsBySelectedFields(flatExcel, "excel");
+          }
+
 
         // Determine primary key: first selected dataset or excel
         const primaryKey = selectedDatasets.length ? selectedDatasets[0].id : (excelData ? "excel" : Object.keys(sourcesMap)[0]);
@@ -894,19 +924,6 @@ const applyCalculatedFields = (rows, calcs) => {
     }
   };
 
-    const getFilteredPreview = (rows, datasetId) => {
-  const includedFields = Object.entries(selectedFields[datasetId] || {})
-    .filter(([f, included]) => included)
-    .map(([f]) => f);
-
-  return rows.map(row => {
-    const filteredRow = {};
-    includedFields.forEach(f => {
-      filteredRow[f] = row[f];
-    });
-    return filteredRow;
-  });
-};
 
 
 const getSelectableFields = (datasetId) => {
@@ -921,44 +938,7 @@ const getSelectableFields = (datasetId) => {
   return fields.filter((f) => selection[f] !== false);
 };
 
-const applySelectedFields = (rows, datasetId) => {
-  const selection = selectedFields[String(datasetId)];
-  if (!selection) return rows;
 
-  return rows.map((row) => {
-    const out = {};
-    for (const key of Object.keys(row)) {
-      if (selection[key] !== false) {
-        out[key] = row[key];
-      }
-    }
-    return out;
-  });
-};
-
-const buildPreview = async () => {
-  setLoadingPreview(true);
-
-  let dataByDataset = {};
-
-  for (const ds of selectedDatasets) {
-    const id = String(ds.id);
-    const rawRows = datasetRows[id] || [];
-    dataByDataset[id] = applySelectedFields(rawRows, id);
-  }
-
-  if (excelData) {
-    dataByDataset["excel"] = applySelectedFields(excelData, "excel");
-  }
-
-  let result = applyJoins(dataByDataset, joins);
-  result = applyCalculatedFields(result, calculatedFields);
-  result = applyLogicRules(result, logicSaved);
-  result = applyFilters(result, filters);
-
-  setPreview(result);
-  setLoadingPreview(false);
-};
 
   
   /* ---------- layout change handler ---------- */
