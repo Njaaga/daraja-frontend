@@ -1,210 +1,278 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter, useParams } from "next/navigation";
-import Layout from "@/app/components/Layout";
-import ChartRenderer from "@/app/components/ChartRenderer";
+import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/lib/apiClient";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import LineChart from "@/app/charts/LineChart";
+import BarChart from "@/app/charts/BarChart";
+import PieChart from "@/app/charts/PieChart";
+import StackedBarChart from "@/app/charts/StackedBarChart";
+import AreaChart from "@/app/charts/AreaChart";
+import ScatterChart from "@/app/charts/ScatterChart";
+import KPI from "@/app/charts/KPI";
 
-export default function DashboardView() {
-  const { id } = useParams();
-  const router = useRouter();
-  const dashboardRef = useRef(null);
+// ---------------------
+// Logic evaluation
+// ---------------------
+function evaluateRule(row, rule) {
+  const { field, operator, value } = rule;
+  if (!(field in row)) return true;
+  const rowValue = row[field];
 
-  const [dashboard, setDashboard] = useState(null);
-  const [charts, setCharts] = useState([]);
+  switch (operator) {
+    case "=": return String(rowValue) === String(value);
+    case "!=": return String(rowValue) !== String(value);
+    case ">": return Number(rowValue) > Number(value);
+    case "<": return Number(rowValue) < Number(value);
+    case ">=": return Number(rowValue) >= Number(value);
+    case "<=": return Number(rowValue) <= Number(value);
+    case "contains": return String(rowValue).includes(String(value));
+    default: return true;
+  }
+}
+
+function applyLogic(data, rules) {
+  if (!rules || !Array.isArray(rules) || rules.length === 0) return data;
+  return data.filter(row => rules.every(rule => evaluateRule(row, rule)));
+}
+
+// ---------------------
+// Prune fields
+// ---------------------
+function pruneFields(rows, selectedFields) {
+  if (!Array.isArray(rows)) return rows;
+  const fields = Array.isArray(selectedFields) ? selectedFields : [];
+  if (fields.length === 0) return rows;
+
+  return rows.map(row => {
+    const out = {};
+    fields.forEach(f => {
+      if (f in row) out[f] = row[f];
+    });
+    return out;
+  });
+}
+
+// ---------------------
+// ChartRenderer Component
+// ---------------------
+export default function ChartRenderer({
+  datasetId,
+  type,
+  xField,
+  yField,
+  stackedFields = [],
+  filters = {},
+  excelData = null,
+  logicRules = [],
+  selectedFields = [],
+}) {
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const [renaming, setRenaming] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-
-  /* ===================== FETCH DASHBOARD ===================== */
+  // --- Load data ---
   useEffect(() => {
-    if (!id) return;
+    if (!datasetId) {
+      setData(excelData || []);
+      setLoading(false);
+      return;
+    }
 
-    const fetchDashboard = async () => {
+    const fetchDataset = async () => {
       try {
-        setLoading(true);
-        const db = await apiClient(`/api/dashboards/${id}/`);
-        setDashboard(db);
-        setNewName(db.name);
-
-        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
-          const c = dc.chart_detail;
-
-          return {
-            key: dc.id,
-            chartId: dc.chart,
-            title: c.name || c.y_field,
-            datasetId: c.dataset,
-            type: c.chart_type,
-            xField: c.x_field,
-            yField: c.y_field,
-            aggregation: c.aggregation,
-            filters: c.filters || [],
-            logicRules: c.logic_rules || [],
-            logicExpression: c.logic_expression || null,
-            joins: c.joins || [],
-            excelData: c.excel_data || null,
-            selectedFields: c.selected_fields || null, // ✅ IMPORTANT
-          };
-        });
-
-        setCharts(mappedCharts);
+        const res = await apiClient(`/api/datasets/${datasetId}/run/`, { method: "POST" });
+        const normalized = Array.isArray(res) ? res : res?.data || res?.results || [];
+        setData(normalized);
       } catch (err) {
-        console.error(err);
-        setError("Dashboard not found or access denied.");
+        console.error("Error loading dataset", err);
+        setData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboard();
-  }, [id]);
+    fetchDataset();
+  }, [datasetId, excelData]);
 
-  /* ===================== ACTIONS ===================== */
+  // --- Apply filters, logic rules, selected fields ---
+  const filteredData = useMemo(() => {
+    if (!data || !data.length) return [];
 
-  const handleRename = async () => {
-    if (!newName.trim()) return alert("Name cannot be empty");
+    let output = [...data];
 
-    try {
-      setSavingName(true);
-      await apiClient(`/api/dashboards/${id}/`, {
-        method: "PATCH",
-        body: JSON.stringify({ name: newName }),
-      });
-      setDashboard((d) => ({ ...d, name: newName }));
-      setRenaming(false);
-    } finally {
-      setSavingName(false);
+    // Apply logic rules
+    if (logicRules?.length) output = applyLogic(output, logicRules);
+
+    // Apply filters
+    Object.entries(filters).forEach(([field, rule]) => {
+      if (!rule || !output.some(r => field in r)) return;
+
+      switch (rule.type) {
+        case "text":
+          if (rule.value)
+            output = output.filter(r =>
+              String(r[field]).toLowerCase().includes(String(rule.value).toLowerCase())
+            );
+          break;
+        case "min":
+          if (rule.value !== "")
+            output = output.filter(r => Number(r[field]) >= Number(rule.value));
+          break;
+        case "max":
+          if (rule.value !== "")
+            output = output.filter(r => Number(r[field]) <= Number(rule.value));
+          break;
+        case "date_range":
+          if (rule.start && rule.end)
+            output = output.filter(r => {
+              const d = new Date(r[field]);
+              return d >= new Date(rule.start) && d <= new Date(rule.end);
+            });
+          break;
+        default:
+          break;
+      }
+    });
+
+    // Prune fields
+    output = pruneFields(output, selectedFields);
+
+    return output;
+  }, [data, filters, logicRules, selectedFields]);
+
+  // --- Table pagination ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredData.slice(start, start + rowsPerPage);
+  }, [filteredData, currentPage, rowsPerPage]);
+
+  // --- Prepare chart data ---
+  const chartData = useMemo(() => {
+    if (!filteredData || !filteredData.length) return [];
+
+    switch (type) {
+      case "kpi":
+        return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
+
+      case "stacked_bar":
+        return filteredData.map(row => {
+          const obj = { x: row[xField] };
+          const fieldsToUse = stackedFields.length
+            ? stackedFields
+            : Object.keys(row).filter(k => k !== xField);
+          fieldsToUse.forEach(f => obj[f] = Number(row[f] || 0));
+          return obj;
+        });
+
+      case "line":
+      case "bar":
+      case "pie":
+      case "area":
+      case "scatter":
+        if (xField && yField)
+          return filteredData.map(row => ({ x: row[xField], y: Number(row[yField] || 0) }));
+        return filteredData;
+
+      default:
+        return filteredData;
     }
-  };
+  }, [filteredData, type, xField, yField, stackedFields]);
 
-  const handleDeleteChart = async (chartId) => {
-    if (!confirm("Delete this chart?")) return;
+  // --- Render ---
+  if (loading) return <div>Loading dataset...</div>;
+  if (!filteredData.length) return <div>No matching data</div>;
 
-    await apiClient(`/api/charts/${chartId}/`, { method: "DELETE" });
-    setCharts((prev) => prev.filter((c) => c.chartId !== chartId));
-  };
+  switch (type) {
+    case "line": return <LineChart data={chartData} />;
+    case "bar": return <BarChart data={chartData} />;
+    case "stacked_bar": {
+      const finalStackedFields = stackedFields.length
+        ? stackedFields
+        : filteredData.length
+          ? Object.keys(filteredData[0]).filter(k => k !== xField)
+          : [];
+      return <StackedBarChart data={chartData} xKey={xField} yKeys={finalStackedFields} />;
+    }
+    case "pie": return <PieChart data={chartData} xKey={xField} yKey={yField} />;
+    case "kpi": return <KPI value={chartData} label={yField} />;
+    case "scatter": return <ScatterChart data={chartData} xKey={xField} yKey={yField} />;
+    case "area": return <AreaChart data={chartData} xKey={xField} yKey={yField} />;
 
-  const handleExportPDF = async () => {
-    if (!dashboardRef.current) return;
+    case "table":
+      return (
+        <div className="overflow-x-auto">
+          <table className="border w-full">
+            <thead>
+              <tr>
+                {filteredData.length > 0 &&
+                  Object.keys(filteredData[0]).map(key => (
+                    <th key={key} className="border p-2">{key}</th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedData.map((row, i) => (
+                <tr key={i}>
+                  {Object.keys(row).map((key, j) => (
+                    <td key={j} className="border p-2">{String(row[key])}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-    const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, width, height);
-    pdf.save(`${dashboard.name}.pdf`);
-  };
-
-  /* ===================== RENDER ===================== */
-
-  if (loading) return <p className="p-6">Loading dashboard...</p>;
-  if (error) return <p className="p-6 text-red-600">{error}</p>;
-
-  return (
-    <Layout>
-      <div className="p-6">
-        {/* ================= HEADER ================= */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboards")}
-              className="text-sm text-gray-600 hover:underline"
-            >
-              ← Back
-            </button>
-
-            {!renaming ? (
-              <>
-                <h2 className="text-2xl font-bold">{dashboard.name}</h2>
-                <button
-                  onClick={() => setRenaming(true)}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Rename
-                </button>
-              </>
-            ) : (
-              <div className="flex gap-2">
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-2 flex-wrap">
+              <button
+                className="px-2 py-1 border rounded disabled:opacity-50"
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+              <span>
+                Page{" "}
                 <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-                <button
-                  onClick={handleRename}
-                  disabled={savingName}
-                  className="bg-green-600 text-white px-3 py-1 rounded"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => {
-                    setRenaming(false);
-                    setNewName(dashboard.name);
+                  type="number"
+                  className="border rounded w-12 text-center"
+                  min={1}
+                  max={totalPages}
+                  value={currentPage}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    if (val >= 1 && val <= totalPages) setCurrentPage(val);
                   }}
-                  className="text-sm text-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleExportPDF}
-            className="bg-gray-200 px-3 py-1 rounded"
-          >
-            Export PDF
-          </button>
-        </div>
-
-        {/* ================= DASHBOARD ================= */}
-        <div ref={dashboardRef}>
-          {charts.length === 0 && (
-            <p className="text-gray-600">No charts yet.</p>
+                />{" "}
+                of {totalPages}
+              </span>
+              <button
+                className="px-2 py-1 border rounded disabled:opacity-50"
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+              <select
+                className="border rounded px-2 py-1"
+                value={rowsPerPage}
+                onChange={e => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                {[10, 20, 50, 100].map(r => (
+                  <option key={r} value={r}>{r} rows</option>
+                ))}
+              </select>
+            </div>
           )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {charts.map((c) => (
-              <div key={c.key} className="bg-white p-4 rounded shadow">
-                <div className="flex justify-between mb-2">
-                  <h3 className="font-semibold">{c.title}</h3>
-                  <button
-                    onClick={() => handleDeleteChart(c.chartId)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
-
-                <ChartRenderer
-                  datasetId={c.datasetId}
-                  excelData={c.excelData}
-                  type={c.type}
-                  xField={c.xField}
-                  yField={c.yField}
-                  aggregation={c.aggregation}
-                  filters={c.filters}
-                  logicRules={c.logicRules}
-                  logicExpression={c.logicExpression}
-                  joins={c.joins}
-                  selectedFields={c.selectedFields} // ✅ APPLIED
-                />
-              </div>
-            ))}
-          </div>
         </div>
-      </div>
-    </Layout>
-  );
+      );
+
+    default:
+      return <div>Unknown chart type 🤔</div>;
+  }
 }
