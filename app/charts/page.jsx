@@ -883,10 +883,14 @@ const addChart = async () => {
   }
   if (!chartX || !chartY) return alert("Select X and Y fields");
 
-  // Build selected fields
-  const selectedFieldsArray = Object.entries(selectedFields || {})
-    .filter(([_, isChecked]) => isChecked)
+  // Prepare selected fields array
+  const selectedFieldsArray = Object.entries(selectedFields)
+    .filter(([_, checked]) => checked)
     .map(([fieldName]) => fieldName);
+
+  if (selectedFieldsArray.length === 0) {
+    return alert("Select at least one field to display in the chart.");
+  }
 
   // Create dashboard if needed
   let id = dashboardId;
@@ -899,7 +903,6 @@ const addChart = async () => {
     setDashboardId(res.id);
     id = res.id;
   }
-
     // Build sanitized joins
     const sanitizedJoins = joins
       .filter((j) => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
