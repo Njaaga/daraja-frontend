@@ -1018,8 +1018,13 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 1 - Fields */}
         {step === STEPS.FIELDS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
+            <div className="flex items-center gap-2 mb-2">
             <h3 className="font-semibold mb-2">Field configuration</h3>
-            <p className="text-sm text-gray-600 mb-2">Detected fields from selected datasets / Excel/CSV. You can rename or change types locally (not persisted).</p>
+                <InfoTooltip
+                  align="right"
+                  text="Select which fields from the data should be included."
+                />
+             </div>
 
             {(selectedDatasets.length || excelData) ? (
               <div>
@@ -1157,10 +1162,13 @@ const applyCalculatedFields = (rows, calcs) => {
         {/* Step 4 - Logic Gates */}
         {step === STEPS.LOGIC_GATES && (
           <div className="mb-4 bg-white p-4 rounded shadow">
+            <div className="flex items-center gap-2 mb-2">
             <h3 className="font-semibold mb-2">Logic Gates / Boolean Rules</h3>
-            <p className="text-sm text-gray-600 mb-2">
-              {"Build boolean rules using AND, OR, NOT, parentheses, and comparisons. Example: (age > 10) AND (status = 'active')"}
-            </p>
+                <InfoTooltip
+                  align="right"
+                  text="Apply conditional logic to transform or categorize data."
+                />
+             </div>
 
 
             <div className="mb-2 flex flex-wrap gap-2">
