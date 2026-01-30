@@ -905,37 +905,42 @@ setPreview(rows || []);
   }, `${dashboardName || "dashboard"}-template.json`);
 
   /* ---------- add chart (POST to backend) ---------- */
- const addChart = async (chartX, chartY, type, excelData = null) => {
-    if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
-      return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
-    }
-    if (!chartX || !chartY) return alert("Select X and Y fields");
+const addChart = async () => {
+  if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
+    return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
+  }
+  if (!chartX || !chartY) return alert("Select X and Y fields");
 
-    // Flatten selected fields
-    const selectedFieldsArray = getSelectedFieldsArray();
+  // Create dashboard if needed
+  let id = dashboardId;
+  if (!id) {
+    const res = await apiClient("/api/dashboards/", {
+      method: "POST",
+      body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
+    });
+    if (!res?.id) return alert("Failed to create dashboard");
+    setDashboardId(res.id);
+    id = res.id;
+  }
 
-    // Create dashboard if needed
-    let id = dashboardId;
-    if (!id) {
-      const res = await apiClient("/api/dashboards/", {
-        method: "POST",
-        body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
-      });
-      if (!res?.id) return alert("Failed to create dashboard");
-      id = res.id;
-    }
+  // Build sanitized joins
+  const sanitizedJoins = joins
+    .filter(j => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
+    .map(j => ({
+      left_dataset: Number(j.leftDataset) || j.leftDataset,
+      right_dataset: Number(j.rightDataset) || j.rightDataset,
+      left_field: j.leftField.trim(),
+      right_field: j.rightField.trim(),
+      type: j.type.trim(),
+    }));
 
-   
-    // Build sanitized joins
-    const sanitizedJoins = joins
-      .filter((j) => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
-      .map((j) => ({
-        left_dataset: Number(j.leftDataset) || j.leftDataset,
-        right_dataset: Number(j.rightDataset) || j.rightDataset,
-        left_field: j.leftField.trim(),
-        right_field: j.rightField.trim(),
-        type: j.type.trim(),
-      }));
+  // Flatten selectedFields to array of field names
+  const selectedFieldsArray = Object.values(selectedFields)
+    .flatMap(fieldsObj =>
+      Object.entries(fieldsObj)
+        .filter(([_, checked]) => checked)
+        .map(([fieldName]) => fieldName)
+    );
 
     // Apply logic before sending
     const filteredData = applyLogicGates(preview, logicExpr, logicSaved);
