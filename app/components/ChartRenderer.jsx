@@ -31,23 +31,22 @@ function evaluateRule(row, rule) {
 }
 
 function applyLogic(data, rules) {
-  if (!rules || rules.length === 0) return data;
+  if (!rules?.length) return data;
   return data.filter(row => rules.every(rule => evaluateRule(row, rule)));
 }
 
 // ---------------------
-// Prune fields
+// Prune fields for table
 // ---------------------
 function pruneFields(rows, selectedFields) {
   if (!Array.isArray(rows)) return rows;
-  if (!selectedFields || selectedFields.length === 0) return rows;
-
+  if (!selectedFields?.length) return rows;
   return rows.map(row => {
-    const out = {};
+    const pruned = {};
     selectedFields.forEach(f => {
-      if (f in row) out[f] = row[f];
+      if (f in row) pruned[f] = row[f];
     });
-    return out;
+    return pruned;
   });
 }
 
@@ -68,7 +67,7 @@ export default function ChartRenderer({
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- Load base data ---
+  // --- Load data ---
   useEffect(() => {
     if (!datasetId) {
       setData(excelData || []);
@@ -84,8 +83,9 @@ export default function ChartRenderer({
       } catch (err) {
         console.error("Error loading dataset", err);
         setData([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchDataset();
@@ -93,14 +93,14 @@ export default function ChartRenderer({
 
   // --- Apply filters, logic, and prune fields ---
   const filteredData = useMemo(() => {
-    if (!data || !data.length) return [];
+    if (!data?.length) return [];
 
     let output = [...data];
 
-    // Logic rules
+    // Apply logic rules
     if (logicRules?.length) output = applyLogic(output, logicRules);
 
-    // Filters
+    // Apply filters
     Object.entries(filters).forEach(([field, rule]) => {
       if (!rule || !output.some(r => field in r)) return;
 
@@ -123,13 +123,13 @@ export default function ChartRenderer({
       }
     });
 
-    // Prune only selected fields
+    // Prune only selected fields (important for table charts)
     output = pruneFields(output, selectedFields);
 
     return output;
   }, [data, filters, logicRules, selectedFields]);
 
-  // --- Table pagination ---
+  // --- Pagination for table ---
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
@@ -138,7 +138,7 @@ export default function ChartRenderer({
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, currentPage, rowsPerPage]);
 
-  // --- Map chart data ---
+  // --- Prepare chart data ---
   const chartData = useMemo(() => {
     if (type === "kpi") return filteredData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
 
@@ -153,9 +153,7 @@ export default function ChartRenderer({
       });
     }
 
-    if (xField && yField) {
-      return filteredData.map(row => ({ x: row[xField], y: Number(row[yField] || 0) }));
-    }
+    if (xField && yField) return filteredData.map(row => ({ x: row[xField], y: Number(row[yField] || 0) }));
 
     return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
@@ -179,22 +177,26 @@ export default function ChartRenderer({
     case "kpi": return <KPI value={chartData} label={yField} />;
     case "scatter": return <ScatterChart data={chartData} xKey={xField} yKey={yField} />;
     case "area": return <AreaChart data={chartData} xKey={xField} yKey={yField} />;
-    case "table":
+    case "table": {
+      const fieldsToShow = selectedFields?.length
+        ? selectedFields
+        : filteredData.length
+          ? Object.keys(filteredData[0])
+          : [];
+
       return (
         <div className="overflow-x-auto">
           <table className="border w-full">
             <thead>
               <tr>
-                {Object.keys(filteredData[0]).map(key => (
-                  <th key={key} className="border p-2">{key}</th>
-                ))}
+                {fieldsToShow.map(f => <th key={f} className="border p-2">{f}</th>)}
               </tr>
             </thead>
             <tbody>
               {paginatedData.map((row, i) => (
                 <tr key={i}>
-                  {Object.values(row).map((val, j) => (
-                    <td key={j} className="border p-2">{String(val)}</td>
+                  {fieldsToShow.map((f, j) => (
+                    <td key={j} className="border p-2">{row[f]}</td>
                   ))}
                 </tr>
               ))}
@@ -240,16 +242,13 @@ export default function ChartRenderer({
                   setCurrentPage(1);
                 }}
               >
-                {[10, 20, 50, 100].map(r => (
-                  <option key={r} value={r}>{r} rows</option>
-                ))}
+                {[10, 20, 50, 100].map(r => <option key={r} value={r}>{r} rows</option>)}
               </select>
             </div>
           )}
         </div>
       );
-
-    default:
-      return <div>Unknown chart type 🤔</div>;
+    }
+    default: return <div>Unknown chart type 🤔</div>;
   }
 }
