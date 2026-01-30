@@ -75,7 +75,7 @@ export default function DatasetsPage() {
               </h2>
               <InfoTooltip
                 align="right"
-                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+                text="combines an API Source with an endpoint, parameters, and parsing rules to produce chart-ready data."
               />
             </div>
 
