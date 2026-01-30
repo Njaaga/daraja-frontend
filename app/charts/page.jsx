@@ -877,23 +877,29 @@ setPreview(rows || []);
   }, `${dashboardName || "dashboard"}-template.json`);
 
   /* ---------- add chart (POST to backend) ---------- */
-  const addChart = async () => {
-    if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
-      return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
-    }
-    if (!chartX || !chartY) return alert("Select X and Y fields");
+const addChart = async () => {
+  if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
+    return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
+  }
+  if (!chartX || !chartY) return alert("Select X and Y fields");
 
-    // Create dashboard if needed
-    let id = dashboardId;
-    if (!id) {
-      const res = await apiClient("/api/dashboards/", {
-        method: "POST",
-        body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
-      });
-      if (!res?.id) return alert("Failed to create dashboard");
-      setDashboardId(res.id);
-      id = res.id;
-    }
+  // Convert selectedFields object into an array
+  // Example: { "id": true, "username": false } → ["id"]
+  const selectedFieldsArray = Object.entries(selectedFields || {})
+    .filter(([key, val]) => val)
+    .map(([key]) => key);
+
+  // Create dashboard if needed
+  let id = dashboardId;
+  if (!id) {
+    const res = await apiClient("/api/dashboards/", {
+      method: "POST",
+      body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
+    });
+    if (!res?.id) return alert("Failed to create dashboard");
+    setDashboardId(res.id);
+    id = res.id;
+  }
 
     // Build sanitized joins
     const sanitizedJoins = joins
@@ -922,7 +928,7 @@ setPreview(rows || []);
       calculated_fields: calculatedFields,
       logic_expression: logicExpr || null,
       logic_rules: logicSaved || [],
-      selected_fields: selectedFields || null,
+      selected_fields: selectedFieldsArray || null,
     };
 
 
