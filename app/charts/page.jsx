@@ -445,6 +445,29 @@ export default function DashboardBuilder() {
 };
 
 
+const getPrunedPreview = () => {
+  if (!preview?.length) return preview;
+
+  const selection =
+    selectedDatasets.length
+      ? selectedFields[String(selectedDatasets[0].id)]
+      : selectedFields["excel"];
+
+  if (!selection) return preview;
+
+  return preview.map((row) => {
+    const out = {};
+    for (const k of Object.keys(row)) {
+      if (selection[k] !== false) {
+        out[k] = row[k];
+      }
+    }
+    return out;
+  });
+};
+
+
+
   // Core meta
   const [dashboardName, setDashboardName] = useState("");
   const [dashboardId, setDashboardId] = useState(null);
@@ -809,7 +832,28 @@ const applyCalculatedFields = (rows, calcs) => {
         // 5. UI Filters
         rows = applyFiltersToRows(rows, filters);
 
-        setPreview(rows || []);
+// Final prune after joins / calcs / filters
+if (rows?.length) {
+  const finalSelection =
+    selectedDatasets.length
+      ? selectedFields[String(selectedDatasets[0].id)]
+      : selectedFields["excel"];
+
+  if (finalSelection) {
+    rows = rows.map((row) => {
+      const out = {};
+      for (const k of Object.keys(row)) {
+        if (finalSelection[k] !== false) {
+          out[k] = row[k];
+        }
+      }
+      return out;
+    });
+  }
+}
+
+setPreview(rows || []);
+
       } catch (err) {
         console.error("Preview build failed:", err);
         setPreview([]);
@@ -1418,12 +1462,22 @@ const getSelectableFields = (datasetId) => {
 
               <select value={chartX} onChange={(e) => setChartX(e.target.value)} className="border p-2 rounded col-span-1">
                 <option value="">X Field</option>
-                {allFieldOptions.map((f) => <option key={f} value={f}>{f}</option>)}
+                {getSelectableFields(
+                    selectedDatasets.length ? selectedDatasets[0].id : "excel"
+                  ).map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+
               </select>
 
               <select value={chartY} onChange={(e) => setChartY(e.target.value)} className="border p-2 rounded col-span-1">
                 <option value="">Y Field</option>
-                {allFieldOptions.map((f) => <option key={f} value={f}>{f}</option>)}
+                {getSelectableFields(
+                  selectedDatasets.length ? selectedDatasets[0].id : "excel"
+                ).map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+
               </select>
 
               <button onClick={addChart} className="bg-blue-600 text-white p-2 rounded col-span-6 md:col-auto">➕ Add Chart</button>
@@ -1442,9 +1496,9 @@ const getSelectableFields = (datasetId) => {
                     Delete
                   </button>
                     {c.type === "table" ? (
-                      <TableRenderer dataset={preview} />
-
+                      <TableRenderer dataset={getPrunedPreview()} />
                     ) : (
+
                       <ChartRenderer
                         type={c.type}
                         datasetId={undefined}
