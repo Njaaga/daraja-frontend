@@ -921,8 +921,46 @@ const getSelectableFields = (datasetId) => {
   return fields.filter((f) => selection[f] !== false);
 };
 
-  
+const applySelectedFields = (rows, datasetId) => {
+  const selection = selectedFields[String(datasetId)];
+  if (!selection) return rows;
 
+  return rows.map((row) => {
+    const out = {};
+    for (const key of Object.keys(row)) {
+      if (selection[key] !== false) {
+        out[key] = row[key];
+      }
+    }
+    return out;
+  });
+};
+
+const buildPreview = async () => {
+  setLoadingPreview(true);
+
+  let dataByDataset = {};
+
+  for (const ds of selectedDatasets) {
+    const id = String(ds.id);
+    const rawRows = datasetRows[id] || [];
+    dataByDataset[id] = applySelectedFields(rawRows, id);
+  }
+
+  if (excelData) {
+    dataByDataset["excel"] = applySelectedFields(excelData, "excel");
+  }
+
+  let result = applyJoins(dataByDataset, joins);
+  result = applyCalculatedFields(result, calculatedFields);
+  result = applyLogicRules(result, logicSaved);
+  result = applyFilters(result, filters);
+
+  setPreview(result);
+  setLoadingPreview(false);
+};
+
+  
   /* ---------- layout change handler ---------- */
   const onLayoutChange = (newLayout) => setLayout(newLayout);
 
@@ -1424,7 +1462,8 @@ const getSelectableFields = (datasetId) => {
                     Delete
                   </button>
                     {c.type === "table" ? (
-                      <TableRenderer dataset={c.excelData || datasetRows[c.dataset] || []} />
+                      <TableRenderer dataset={preview} />
+
                     ) : (
                       <ChartRenderer
                         type={c.type}
