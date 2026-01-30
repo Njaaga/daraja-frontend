@@ -1026,7 +1026,7 @@ const applyCalculatedFields = (rows, calcs) => {
     />
   </div>
 
-  <>
+ 
     {(selectedDatasets.length || excelData) ? (
       <div>
         {(selectedDatasets.length ? selectedDatasets : [{ id: "excel", name: "Excel" }]).map((ds) => (
@@ -1060,11 +1060,11 @@ const applyCalculatedFields = (rows, calcs) => {
     ) : (
       <p className="text-gray-600">No source selected.</p>
     )}
-  </>
+ 
 </div>
 
 
-        <>
+        
         {step === STEPS.JOINS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
             <div className="flex items-center gap-2 mb-2">
@@ -1126,7 +1126,7 @@ const applyCalculatedFields = (rows, calcs) => {
             </div>
           </div>
         )}
-</>
+
         {/* Step 3 - Calculated */}
         {step === STEPS.CALCULATED && (
           <div className="mb-4 bg-white p-4 rounded shadow">
