@@ -445,17 +445,6 @@ export default function DashboardBuilder() {
   const [fieldNames, setFieldNames] = useState({});
 
 
-  const toggleField = (datasetId, field) => {
-  setSelectedFields(prev => {
-    const current = prev[datasetId] || [];
-    return {
-      ...prev,
-      [datasetId]: current.includes(field)
-        ? current.filter(f => f !== field)
-        : [...current, field],
-    };
-  });
-};
 
 
 
