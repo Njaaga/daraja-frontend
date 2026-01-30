@@ -481,6 +481,34 @@ const getPrunedPreview = () => {
 
   const [selectedFields, setSelectedFields] = useState({});
 
+    // ------------------------
+  // Initialize selectedFields
+  // ------------------------
+  useEffect(() => {
+    const initialSelected = {};
+
+    (selectedDatasets.length ? selectedDatasets : [{ id: "excel", name: "Excel" }]).forEach(ds => {
+      initialSelected[ds.id] = {};
+      (datasetFields[ds.id] || []).forEach(f => {
+        initialSelected[ds.id][f] = true; // default to selected
+      });
+    });
+
+    setSelectedFields(initialSelected);
+  }, [selectedDatasets, datasetFields]);
+
+  // ------------------------
+  // Flatten selectedFields for saving
+  // ------------------------
+  const getSelectedFieldsArray = () => {
+    return Object.values(selectedFields)
+      .flatMap(fieldsObj =>
+        Object.entries(fieldsObj)
+          .filter(([_, checked]) => checked)
+          .map(([fieldName]) => fieldName)
+      );
+  };
+
   const [fieldNames, setFieldNames] = useState({});
 
 
@@ -877,32 +905,27 @@ setPreview(rows || []);
   }, `${dashboardName || "dashboard"}-template.json`);
 
   /* ---------- add chart (POST to backend) ---------- */
-const addChart = async () => {
-  if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
-    return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
-  }
-  if (!chartX || !chartY) return alert("Select X and Y fields");
+ const addChart = async (chartX, chartY, type, excelData = null) => {
+    if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
+      return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
+    }
+    if (!chartX || !chartY) return alert("Select X and Y fields");
 
-  // Prepare selected fields array
-const selectedFieldsArray = Object.entries(selectedFields)
-  .flatMap(([datasetId, fieldsObj]) => 
-    Object.entries(fieldsObj)
-      .filter(([fieldName, checked]) => checked)
-      .map(([fieldName]) => fieldName) // ✅ field names
-  );
+    // Flatten selected fields
+    const selectedFieldsArray = getSelectedFieldsArray();
 
+    // Create dashboard if needed
+    let id = dashboardId;
+    if (!id) {
+      const res = await apiClient("/api/dashboards/", {
+        method: "POST",
+        body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
+      });
+      if (!res?.id) return alert("Failed to create dashboard");
+      id = res.id;
+    }
 
-  // Create dashboard if needed
-  let id = dashboardId;
-  if (!id) {
-    const res = await apiClient("/api/dashboards/", {
-      method: "POST",
-      body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
-    });
-    if (!res?.id) return alert("Failed to create dashboard");
-    setDashboardId(res.id);
-    id = res.id;
-  }
+   
     // Build sanitized joins
     const sanitizedJoins = joins
       .filter((j) => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
