@@ -216,7 +216,7 @@ export default function UsersPage() {
               </h2>
               <InfoTooltip
                 align="right"
-                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+                text="Invite and manage users in your workspace."
               />
             </div>
             <Link
