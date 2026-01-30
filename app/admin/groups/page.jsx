@@ -132,7 +132,7 @@ export default function GroupsPage() {
               </h2>
               <InfoTooltip
                 align="right"
-                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+                text="Assign dashboards to groups and add users to control what they can see."
               />
             </div>
 
