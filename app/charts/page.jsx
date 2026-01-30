@@ -884,13 +884,13 @@ const addChart = async () => {
   if (!chartX || !chartY) return alert("Select X and Y fields");
 
   // Prepare selected fields array
-  const selectedFieldsArray = Object.entries(selectedFields)
-    .filter(([_, checked]) => checked)
-    .map(([fieldName]) => fieldName);
+const selectedFieldsArray = Object.entries(selectedFields)
+  .flatMap(([datasetId, fieldsObj]) => 
+    Object.entries(fieldsObj)
+      .filter(([fieldName, checked]) => checked)
+      .map(([fieldName]) => fieldName) // ✅ field names
+  );
 
-  if (selectedFieldsArray.length === 0) {
-    return alert("Select at least one field to display in the chart.");
-  }
 
   // Create dashboard if needed
   let id = dashboardId;
