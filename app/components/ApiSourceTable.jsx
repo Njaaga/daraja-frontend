@@ -85,7 +85,7 @@ export default function ApiSourcesPage() {
               </h2>
               <InfoTooltip
                 align="right"
-                text="Connect APIs, CSV, Excel, or Google Sheets as input datasets for your dashboard."
+                text="Connect external APIs and manage authentication, base URLs, and headers used by your datasets."
               />
             </div>
 
