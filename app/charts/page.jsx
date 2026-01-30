@@ -1017,49 +1017,51 @@ const applyCalculatedFields = (rows, calcs) => {
 
         {/* Step 1 - Fields */}
         {step === STEPS.FIELDS && (
-          <div className="mb-4 bg-white p-4 rounded shadow">
-            <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-semibold mb-2">Field configuration</h3>
-                <InfoTooltip
-                  align="right"
-                  text="Select which fields from the data should be included."
-                />
-             </div>
+<div className="mb-4 bg-white p-4 rounded shadow">
+  <div className="flex items-center gap-2 mb-2">
+    <h3 className="font-semibold mb-2">Field configuration</h3>
+    <InfoTooltip
+      align="right"
+      text="Select which fields from the data should be included."
+    />
+  </div>
 
-            {(selectedDatasets.length || excelData) ? (
-              <div>
-                {(selectedDatasets.length ? selectedDatasets : [{ id: "excel", name: "Excel" }]).map((ds) => (
-                  <div key={ds.id} className="mb-4">
-                    <h4 className="font-medium mb-2">{ds.name || "Excel"}</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(datasetFields[ds.id] || []).map((f) => (
-                        <div key={f} className="p-2 border rounded flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-semibold">{f}</div>
-                            <div className="text-xs text-gray-600">
-                              Type: {detectType(getValueByPath((datasetRows[ds.id] || [])[0] || {}, f))}
-                            </div>
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedFields[ds.id]?.[f] ?? true}
-                            onChange={(e) =>
-                              setSelectedFields((prev) => ({
-                                ...prev,
-                                [ds.id]: { ...prev[ds.id], [f]: e.target.checked },
-                              }))
-                            }
-                          />
-                        </div>
-                      ))}
+  <>
+    {(selectedDatasets.length || excelData) ? (
+      <div>
+        {(selectedDatasets.length ? selectedDatasets : [{ id: "excel", name: "Excel" }]).map((ds) => (
+          <div key={ds.id} className="mb-4">
+            <h4 className="font-medium mb-2">{ds.name || "Excel"}</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {(datasetFields[ds.id] || []).map((f) => (
+                <div key={f} className="p-2 border rounded flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold">{f}</div>
+                    <div className="text-xs text-gray-600">
+                      Type: {detectType(getValueByPath((datasetRows[ds.id] || [])[0] || {}, f))}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600">No source selected.</p>
-            )}
+                  <input
+                    type="checkbox"
+                    checked={selectedFields[ds.id]?.[f] ?? true}
+                    onChange={(e) =>
+                      setSelectedFields((prev) => ({
+                        ...prev,
+                        [ds.id]: { ...prev[ds.id], [f]: e.target.checked },
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-gray-600">No source selected.</p>
+    )}
+  </>
+</div>
 
 
         {/* Step 2 - Joins */}
