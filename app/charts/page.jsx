@@ -922,6 +922,7 @@ setPreview(rows || []);
       calculated_fields: calculatedFields,
       logic_expression: logicExpr || null,
       logic_rules: logicSaved || [],
+      selected_fields: selectedFields || null,
     };
 
 
