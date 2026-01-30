@@ -905,6 +905,23 @@ const applyCalculatedFields = (rows, calcs) => {
     }
   };
 
+    const getFilteredPreview = (rows, datasetId) => {
+  const includedFields = Object.entries(selectedFields[datasetId] || {})
+    .filter(([f, included]) => included)
+    .map(([f]) => f);
+
+  return rows.map(row => {
+    const filteredRow = {};
+    includedFields.forEach(f => {
+      filteredRow[f] = row[f];
+    });
+    return filteredRow;
+  });
+};
+
+
+  
+
   /* ---------- layout change handler ---------- */
   const onLayoutChange = (newLayout) => setLayout(newLayout);
 
