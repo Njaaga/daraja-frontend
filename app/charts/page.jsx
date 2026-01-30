@@ -439,6 +439,23 @@ export default function DashboardBuilder() {
   const [datasetRows, setDatasetRows] = useState({}); // id => rows[]
   const [datasetFields, setDatasetFields] = useState({}); // id => [fields]
 
+
+  const [selectedFields, setSelectedFields] = useState({});
+
+  const toggleField = (datasetId, field) => {
+  setSelectedFields(prev => {
+    const current = prev[datasetId] || [];
+    return {
+      ...prev,
+      [datasetId]: current.includes(field)
+        ? current.filter(f => f !== field)
+        : [...current, field],
+    };
+  });
+};
+
+
+
   // file ingestion
   const [excelData, setExcelData] = useState(null);
   const [csvNotice, setCsvNotice] = useState("");
@@ -1007,12 +1024,24 @@ const applyCalculatedFields = (rows, calcs) => {
                   <div key={ds.id} className="mb-4">
                     <h4 className="font-medium mb-2">{ds.name || "Excel"}</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {(datasetFields[ds.id] || []).map((f) => (
-                        <div key={f} className="p-2 border rounded">
-                          <div className="text-sm font-semibold">{f}</div>
-                          <div className="text-xs text-gray-600">{/* Basic type inference */}Type: {detectType(getValueByPath((datasetRows[ds.id] || [])[0] || {}, f))}</div>
-                        </div>
-                      ))}
+                        {(datasetFields[ds.id] || []).map((f) => (
+                          <div key={f} className="p-2 border rounded">
+                            <input
+                              type="text"
+                              value={fieldNames[ds.id]?.[f] || f}
+                              onChange={(e) =>
+                                setFieldNames((prev) => ({
+                                  ...prev,
+                                  [ds.id]: { ...prev[ds.id], [f]: e.target.value },
+                                }))
+                              }
+                              className="w-full text-sm font-semibold"
+                            />
+                            <div className="text-xs text-gray-600">
+                              Type: {detectType(getValueByPath((datasetRows[ds.id] || [])[0] || {}, f))}
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 ))}
