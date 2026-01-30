@@ -442,6 +442,9 @@ export default function DashboardBuilder() {
 
   const [selectedFields, setSelectedFields] = useState({});
 
+  const [fieldNames, setFieldNames] = useState({});
+
+
   const toggleField = (datasetId, field) => {
   setSelectedFields(prev => {
     const current = prev[datasetId] || [];
