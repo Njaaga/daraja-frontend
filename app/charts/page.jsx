@@ -1064,7 +1064,7 @@ const applyCalculatedFields = (rows, calcs) => {
 </div>
 
 
-        
+        <>
         {step === STEPS.JOINS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
             <div className="flex items-center gap-2 mb-2">
@@ -1126,7 +1126,7 @@ const applyCalculatedFields = (rows, calcs) => {
             </div>
           </div>
         )}
-
+</>
         {/* Step 3 - Calculated */}
         {step === STEPS.CALCULATED && (
           <div className="mb-4 bg-white p-4 rounded shadow">
