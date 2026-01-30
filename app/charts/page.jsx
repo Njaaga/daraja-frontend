@@ -1089,7 +1089,9 @@ const applyCalculatedFields = (rows, calcs) => {
 
                   <select value={j.leftField} onChange={(e) => updateJoin(i, "leftField", e.target.value)} className="border p-2 rounded">
                     <option value="">Left field</option>
-                    {(datasetFields[j.leftDataset] || []).map((f) => <option key={f} value={f}>{f}</option>)}
+                    {((datasetFields[j.leftDataset] || []).filter(f => selectedFields[j.leftDataset]?.[f]))
+  .map((f) => <option key={f} value={f}>{f}</option>)
+}
                     {j.leftDataset === "excel" && (datasetFields["excel"] || []).map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
 
@@ -1108,7 +1110,9 @@ const applyCalculatedFields = (rows, calcs) => {
 
                   <select value={j.rightField} onChange={(e) => updateJoin(i, "rightField", e.target.value)} className="border p-2 rounded">
                     <option value="">Right field</option>
-                    {(datasetFields[j.rightDataset] || []).map((f) => <option key={f} value={f}>{f}</option>)}
+                    {((datasetFields[j.rightDataset] || []).filter(f => selectedFields[j.rightDataset]?.[f]))
+  .map((f) => <option key={f} value={f}>{f}</option>)
+}
                     {j.rightDataset === "excel" && (datasetFields["excel"] || []).map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
 
@@ -1121,7 +1125,8 @@ const applyCalculatedFields = (rows, calcs) => {
 
             <div className="mt-4">
               <h4 className="font-semibold mb-2">Preview after joins (first 10 rows)</h4>
-              {loadingPreview ? <div>Building...</div> : <TableRenderer dataset={preview.slice(0, 10)} />}
+              {loadingPreview ? <div>Building...</div> : <TableRenderer dataset={getFilteredPreview(preview, j.leftDataset).slice(0, 10)} />
+}
             </div>
           </div>
         )}
