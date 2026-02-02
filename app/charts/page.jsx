@@ -1134,7 +1134,7 @@ const getSelectableFields = (datasetId) => {
 
         {step === STEPS.FIELDS && (
           <div className="mb-4 bg-white p-4 rounded shadow">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 mb-2">
               <h3 className="font-semibold mb-2">Field configuration</h3>
               <InfoTooltip
                 align="right"
