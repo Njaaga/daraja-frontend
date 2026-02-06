@@ -37,6 +37,14 @@ function getValueByPath(obj, path) {
   return path?.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
+function flattenRow(row) {
+  const flat = {};
+  Object.keys(row).forEach(k => {
+    flat[k] = typeof row[k] === "object" && row[k] !== null ? JSON.stringify(row[k]) : row[k];
+  });
+  return flat;
+}
+
 // --------------------- CHART RENDERER ---------------------
 
 export default function ChartRenderer({
@@ -55,7 +63,7 @@ export default function ChartRenderer({
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* ---------- Load Data ---------- */
+  // ---------- Load Data ----------
   useEffect(() => {
     if (!datasetId) {
       setData(excelData || []);
@@ -76,7 +84,7 @@ export default function ChartRenderer({
     load();
   }, [datasetId, excelData]);
 
-  /* ---------- Apply Logic + Filters ---------- */
+  // ---------- Apply Logic + Filters ----------
   const filteredData = useMemo(() => {
     let output = [...data];
 
@@ -112,7 +120,7 @@ export default function ChartRenderer({
     return output;
   }, [data, filters, logicRules, selectedFields]);
 
-  /* ---------- Chart Mapping ---------- */
+  // ---------- Prepare Chart Data ----------
   const chartData = useMemo(() => {
     if (type === "kpi") {
       return filteredData.reduce((sum, r) => sum + Number(r[yField] || 0), 0);
@@ -120,11 +128,12 @@ export default function ChartRenderer({
 
     if (type === "stacked_bar") {
       return filteredData.map(row => {
-        const obj = { x: row[xField], __row: row };
+        const obj = { x: row[xField] };
         const fields = stackedFields.length
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
         fields.forEach(f => obj[f] = Number(row[f] || 0));
+        obj.__row = row; // for modal drill-down
         return obj;
       });
     }
@@ -133,43 +142,28 @@ export default function ChartRenderer({
       return filteredData.map(row => ({
         x: row[xField],
         y: Number(row[yField] || 0),
-        __row: row,
+        __row: row, // attach original row
       }));
     }
 
     return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
 
-  /* ---------- Click Handler ---------- */
+  // ---------- Click Handler ----------
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
 
+    // Support multiple or single row
     let rows = payload.__rows || [payload.__row || payload];
 
-    // Flatten rows to match selectedFields
-    if (selectedFields?.length) {
-      rows = rows.map((r) => {
-        const pruned = {};
-        selectedFields.forEach((f) => {
-          pruned[f] = getValueByPath(r, f);
-        });
-        return pruned;
-      });
-    } else {
-      // Fallback: stringify nested objects
-      rows = rows.map((r) => {
-        const flat = {};
-        Object.keys(r).forEach((k) => {
-          flat[k] = typeof r[k] === "object" && r[k] !== null ? JSON.stringify(r[k]) : r[k];
-        });
-        return flat;
-      });
-    }
+    // Flatten for modal display
+    rows = rows.map(flattenRow);
 
-    onPointClick({ field: xField, value: payload.x, rows });
+    // Send first row for modal (can be extended to multi-row later)
+    onPointClick({ row: rows[0] });
   };
 
-  /* ---------- Render ---------- */
+  // ---------- Render ----------
   if (loading) return <div>Loading dataset…</div>;
   if (!filteredData.length) return <div>No matching data</div>;
 
