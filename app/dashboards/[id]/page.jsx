@@ -19,7 +19,6 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* 🔥 Modal state */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
@@ -37,13 +36,10 @@ export default function DashboardView() {
         const mappedCharts = (db.dashboard_charts || []).map((dc) => {
           const c = dc.chart_detail;
 
-          // fallback data if no excel_data
-          const chartData =
-            c.excel_data && Array.isArray(c.excel_data)
-              ? c.excel_data
-              : [
-                  { x: c.x_field || "A", y: c.y_field || 0 },
-                ];
+          // Ensure excelData is array of objects
+          const chartData = Array.isArray(c.excel_data)
+            ? c.excel_data.map((r) => (typeof r === "object" ? r : { x: r[0], y: r[1] }))
+            : [{ x: c.x_field ?? "A", y: c.y_field ?? 0 }];
 
           return {
             key: dc.id,
@@ -71,14 +67,13 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
-  /* ===================== CHART CLICK HANDLER ===================== */
+  /* ===================== CHART CLICK ===================== */
   const handleChartClick = ({ field, value, row }) => {
-    console.log("Chart clicked:", { field, value, row }); // debug
+    console.log("Clicked row:", row);
     if (!row) return;
 
-    const rows = Array.isArray(row) ? row : [row];
-    setModalRows(rows);
-    setModalFields(Object.keys(rows[0] || {}));
+    setModalRows([row]);
+    setModalFields(Object.keys(row));
     setModalOpen(true);
   };
 
@@ -130,16 +125,12 @@ export default function DashboardView() {
             <div key={c.key} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
 
-              {/* ChartRenderer or BarChart */}
-              <BarChart
-                data={c.excelData}
-                onBarClick={handleChartClick}
-              />
+              <BarChart data={c.excelData} onBarClick={handleChartClick} />
             </div>
           ))}
         </div>
 
-        {/* 🔥 DRILL-DOWN MODAL */}
+        {/* 🔥 MODAL */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
