@@ -9,8 +9,8 @@ export default function BarChart({ data, onBarClick }) {
   // Dynamically detect x and y fields from first row
   const firstRow = data[0];
   const keys = Object.keys(firstRow);
-  const xKey = keys[0]; // use first key as x-axis
-  const yKey = keys[1] ?? keys[0]; // use second key as y-axis (or first if only one)
+  const xKey = keys[0]; // first key as x-axis
+  const yKey = keys[1] ?? keys[0]; // second key as y-axis or first if only one
 
   const labels = data.map((d) => d[xKey]);
   const values = data.map((d) => Number(d[yKey] ?? 0));
@@ -42,6 +42,7 @@ export default function BarChart({ data, onBarClick }) {
       const row = data[index];
       if (!row) return;
 
+      // Send full row object to modal
       if (onBarClick) onBarClick({ field: yKey, value: row[yKey], row });
     },
   };
