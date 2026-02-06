@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
-import BarChart from "@/app/components/ChartRenderer";
+import ChartRenderer from "@/app/components/ChartRenderer";
 import ChartDetailsModal from "@/app/components/ChartDetailsModal";
 import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
@@ -23,7 +23,7 @@ export default function DashboardView() {
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
-  /* ===================== FETCH DASHBOARD ===================== */
+  // ------------------- Fetch Dashboard -------------------
   useEffect(() => {
     if (!id) return;
 
@@ -35,8 +35,6 @@ export default function DashboardView() {
 
         const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
-
-          // Ensure excelData is array of objects
           const chartData = Array.isArray(c.excel_data)
             ? c.excel_data.map(r => (typeof r === "object" ? r : { x: r[0], y: r[1] }))
             : [{ [c.x_field ?? "X"]: c.x_field ?? "A", [c.y_field ?? "Y"]: c.y_field ?? 0 }];
@@ -44,12 +42,20 @@ export default function DashboardView() {
           return {
             key: dc.id,
             title: c.name || c.y_field,
+            type: c.chart_type,
+            datasetId: c.dataset,
+            xField: c.x_field,
+            yField: c.y_field,
             excelData: chartData,
+            filters: c.filters || {},
+            logicRules: c.logic_rules || [],
+            stackedFields: c.stacked_fields || [],
+            selectedFields: c.selected_fields || null,
           };
         });
 
         setCharts(mappedCharts);
-      } catch (err) {
+      } catch {
         setError("Dashboard not found or access denied.");
       } finally {
         setLoading(false);
@@ -59,16 +65,16 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
-  /* ===================== CHART CLICK ===================== */
+  // ------------------- Handle Chart Click -------------------
   const handleChartClick = ({ row }) => {
     if (!row) return;
 
-    setModalRows([row]);
+    setModalRows([row]); // wrap in array for modal
     setModalFields(Object.keys(row));
     setModalOpen(true);
   };
 
-  /* ===================== PDF EXPORT ===================== */
+  // ------------------- Export PDF -------------------
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
 
@@ -83,14 +89,14 @@ export default function DashboardView() {
     pdf.save(`${dashboard.name}.pdf`);
   };
 
-  /* ===================== RENDER ===================== */
+  // ------------------- Render -------------------
   if (loading) return <p className="p-6">Loading dashboard…</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <Layout>
       <div className="p-6">
-        {/* HEADER */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => router.push("/dashboards")} className="text-sm text-gray-600 hover:underline">← Back</button>
@@ -99,17 +105,28 @@ export default function DashboardView() {
           <button onClick={handleExportPDF} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 transition">Export PDF</button>
         </div>
 
-        {/* DASHBOARD CONTENT */}
+        {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {charts.map(c => (
             <div key={c.key} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
-              <BarChart data={c.excelData} onBarClick={handleChartClick} />
+              <ChartRenderer
+                datasetId={c.datasetId}
+                type={c.type}
+                xField={c.xField}
+                yField={c.yField}
+                stackedFields={c.stackedFields}
+                filters={c.filters}
+                excelData={c.excelData}
+                logicRules={c.logicRules}
+                selectedFields={c.selectedFields}
+                onPointClick={handleChartClick}
+              />
             </div>
           ))}
         </div>
 
-        {/* MODAL */}
+        {/* Modal */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
