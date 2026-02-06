@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
-import ChartRenderer from "@/app/components/ChartRenderer";
+import BarChart from "@/app/components/BarChart"; // or ChartRenderer
 import ChartDetailsModal from "@/app/components/ChartDetailsModal";
 import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
@@ -19,7 +19,7 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* 🔥 Drilldown modal state */
+  /* 🔥 Modal state */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
@@ -36,17 +36,26 @@ export default function DashboardView() {
 
         const mappedCharts = (db.dashboard_charts || []).map((dc) => {
           const c = dc.chart_detail;
+
+          // fallback data if no excel_data
+          const chartData =
+            c.excel_data && Array.isArray(c.excel_data)
+              ? c.excel_data
+              : [
+                  { x: c.x_field || "A", y: c.y_field || 0 },
+                ];
+
           return {
             key: dc.id,
             chartId: dc.chart,
             title: c.name || c.y_field,
-            datasetId: c.dataset,
             type: c.chart_type,
+            datasetId: c.dataset,
             xField: c.x_field,
             yField: c.y_field,
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
-            excelData: c.excel_data || null,
+            excelData: chartData,
             selectedFields: c.selected_fields || null,
           };
         });
@@ -64,10 +73,10 @@ export default function DashboardView() {
 
   /* ===================== CHART CLICK HANDLER ===================== */
   const handleChartClick = ({ field, value, row }) => {
+    console.log("Chart clicked:", { field, value, row }); // debug
     if (!row) return;
 
     const rows = Array.isArray(row) ? row : [row];
-
     setModalRows(rows);
     setModalFields(Object.keys(rows[0] || {}));
     setModalOpen(true);
@@ -109,36 +118,28 @@ export default function DashboardView() {
 
           <button
             onClick={handleExportPDF}
-            className="bg-gray-200 px-3 py-1 rounded"
+            className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 transition"
           >
             Export PDF
           </button>
         </div>
 
-        {/* DASHBOARD */}
-        <div ref={dashboardRef}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {charts.map((c) => (
-              <div key={c.key} className="bg-white p-4 rounded shadow">
-                <h3 className="font-semibold mb-2">{c.title}</h3>
-                
-                <ChartRenderer
-                  datasetId={c.datasetId}
-                  excelData={c.excelData}
-                  type={c.type}
-                  xField={c.xField}
-                  yField={c.yField}
-                  filters={c.filters}
-                  logicRules={c.logicRules}
-                  selectedFields={c.selectedFields}
-                  onPointClick={handleChartClick}
-                />
-              </div>
-            ))}
-          </div>
+        {/* DASHBOARD CONTENT */}
+        <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {charts.map((c) => (
+            <div key={c.key} className="bg-white p-4 rounded shadow">
+              <h3 className="font-semibold mb-2">{c.title}</h3>
+
+              {/* ChartRenderer or BarChart */}
+              <BarChart
+                data={c.excelData}
+                onBarClick={handleChartClick}
+              />
+            </div>
+          ))}
         </div>
 
-        {/* 🔥 MODAL */}
+        {/* 🔥 DRILL-DOWN MODAL */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
