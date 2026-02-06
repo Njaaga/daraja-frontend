@@ -28,10 +28,18 @@ export default function BarChart({ data, onBarClick }) {
       x: { grid: { display: false } },
       y: { beginAtZero: true, grid: { drawBorder: false } },
     },
-    onClick: (evt, elements) => {
+    onClick: (_evt, elements) => {
       if (!elements.length) return;
+
       const index = elements[0].index;
-      if (onBarClick) onBarClick(data[index]);
+
+      if (onBarClick) {
+        onBarClick({
+          field: "y",          // yField
+          value: values[index],
+          row: data[index],    // 🔥 ensures modal opens
+        });
+      }
     },
   };
 
