@@ -3,7 +3,7 @@
 import "@/lib/chartjs";
 import { Bar } from "react-chartjs-2";
 
-export default function BarChart({ data }) {
+export default function BarChart({ data, onBarClick }) {
   const labels = data.map((d) => d.x);
   const values = data.map((d) => Number(d.y));
 
@@ -23,10 +23,20 @@ export default function BarChart({ data }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { tooltip: { mode: "index", intersect: false }, legend: { display: false } },
+    plugins: {
+      tooltip: { mode: "index", intersect: false },
+      legend: { display: false },
+    },
     scales: {
       x: { grid: { display: false } },
       y: { beginAtZero: true, grid: { drawBorder: false } },
+    },
+    onClick: (evt, elements) => {
+      if (!elements.length) return;
+
+      // elements[0] contains the clicked bar
+      const index = elements[0].index;
+      if (onBarClick) onBarClick(data[index]);
     },
   };
 
