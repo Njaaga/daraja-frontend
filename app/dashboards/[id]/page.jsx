@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
-import BarChart from "@/app/components/BarChart"; // or ChartRenderer
+import BarChart from "@/app/components/ChartRenderer";
 import ChartDetailsModal from "@/app/components/ChartDetailsModal";
 import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
