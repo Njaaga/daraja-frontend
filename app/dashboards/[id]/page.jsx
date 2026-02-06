@@ -1,41 +1,120 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Layout from "@/app/components/Layout";
-import ChartRenderer from "@/app/components/ChartRenderer";
-import { apiClient } from "@/lib/apiClient";
+import { useState, useMemo } from "react";
+import { CSVLink } from "react-csv";
+import * as XLSX from "xlsx";
 
-// ---------------- Modal Table Component ----------------
-function ChartDetailsModal({ open, onClose, rows, selectedFields }) {
+export default function ChartDetailsModal({ open, onClose, rows, selectedFields }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [search, setSearch] = useState({});
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc"); // asc | desc
 
-  if (!open) return null;
-  if (!rows?.length) return null;
+  if (!open || !rows?.length) return null;
 
-  const totalPages = Math.ceil(rows.length / rowsPerPage);
-  const paginated = rows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  // Filtered & searched rows
+  const filteredRows = useMemo(() => {
+    let output = [...rows];
+
+    // Column search
+    Object.entries(search).forEach(([field, term]) => {
+      if (!term) return;
+      output = output.filter((r) =>
+        String(r[field] ?? "")
+          .toLowerCase()
+          .includes(term.toLowerCase())
+      );
+    });
+
+    // Sorting
+    if (sortField) {
+      output.sort((a, b) => {
+        const valA = a[sortField] ?? "";
+        const valB = b[sortField] ?? "";
+        if (typeof valA === "number" && typeof valB === "number") {
+          return sortOrder === "asc" ? valA - valB : valB - valA;
+        }
+        return sortOrder === "asc"
+          ? String(valA).localeCompare(String(valB))
+          : String(valB).localeCompare(String(valA));
+      });
+    }
+
+    return output;
+  }, [rows, search, sortField, sortOrder]);
+
+  const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+  const paginatedRows = filteredRows.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+
+  // CSV / Excel export
+  const handleExcelExport = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ChartData");
+    XLSX.writeFile(wb, "chart_data.xlsx");
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-start pt-20 p-4">
-      <div className="bg-white w-full max-w-5xl rounded shadow-lg p-6 overflow-auto max-h-[80vh]">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white w-full max-w-6xl rounded shadow-lg p-6 overflow-auto max-h-[80vh]">
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <h3 className="text-xl font-bold">Chart Data</h3>
-          <button onClick={onClose} className="text-red-500">Close</button>
+          <div className="flex gap-2">
+            <button onClick={handleExcelExport} className="bg-green-600 text-white px-3 py-1 rounded">
+              Export Excel
+            </button>
+            <CSVLink
+              data={filteredRows}
+              filename="chart_data.csv"
+              className="bg-blue-600 text-white px-3 py-1 rounded"
+            >
+              Export CSV
+            </CSVLink>
+            <button onClick={onClose} className="text-red-500 font-semibold px-3 py-1 rounded border">
+              Close
+            </button>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto mb-2">
           <table className="border w-full">
             <thead>
               <tr>
                 {selectedFields.map((f) => (
-                  <th key={f} className="border p-2">{f}</th>
+                  <th key={f} className="border p-2 cursor-pointer">
+                    <div className="flex flex-col">
+                      <span
+                        onClick={() => {
+                          if (sortField === f) {
+                            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortField(f);
+                            setSortOrder("asc");
+                          }
+                        }}
+                        className="flex items-center justify-between"
+                      >
+                        {f}
+                        {sortField === f ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        className="border rounded px-1 py-0.5 text-sm"
+                        value={search[f] || ""}
+                        onChange={(e) => setSearch((s) => ({ ...s, [f]: e.target.value }))}
+                      />
+                    </div>
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {paginated.map((row, i) => (
+              {paginatedRows.map((row, i) => (
                 <tr key={i}>
                   {selectedFields.map((f, j) => (
                     <td key={j} className="border p-2">{String(row[f] ?? "")}</td>
@@ -93,114 +172,5 @@ function ChartDetailsModal({ open, onClose, rows, selectedFields }) {
         )}
       </div>
     </div>
-  );
-}
-
-// ---------------- Dashboard View ----------------
-
-export default function DashboardView() {
-  const { id } = useParams();
-  const router = useRouter();
-  const dashboardRef = useRef(null);
-
-  const [dashboard, setDashboard] = useState(null);
-  const [charts, setCharts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalRows, setModalRows] = useState([]);
-  const [modalFields, setModalFields] = useState([]);
-
-  // Fetch dashboard
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchDashboard = async () => {
-      try {
-        setLoading(true);
-        const db = await apiClient(`/api/dashboards/${id}/`);
-        setDashboard(db);
-
-        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
-          const c = dc.chart_detail;
-          return {
-            key: dc.id,
-            chartId: dc.chart,
-            title: c.name || c.y_field,
-            datasetId: c.dataset,
-            type: c.chart_type,
-            xField: c.x_field,
-            yField: c.y_field,
-            aggregation: c.aggregation,
-            filters: c.filters || {},
-            logicRules: c.logic_rules || [],
-            joins: c.joins || [],
-            excelData: c.excel_data || null,
-            selectedFields: c.selected_fields || [],
-            stackedFields: c.stacked_fields || [],
-          };
-        });
-
-        setCharts(mappedCharts);
-      } catch (err) {
-        console.error(err);
-        setError("Dashboard not found or access denied.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, [id]);
-
-  // Handle chart click → open modal
-  const handleChartClick = (chart, rows) => {
-    setModalRows(rows || []);
-    setModalFields(chart.selectedFields || []);
-    setModalOpen(true);
-  };
-
-  if (loading) return <p className="p-6">Loading dashboard...</p>;
-  if (error) return <p className="p-6 text-red-600">{error}</p>;
-
-  return (
-    <Layout>
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6">{dashboard?.name}</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {charts.map((c) => (
-            <div key={c.key} className="bg-white p-4 rounded shadow">
-              <div className="flex justify-between mb-2">
-                <h3 className="font-semibold">{c.title}</h3>
-              </div>
-
-              <ChartRenderer
-                datasetId={c.datasetId}
-                type={c.type}
-                xField={c.xField}
-                yField={c.yField}
-                stackedFields={c.stackedFields}
-                excelData={c.excelData}
-                logicRules={c.logicRules}
-                selectedFields={c.selectedFields}
-                filters={c.filters}
-                onPointClick={(payload) => handleChartClick(c, payload.rows)}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Modal Table */}
-      <ChartDetailsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        rows={modalRows}
-        selectedFields={modalFields}
-      />
-    </Layout>
   );
 }
