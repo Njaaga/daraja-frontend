@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { deepFlatten } from "@/lib/utils";
 import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
@@ -11,7 +12,6 @@ import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
 // --------------------- HELPERS ---------------------
-
 function evaluateRule(row, rule) {
   const { field, operator, value } = rule;
   const rowValue = row[field];
@@ -33,26 +33,11 @@ function applyLogic(data, rules) {
   return data.filter(row => rules.every(rule => evaluateRule(row, rule)));
 }
 
-// Flatten nested JSON objects for modal display
-function flattenRow(row) {
-  const flat = {};
-  Object.keys(row).forEach((key) => {
-    const val = row[key];
-    if (typeof val === "object" && val !== null) {
-      flat[key] = JSON.stringify(val); // convert objects/arrays to string
-    } else {
-      flat[key] = val;
-    }
-  });
-  return flat;
-}
-
 function getValueByPath(obj, path) {
   return path?.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
 // --------------------- CHART RENDERER ---------------------
-
 export default function ChartRenderer({
   datasetId,
   type,
@@ -139,7 +124,7 @@ export default function ChartRenderer({
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
         fields.forEach(f => obj[f] = Number(row[f] || 0));
-        obj.__row = row; // keep original row for modal
+        obj.__row = row;
         return obj;
       });
     }
@@ -148,7 +133,7 @@ export default function ChartRenderer({
       return filteredData.map(row => ({
         x: row[xField],
         y: Number(row[yField] || 0),
-        __row: row, // original row for modal
+        __row: row,
       }));
     }
 
@@ -159,13 +144,11 @@ export default function ChartRenderer({
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
 
-    // Get original row from Chart.js payload
     const originalRow = payload.__row || payload;
 
-    // Flatten JSON objects
-    const flattenedRow = flattenRow(originalRow);
+    // Deep flatten nested objects
+    const flattenedRow = deepFlatten(originalRow);
 
-    // Send only flattened row to modal
     onPointClick({ row: flattenedRow });
   };
 
