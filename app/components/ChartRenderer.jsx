@@ -10,7 +10,7 @@ import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
-/* ===================== HELPERS ===================== */
+// --------------------- HELPERS ---------------------
 
 function evaluateRule(row, rule) {
   const { field, operator, value } = rule;
@@ -37,7 +37,7 @@ function getValueByPath(obj, path) {
   return path?.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
-/* ===================== CHART RENDERER ===================== */
+// --------------------- CHART RENDERER ---------------------
 
 export default function ChartRenderer({
   datasetId,
@@ -49,8 +49,6 @@ export default function ChartRenderer({
   excelData = null,
   logicRules = [],
   selectedFields = null,
-
-  /* 🔥 NEW */
   onPointClick,
   fullscreen = false,
 }) {
@@ -122,7 +120,7 @@ export default function ChartRenderer({
 
     if (type === "stacked_bar") {
       return filteredData.map(row => {
-        const obj = { x: row[xField] };
+        const obj = { x: row[xField], __row: row };
         const fields = stackedFields.length
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
@@ -135,7 +133,7 @@ export default function ChartRenderer({
       return filteredData.map(row => ({
         x: row[xField],
         y: Number(row[yField] || 0),
-        __row: row, // 🔥 keep original row for drilldown
+        __row: row,
       }));
     }
 
@@ -146,11 +144,29 @@ export default function ChartRenderer({
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
 
-    onPointClick({
-      field: xField,
-      value: payload.x,
-      row: payload.__row || payload,
-    });
+    let rows = payload.__rows || [payload.__row || payload];
+
+    // Flatten rows to match selectedFields
+    if (selectedFields?.length) {
+      rows = rows.map((r) => {
+        const pruned = {};
+        selectedFields.forEach((f) => {
+          pruned[f] = getValueByPath(r, f);
+        });
+        return pruned;
+      });
+    } else {
+      // Fallback: stringify nested objects
+      rows = rows.map((r) => {
+        const flat = {};
+        Object.keys(r).forEach((k) => {
+          flat[k] = typeof r[k] === "object" && r[k] !== null ? JSON.stringify(r[k]) : r[k];
+        });
+        return flat;
+      });
+    }
+
+    onPointClick({ field: xField, value: payload.x, rows });
   };
 
   /* ---------- Render ---------- */
@@ -163,18 +179,9 @@ export default function ChartRenderer({
 
   return (
     <div className={wrapperClass}>
-      {type === "line" && (
-        <LineChart data={chartData} onPointClick={handlePointClick} />
-      )}
-
-      {type === "bar" && (
-        <BarChart data={chartData} onBarClick={handlePointClick} />
-      )}
-
-      {type === "pie" && (
-        <PieChart data={chartData} onSliceClick={handlePointClick} />
-      )}
-
+      {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
+      {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
+      {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
       {type === "stacked_bar" && (
         <StackedBarChart
           data={chartData}
@@ -183,18 +190,9 @@ export default function ChartRenderer({
           onBarClick={handlePointClick}
         />
       )}
-
-      {type === "area" && (
-        <AreaChart data={chartData} onPointClick={handlePointClick} />
-      )}
-
-      {type === "scatter" && (
-        <ScatterChart data={chartData} onPointClick={handlePointClick} />
-      )}
-
-      {type === "kpi" && (
-        <KPI value={chartData} label={yField} />
-      )}
+      {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
+      {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
+      {type === "kpi" && <KPI value={chartData} label={yField} />}
     </div>
   );
 }
