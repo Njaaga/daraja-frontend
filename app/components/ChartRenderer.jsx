@@ -33,16 +33,22 @@ function applyLogic(data, rules) {
   return data.filter(row => rules.every(rule => evaluateRule(row, rule)));
 }
 
-function getValueByPath(obj, path) {
-  return path?.split(".").reduce((acc, key) => acc?.[key], obj);
-}
-
+// Flatten nested JSON objects for modal display
 function flattenRow(row) {
   const flat = {};
-  Object.keys(row).forEach(k => {
-    flat[k] = typeof row[k] === "object" && row[k] !== null ? JSON.stringify(row[k]) : row[k];
+  Object.keys(row).forEach((key) => {
+    const val = row[key];
+    if (typeof val === "object" && val !== null) {
+      flat[key] = JSON.stringify(val); // convert objects/arrays to string
+    } else {
+      flat[key] = val;
+    }
   });
   return flat;
+}
+
+function getValueByPath(obj, path) {
+  return path?.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
 // --------------------- CHART RENDERER ---------------------
@@ -133,7 +139,7 @@ export default function ChartRenderer({
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
         fields.forEach(f => obj[f] = Number(row[f] || 0));
-        obj.__row = row; // for modal drill-down
+        obj.__row = row; // keep original row for modal
         return obj;
       });
     }
@@ -142,7 +148,7 @@ export default function ChartRenderer({
       return filteredData.map(row => ({
         x: row[xField],
         y: Number(row[yField] || 0),
-        __row: row, // attach original row
+        __row: row, // original row for modal
       }));
     }
 
@@ -153,23 +159,21 @@ export default function ChartRenderer({
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
 
-    // Support multiple or single row
-    let rows = payload.__rows || [payload.__row || payload];
+    // Get original row from Chart.js payload
+    const originalRow = payload.__row || payload;
 
-    // Flatten for modal display
-    rows = rows.map(flattenRow);
+    // Flatten JSON objects
+    const flattenedRow = flattenRow(originalRow);
 
-    // Send first row for modal (can be extended to multi-row later)
-    onPointClick({ row: rows[0] });
+    // Send only flattened row to modal
+    onPointClick({ row: flattenedRow });
   };
 
   // ---------- Render ----------
   if (loading) return <div>Loading dataset…</div>;
   if (!filteredData.length) return <div>No matching data</div>;
 
-  const wrapperClass = fullscreen
-    ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
-    : "";
+  const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
 
   return (
     <div className={wrapperClass}>
