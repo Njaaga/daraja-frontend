@@ -1,113 +1,103 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import { apiClient } from "@/lib/apiClient";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
-/* -------------------- CSV EXPORT -------------------- */
-const exportCSV = (rows, columns, filename) => {
-  const csv =
-    [columns.join(",")]
-      .concat(
-        rows.map((r) => columns.map((c) => `"${r[c] ?? ""}"`).join(","))
-      )
-      .join("\n");
+// ---------------- Modal Table Component ----------------
+function ChartDetailsModal({ open, onClose, rows, selectedFields }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-};
+  if (!open) return null;
+  if (!rows?.length) return null;
 
-/* -------------------- MODAL -------------------- */
-function ChartDetailsModal({ rows, selectedFields, chartName, onClose }) {
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState(null);
-
-  if (!rows || rows.length === 0) return null;
-
-  const columns = selectedFields?.length
-    ? selectedFields
-    : Object.keys(rows[0] || {});
-
-  const filteredRows = useMemo(() => {
-    let r = [...rows];
-
-    if (search) {
-      r = r.filter((row) =>
-        columns.some((c) =>
-          row[c]?.toString().toLowerCase().includes(search.toLowerCase())
-        )
-      );
-    }
-
-    if (sort) {
-      r.sort((a, b) => (a[sort] > b[sort] ? 1 : -1));
-    }
-
-    return r;
-  }, [rows, search, sort, columns]);
+  const totalPages = Math.ceil(rows.length / rowsPerPage);
+  const paginated = rows.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-auto">
-      <div className="bg-white w-full max-w-6xl p-6 rounded shadow-lg">
-        <div className="flex justify-between mb-3">
-          <h3 className="font-semibold text-lg">{chartName} – Details</h3>
-          <button className="text-xl" onClick={onClose}>✕</button>
+    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-start pt-20 p-4">
+      <div className="bg-white w-full max-w-5xl rounded shadow-lg p-6 overflow-auto max-h-[80vh]">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold">Chart Data</h3>
+          <button onClick={onClose} className="text-red-500">Close</button>
         </div>
 
-        <div className="flex gap-2 mb-3">
-          <input
-            placeholder="Search…"
-            className="border px-2 py-1 rounded flex-1"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button
-            className="bg-gray-200 px-3 py-1 rounded"
-            onClick={() => exportCSV(filteredRows, columns, `${chartName}.csv`)}
-          >
-            Export CSV
-          </button>
-        </div>
-
-        <div className="overflow-auto max-h-[70vh] border rounded">
-          <table className="min-w-full text-sm border-collapse">
-            <thead className="bg-gray-100 sticky top-0">
+        <div className="overflow-x-auto">
+          <table className="border w-full">
+            <thead>
               <tr>
-                {columns.map((c) => (
-                  <th
-                    key={c}
-                    onClick={() => setSort(c)}
-                    className="cursor-pointer px-3 py-2 border-b"
-                  >
-                    {c}
-                  </th>
+                {selectedFields.map((f) => (
+                  <th key={f} className="border p-2">{f}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((r, i) => (
-                <tr key={i} className="even:bg-gray-50">
-                  {columns.map((c) => (
-                    <td key={c} className="px-3 py-2 border-b">{r[c]}</td>
+              {paginated.map((row, i) => (
+                <tr key={i}>
+                  {selectedFields.map((f, j) => (
+                    <td key={j} className="border p-2">{String(row[f] ?? "")}</td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-2 flex-wrap">
+            <button
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            >
+              Prev
+            </button>
+            <span>
+              Page{" "}
+              <input
+                type="number"
+                className="border rounded w-12 text-center"
+                min={1}
+                max={totalPages}
+                value={currentPage}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val >= 1 && val <= totalPages) setCurrentPage(val);
+                }}
+              />{" "}
+              of {totalPages}
+            </span>
+            <button
+              className="px-2 py-1 border rounded disabled:opacity-50"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            >
+              Next
+            </button>
+            <select
+              className="border rounded px-2 py-1"
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+            >
+              {[10, 20, 50, 100].map((r) => (
+                <option key={r} value={r}>{r} rows</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* -------------------- DASHBOARD VIEW -------------------- */
+// ---------------- Dashboard View ----------------
+
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
@@ -118,11 +108,12 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
-  const [modalChartName, setModalChartName] = useState("");
 
-  /* -------------------- FETCH DASHBOARD -------------------- */
+  // Fetch dashboard
   useEffect(() => {
     if (!id) return;
 
@@ -132,10 +123,25 @@ export default function DashboardView() {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mappedCharts = (db.dashboard_charts || []).map((dc) => ({
-          ...dc.chart_detail,
-          key: dc.id,
-        }));
+        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
+          const c = dc.chart_detail;
+          return {
+            key: dc.id,
+            chartId: dc.chart,
+            title: c.name || c.y_field,
+            datasetId: c.dataset,
+            type: c.chart_type,
+            xField: c.x_field,
+            yField: c.y_field,
+            aggregation: c.aggregation,
+            filters: c.filters || {},
+            logicRules: c.logic_rules || [],
+            joins: c.joins || [],
+            excelData: c.excel_data || null,
+            selectedFields: c.selected_fields || [],
+            stackedFields: c.stacked_fields || [],
+          };
+        });
 
         setCharts(mappedCharts);
       } catch (err) {
@@ -149,89 +155,52 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
-  /* -------------------- EXPORT PDF -------------------- */
-  const handleExportPDF = async () => {
-    if (!dashboardRef.current) return;
-
-    const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const width = pdf.internal.pageSize.getWidth();
-    const height = (canvas.height * width) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, width, height);
-    pdf.save(`${dashboard.name}.pdf`);
+  // Handle chart click → open modal
+  const handleChartClick = (chart, rows) => {
+    setModalRows(rows || []);
+    setModalFields(chart.selectedFields || []);
+    setModalOpen(true);
   };
 
-  /* -------------------- HANDLE CHART CLICK -------------------- */
-  const handleChartClick = (chart, clickedRows) => {
-    setModalRows(clickedRows || []);
-    setModalFields(chart.selected_fields || []);
-    setModalChartName(chart.name);
-  };
-
-  /* -------------------- RENDER -------------------- */
   if (loading) return <p className="p-6">Loading dashboard...</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <Layout>
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboards")}
-              className="text-sm text-gray-600 hover:underline"
-            >
-              ← Back
-            </button>
-            <h2 className="text-2xl font-bold">{dashboard.name}</h2>
-          </div>
+        <h2 className="text-2xl font-bold mb-6">{dashboard?.name}</h2>
 
-          <button
-            onClick={handleExportPDF}
-            className="bg-gray-200 px-3 py-1 rounded"
-          >
-            Export PDF
-          </button>
-        </div>
-
-        <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {charts.map((c) => (
             <div key={c.key} className="bg-white p-4 rounded shadow">
               <div className="flex justify-between mb-2">
-                <h3 className="font-semibold">{c.name}</h3>
+                <h3 className="font-semibold">{c.title}</h3>
               </div>
 
               <ChartRenderer
-                datasetId={c.dataset}
-                type={c.chart_type}
-                xField={c.x_field}
-                yField={c.y_field}
-                excelData={c.excel_data}
-                logicRules={c.logic_rules || []}
-                selectedFields={c.selected_fields || []}
-                stackedFields={c.stacked_fields || []}
-                filters={{}}
-                onPointClick={(payload) => {
-                  // payload.__rows contains exact data
-                  handleChartClick(c, payload.__rows || [payload.__row || payload]);
-                }}
+                datasetId={c.datasetId}
+                type={c.type}
+                xField={c.xField}
+                yField={c.yField}
+                stackedFields={c.stackedFields}
+                excelData={c.excelData}
+                logicRules={c.logicRules}
+                selectedFields={c.selectedFields}
+                filters={c.filters}
+                onPointClick={(payload) => handleChartClick(c, payload.rows)}
               />
             </div>
           ))}
         </div>
       </div>
 
-      {modalRows.length > 0 && (
-        <ChartDetailsModal
-          rows={modalRows}
-          selectedFields={modalFields}
-          chartName={modalChartName}
-          onClose={() => setModalRows([])}
-        />
-      )}
+      {/* Modal Table */}
+      <ChartDetailsModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        rows={modalRows}
+        selectedFields={modalFields}
+      />
     </Layout>
   );
 }
