@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -19,17 +19,12 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* ---------- Rename ---------- */
-  const [renaming, setRenaming] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-
-  /* ---------- Drilldown Modal ---------- */
+  /* 🔥 Drilldown modal state */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
-  /* ================= FETCH DASHBOARD ================= */
+  /* ===================== FETCH DASHBOARD ===================== */
   useEffect(() => {
     if (!id) return;
 
@@ -38,7 +33,6 @@ export default function DashboardView() {
         setLoading(true);
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
-        setNewName(db.name);
 
         const mappedCharts = (db.dashboard_charts || []).map((dc) => {
           const c = dc.chart_detail;
@@ -50,19 +44,15 @@ export default function DashboardView() {
             type: c.chart_type,
             xField: c.x_field,
             yField: c.y_field,
-            aggregation: c.aggregation,
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
-            logicExpression: c.logic_expression || null,
-            joins: c.joins || [],
             excelData: c.excel_data || null,
-            selectedFields: c.selected_fields || [],
+            selectedFields: c.selected_fields || null,
           };
         });
 
         setCharts(mappedCharts);
       } catch (err) {
-        console.error(err);
         setError("Dashboard not found or access denied.");
       } finally {
         setLoading(false);
@@ -72,31 +62,24 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
-  /* ================= ACTIONS ================= */
+  /* ===================== CHART CLICK HANDLER ===================== */
+  const handleChartClick = ({ field, value, row }) => {
+    if (!row) return;
 
-  const handleRename = async () => {
-    if (!newName.trim()) return alert("Name cannot be empty");
-    try {
-      setSavingName(true);
-      await apiClient(`/api/dashboards/${id}/`, {
-        method: "PATCH",
-        body: JSON.stringify({ name: newName }),
-      });
-      setDashboard((d) => ({ ...d, name: newName }));
-      setRenaming(false);
-    } finally {
-      setSavingName(false);
-    }
+    // 🔥 Filter exact matching rows
+    const rows = Array.isArray(row)
+      ? row
+      : [row];
+
+    setModalRows(rows);
+    setModalFields(Object.keys(rows[0] || {}));
+    setModalOpen(true);
   };
 
-  const handleDeleteChart = async (chartId) => {
-    if (!confirm("Delete this chart?")) return;
-    await apiClient(`/api/charts/${chartId}/`, { method: "DELETE" });
-    setCharts((prev) => prev.filter((c) => c.chartId !== chartId));
-  };
-
+  /* ===================== PDF EXPORT ===================== */
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
+
     const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
 
@@ -108,22 +91,14 @@ export default function DashboardView() {
     pdf.save(`${dashboard.name}.pdf`);
   };
 
-  /* ================= DRILLDOWN HANDLER ================= */
-  const handleSliceClick = (rows, selectedFields) => {
-    setModalRows(rows);
-    setModalFields(selectedFields);
-    setModalOpen(true);
-  };
-
-  /* ================= RENDER ================= */
-
-  if (loading) return <p className="p-6">Loading dashboard...</p>;
+  /* ===================== RENDER ===================== */
+  if (loading) return <p className="p-6">Loading dashboard…</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <Layout>
       <div className="p-6">
-        {/* ============ HEADER ============ */}
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button
@@ -132,42 +107,7 @@ export default function DashboardView() {
             >
               ← Back
             </button>
-
-            {!renaming ? (
-              <>
-                <h2 className="text-2xl font-bold">{dashboard.name}</h2>
-                <button
-                  onClick={() => setRenaming(true)}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Rename
-                </button>
-              </>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-                <button
-                  onClick={handleRename}
-                  disabled={savingName}
-                  className="bg-green-600 text-white px-3 py-1 rounded"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => {
-                    setRenaming(false);
-                    setNewName(dashboard.name);
-                  }}
-                  className="text-sm text-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+            <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
 
           <button
@@ -178,24 +118,12 @@ export default function DashboardView() {
           </button>
         </div>
 
-        {/* ============ DASHBOARD ============ */}
+        {/* DASHBOARD */}
         <div ref={dashboardRef}>
-          {charts.length === 0 && (
-            <p className="text-gray-600">No charts yet.</p>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {charts.map((c) => (
               <div key={c.key} className="bg-white p-4 rounded shadow">
-                <div className="flex justify-between mb-2">
-                  <h3 className="font-semibold">{c.title}</h3>
-                  <button
-                    onClick={() => handleDeleteChart(c.chartId)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <h3 className="font-semibold mb-2">{c.title}</h3>
 
                 <ChartRenderer
                   datasetId={c.datasetId}
@@ -203,27 +131,24 @@ export default function DashboardView() {
                   type={c.type}
                   xField={c.xField}
                   yField={c.yField}
-                  aggregation={c.aggregation}
                   filters={c.filters}
                   logicRules={c.logicRules}
-                  logicExpression={c.logicExpression}
-                  joins={c.joins}
                   selectedFields={c.selectedFields}
-                  onSliceClick={handleSliceClick}   // ✅ NEW
+                  onPointClick={handleChartClick}   {/* 🔥 THIS WAS MISSING */}
                 />
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* ============ MODAL ============ */}
-      <ChartDetailsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        rows={modalRows}
-        selectedFields={modalFields}
-      />
+        {/* 🔥 MODAL */}
+        <ChartDetailsModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          rows={modalRows}
+          selectedFields={modalFields}
+        />
+      </div>
     </Layout>
   );
 }
