@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -9,86 +9,6 @@ import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-/* ====================== UTILS ====================== */
-const getValue = (obj, path) =>
-  path.split(".").reduce((o, k) => (o ? o[k] : undefined), obj);
-
-const applyFilters = (rows, filters) => {
-  return rows.filter((row) =>
-    Object.entries(filters).every(([field, rule]) => {
-      const value = getValue(row, field);
-      if (rule.type === "text")
-        return String(value ?? "").toLowerCase().includes(rule.value.toLowerCase());
-      if (rule.type === "select")
-        return rule.value ? value === rule.value : true;
-      if (rule.type === "date")
-        return (
-          (!rule.from || new Date(value) >= new Date(rule.from)) &&
-          (!rule.to || new Date(value) <= new Date(rule.to))
-        );
-      return true;
-    })
-  );
-};
-
-/* ====================== SLICER PANEL ====================== */
-function SlicerPanel({ fields, data, filters, onChange, onClear }) {
-  if (!fields.length) return null;
-
-  const distinctValues = (field) =>
-    Array.from(
-      new Set(
-        data.map((r) => getValue(r, field)).filter(Boolean)
-      )
-    ).slice(0, 50);
-
-  return (
-    <div className="bg-white p-4 rounded shadow mb-6">
-      <div className="flex justify-between mb-3">
-        <h3 className="font-semibold">Dashboard Filters</h3>
-        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">
-          Clear all
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {fields.map((field) => (
-          <div key={field}>
-            <label className="text-xs text-gray-600 mb-1 block">{field}</label>
-
-            {/* Dropdown */}
-            {distinctValues(field).length <= 20 ? (
-              <select
-                value={filters[field]?.value || ""}
-                onChange={(e) =>
-                  onChange(field, { type: "select", value: e.target.value })
-                }
-                className="w-full border rounded px-2 py-1 text-sm"
-              >
-                <option value="">All</option>
-                {distinctValues(field).map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={filters[field]?.value || ""}
-                onChange={(e) =>
-                  onChange(field, { type: "text", value: e.target.value })
-                }
-                placeholder={`Filter ${field}`}
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ====================== DASHBOARD VIEW ====================== */
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
@@ -96,142 +16,131 @@ export default function DashboardView() {
 
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
-  const [rows, setRows] = useState([]);
-  const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /* 🔥 Drilldown modal */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
-  /* ====================== LOAD DASHBOARD ====================== */
+  /* ================= FETCH DASHBOARD ================= */
   useEffect(() => {
     if (!id) return;
 
-    const load = async () => {
+    const fetchDashboard = async () => {
       try {
+        setLoading(true);
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mapped = db.dashboard_charts.map((dc) => {
+        const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
           return {
             key: dc.id,
-            title: c.name,
+            title: c.name || c.y_field,
             type: c.chart_type,
             datasetId: c.dataset,
             xField: c.x_field,
             yField: c.y_field,
             stackedFields: c.stacked_fields || [],
-            excelData: c.excel_data || [],
-            logicRules: c.logic_rules || [],
+            excelData: c.excel_data || null,
             filters: c.filters || {},
+            logicRules: c.logic_rules || [],
             selectedFields: c.selected_fields || null,
           };
         });
 
-        setCharts(mapped);
-        setRows(mapped[0]?.excelData || []);
-
-        const saved = localStorage.getItem(`dashboard-filters-${id}`);
-        if (saved) setFilters(JSON.parse(saved));
+        setCharts(mappedCharts);
       } catch {
-        setError("Dashboard not found.");
+        setError("Dashboard not found or access denied.");
       } finally {
         setLoading(false);
       }
     };
 
-    load();
+    fetchDashboard();
   }, [id]);
 
-  /* ====================== SAVE FILTERS ====================== */
-  useEffect(() => {
-    localStorage.setItem(`dashboard-filters-${id}`, JSON.stringify(filters));
-  }, [filters, id]);
+  /* ================= CLICK HANDLER (THIS WAS WRONG BEFORE) ================= */
+  const handleChartClick = ({ rows }) => {
+    if (!rows || !rows.length) return;
 
-  /* ====================== SLICER FIELDS ====================== */
-  const slicerFields = useMemo(() => {
-    const s = new Set();
-    charts.forEach((c) => {
-      s.add(c.xField);
-      s.add(c.yField);
+    // Flatten JSON so table renders cleanly
+    const flattened = rows.map(row => {
+      const out = {};
+      Object.entries(row).forEach(([k, v]) => {
+        out[k] =
+          typeof v === "object" && v !== null
+            ? JSON.stringify(v)
+            : v;
+      });
+      return out;
     });
-    return Array.from(s);
-  }, [charts]);
 
-  /* ====================== FILTERED DATA ====================== */
-  const filteredRows = useMemo(
-    () => applyFilters(rows, filters),
-    [rows, filters]
-  );
-
-  /* ====================== CHART CLICK (CROSS FILTER) ====================== */
-  const handleChartClick = ({ row }) => {
-    if (!row) return;
-
-    setFilters((prev) => ({
-      ...prev,
-      [Object.keys(row)[0]]: {
-        type: "select",
-        value: row[Object.keys(row)[0]],
-      },
-    }));
-
-    setModalRows([row]);
-    setModalFields(Object.keys(row));
+    setModalRows(flattened);
+    setModalFields(Object.keys(flattened[0] || {}));
     setModalOpen(true);
   };
 
-  /* ====================== EXPORT PDF ====================== */
-  const exportPDF = async () => {
+  /* ================= EXPORT PDF ================= */
+  const handleExportPDF = async () => {
+    if (!dashboardRef.current) return;
+
     const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
     const pdf = new jsPDF("p", "mm", "a4");
-    const w = pdf.internal.pageSize.getWidth();
-    const h = (canvas.height * w) / canvas.width;
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, w, h);
+    const width = pdf.internal.pageSize.getWidth();
+    const height = (canvas.height * width) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, width, height);
     pdf.save(`${dashboard.name}.pdf`);
   };
 
-  if (loading) return <p className="p-6">Loading…</p>;
+  /* ================= RENDER ================= */
+  if (loading) return <p className="p-6">Loading dashboard…</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <Layout>
       <div className="p-6">
         {/* HEADER */}
-        <div className="flex justify-between mb-6">
-          <div className="flex gap-3 items-center">
-            <button onClick={() => router.push("/dashboards")} className="text-sm">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboards")}
+              className="text-sm text-gray-600 hover:underline"
+            >
               ← Back
             </button>
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
-          <button onClick={exportPDF} className="bg-gray-200 px-3 py-1 rounded">
+
+          <button
+            onClick={handleExportPDF}
+            className="bg-gray-200 px-3 py-1 rounded"
+          >
             Export PDF
           </button>
         </div>
 
-        {/* SLICERS */}
-        <SlicerPanel
-          fields={slicerFields}
-          data={rows}
-          filters={filters}
-          onChange={(f, r) => setFilters((p) => ({ ...p, [f]: r }))}
-          onClear={() => setFilters({})}
-        />
-
-        {/* CHARTS */}
+        {/* DASHBOARD */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {charts.map((c) => (
+          {charts.map(c => (
             <div key={c.key} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
 
               <ChartRenderer
-                {...c}
-                excelData={filteredRows}
-                filters={filters}
+                datasetId={c.datasetId}
+                excelData={c.excelData}
+                type={c.type}
+                xField={c.xField}
+                yField={c.yField}
+                stackedFields={c.stackedFields}
+                filters={c.filters}
+                logicRules={c.logicRules}
+                selectedFields={c.selectedFields}
                 onPointClick={handleChartClick}
               />
             </div>
