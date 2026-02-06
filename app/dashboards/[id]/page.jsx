@@ -74,10 +74,10 @@ function ChartDetailsModal({ chart, onClose }) {
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
-  const dashboardRef = useRef<HTMLDivElement>(null);
+  const dashboardRef = useRef(null);
 
-  const [dashboard, setDashboard] = useState<any>(null);
-  const [charts, setCharts] = useState<any[]>([]);
+  const [dashboard, setDashboard] = useState(null);
+  const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -85,7 +85,7 @@ export default function DashboardView() {
   const [newName, setNewName] = useState("");
   const [savingName, setSavingName] = useState(false);
 
-  const [detailChart, setDetailChart] = useState<any>(null);
+  const [detailChart, setDetailChart] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
   /* ===================== FETCH DASHBOARD ===================== */
@@ -180,7 +180,7 @@ export default function DashboardView() {
   return (
     <Layout>
       <div className="p-6">
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button
@@ -190,41 +190,7 @@ export default function DashboardView() {
               ← Back
             </button>
 
-            {!renaming ? (
-              <>
-                <h2 className="text-2xl font-bold">{dashboard.name}</h2>
-                <button
-                  onClick={() => setRenaming(true)}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Rename
-                </button>
-              </>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-                <button
-                  onClick={handleRename}
-                  disabled={savingName}
-                  className="bg-green-600 text-white px-3 py-1 rounded"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => {
-                    setRenaming(false);
-                    setNewName(dashboard.name);
-                  }}
-                  className="text-sm text-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+            <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
 
           <button
@@ -235,24 +201,12 @@ export default function DashboardView() {
           </button>
         </div>
 
-        {/* ================= DASHBOARD ================= */}
+        {/* DASHBOARD */}
         <div ref={dashboardRef}>
-          {charts.length === 0 && (
-            <p className="text-gray-600">No charts yet.</p>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {charts.map((c) => (
               <div key={c.key} className="bg-white p-4 rounded shadow">
-                <div className="flex justify-between mb-2">
-                  <h3 className="font-semibold">{c.title}</h3>
-                  <button
-                    onClick={() => handleDeleteChart(c.chartId)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
+                <h3 className="font-semibold mb-2">{c.title}</h3>
 
                 <div
                   className="cursor-pointer"
