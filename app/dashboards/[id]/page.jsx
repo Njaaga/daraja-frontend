@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -66,10 +66,7 @@ export default function DashboardView() {
   const handleChartClick = ({ field, value, row }) => {
     if (!row) return;
 
-    // 🔥 Filter exact matching rows
-    const rows = Array.isArray(row)
-      ? row
-      : [row];
+    const rows = Array.isArray(row) ? row : [row];
 
     setModalRows(rows);
     setModalFields(Object.keys(rows[0] || {}));
@@ -136,7 +133,6 @@ export default function DashboardView() {
                   selectedFields={c.selectedFields}
                   onPointClick={handleChartClick}
                 />
-
               </div>
             ))}
           </div>
