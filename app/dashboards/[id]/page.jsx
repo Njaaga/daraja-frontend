@@ -33,26 +33,18 @@ export default function DashboardView() {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
+        const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
 
           // Ensure excelData is array of objects
           const chartData = Array.isArray(c.excel_data)
-            ? c.excel_data.map((r) => (typeof r === "object" ? r : { x: r[0], y: r[1] }))
-            : [{ x: c.x_field ?? "A", y: c.y_field ?? 0 }];
+            ? c.excel_data.map(r => (typeof r === "object" ? r : { x: r[0], y: r[1] }))
+            : [{ [c.x_field ?? "X"]: c.x_field ?? "A", [c.y_field ?? "Y"]: c.y_field ?? 0 }];
 
           return {
             key: dc.id,
-            chartId: dc.chart,
             title: c.name || c.y_field,
-            type: c.chart_type,
-            datasetId: c.dataset,
-            xField: c.x_field,
-            yField: c.y_field,
-            filters: c.filters || {},
-            logicRules: c.logic_rules || [],
             excelData: chartData,
-            selectedFields: c.selected_fields || null,
           };
         });
 
@@ -68,8 +60,7 @@ export default function DashboardView() {
   }, [id]);
 
   /* ===================== CHART CLICK ===================== */
-  const handleChartClick = ({ field, value, row }) => {
-    console.log("Clicked row:", row);
+  const handleChartClick = ({ row }) => {
     if (!row) return;
 
     setModalRows([row]);
@@ -102,35 +93,23 @@ export default function DashboardView() {
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboards")}
-              className="text-sm text-gray-600 hover:underline"
-            >
-              ← Back
-            </button>
+            <button onClick={() => router.push("/dashboards")} className="text-sm text-gray-600 hover:underline">← Back</button>
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
-
-          <button
-            onClick={handleExportPDF}
-            className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 transition"
-          >
-            Export PDF
-          </button>
+          <button onClick={handleExportPDF} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 transition">Export PDF</button>
         </div>
 
         {/* DASHBOARD CONTENT */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {charts.map((c) => (
+          {charts.map(c => (
             <div key={c.key} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
-
               <BarChart data={c.excelData} onBarClick={handleChartClick} />
             </div>
           ))}
         </div>
 
-        {/* 🔥 MODAL */}
+        {/* MODAL */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
