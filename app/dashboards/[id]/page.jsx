@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -8,15 +8,12 @@ import { apiClient } from "@/lib/apiClient";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-/* ===================== UTIL ===================== */
-
+/* ===================== CSV EXPORT ===================== */
 const exportCSV = (rows, columns, filename) => {
   const csv =
     [columns.join(",")]
       .concat(
-        rows.map((r) =>
-          columns.map((c) => `"${r[c] ?? ""}"`).join(",")
-        )
+        rows.map((r) => columns.map((c) => `"${r[c] ?? ""}"`).join(","))
       )
       .join("\n");
 
@@ -27,56 +24,44 @@ const exportCSV = (rows, columns, filename) => {
   link.click();
 };
 
-/* ===================== DETAILS MODAL ===================== */
-
-function ChartDetailsModal({
-  chart,
-  filter,
-  onClose,
-}) {
+/* ===================== MODAL ===================== */
+function ChartDetailsModal({ chart, filter, onClose }) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState(null);
 
   if (!chart) return null;
 
   const rows = chart.excelData || [];
-  const columns =
-    chart.selectedFields ||
-    (rows[0] ? Object.keys(rows[0]) : []);
+  const columns = chart.selectedFields || (rows[0] ? Object.keys(rows[0]) : []);
 
   const filteredRows = useMemo(() => {
     let r = [...rows];
 
+    // Apply modal filter from clicked chart point
     if (filter) {
-      r = r.filter(
-        (row) => row[filter.field] === filter.value
-      );
+      r = r.filter((row) => row[filter.field] === filter.value);
     }
 
     if (search) {
       r = r.filter((row) =>
         columns.some((c) =>
-          row[c]?.toString().toLowerCase().includes(search)
+          row[c]?.toString().toLowerCase().includes(search.toLowerCase())
         )
       );
     }
 
     if (sort) {
-      r.sort((a, b) =>
-        a[sort] > b[sort] ? 1 : -1
-      );
+      r.sort((a, b) => (a[sort] > b[sort] ? 1 : -1));
     }
 
     return r;
-  }, [rows, filter, search, sort]);
+  }, [rows, filter, search, sort, columns]);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
       <div className="bg-white w-11/12 max-w-7xl p-6 rounded shadow-lg">
         <div className="flex justify-between mb-3">
-          <h3 className="font-semibold text-lg">
-            {chart.title} – Details
-          </h3>
+          <h3 className="font-semibold text-lg">{chart.name} – Details</h3>
           <button onClick={onClose}>✕</button>
         </div>
 
@@ -87,16 +72,9 @@ function ChartDetailsModal({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-
           <button
-            onClick={() =>
-              exportCSV(
-                filteredRows,
-                columns,
-                `${chart.title}.csv`
-              )
-            }
             className="bg-gray-200 px-3 py-1 rounded"
+            onClick={() => exportCSV(filteredRows, columns, `${chart.name}.csv`)}
           >
             Export CSV
           </button>
@@ -121,9 +99,7 @@ function ChartDetailsModal({
               {filteredRows.map((r, i) => (
                 <tr key={i}>
                   {columns.map((c) => (
-                    <td key={c} className="px-3 py-2 border-b">
-                      {r[c]}
-                    </td>
+                    <td key={c} className="px-3 py-2 border-b">{r[c]}</td>
                   ))}
                 </tr>
               ))}
@@ -135,58 +111,96 @@ function ChartDetailsModal({
   );
 }
 
-/* ===================== PAGE ===================== */
-
+/* ===================== DASHBOARD VIEW ===================== */
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
-  const ref = useRef(null);
+  const dashboardRef = useRef(null);
 
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [detailChart, setDetailChart] = useState(null);
   const [filter, setFilter] = useState(null);
 
+  /* -------------------- FETCH DASHBOARD -------------------- */
   useEffect(() => {
-    apiClient(`/api/dashboards/${id}/`).then((db) => {
-      setDashboard(db);
-      setCharts(
-        db.dashboard_charts.map((dc) => ({
+    if (!id) return;
+
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const db = await apiClient(`/api/dashboards/${id}/`);
+        setDashboard(db);
+
+        const mappedCharts = (db.dashboard_charts || []).map((dc) => ({
           ...dc.chart_detail,
           key: dc.id,
-        }))
-      );
-    });
+        }));
+
+        setCharts(mappedCharts);
+      } catch (err) {
+        console.error(err);
+        setError("Dashboard not found or access denied.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
   }, [id]);
 
-  const exportPDF = async () => {
-    const canvas = await html2canvas(ref.current);
-    const pdf = new jsPDF();
-    pdf.addImage(
-      canvas.toDataURL("image/png"),
-      "PNG",
-      0,
-      0,
-      210,
-      297
-    );
+  /* -------------------- EXPORT PDF -------------------- */
+  const handleExportPDF = async () => {
+    if (!dashboardRef.current) return;
+
+    const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const width = pdf.internal.pageSize.getWidth();
+    const height = (canvas.height * width) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, width, height);
     pdf.save(`${dashboard.name}.pdf`);
   };
 
+  /* -------------------- RENDER -------------------- */
+  if (loading) return <p className="p-6">Loading dashboard...</p>;
+  if (error) return <p className="p-6 text-red-600">{error}</p>;
+
   return (
     <Layout>
-      <div className="p-6" ref={ref}>
-        <div className="flex justify-between mb-4">
-          <h2 className="text-2xl font-bold">{dashboard?.name}</h2>
-          <button onClick={exportPDF}>Export PDF</button>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboards")}
+              className="text-sm text-gray-600 hover:underline"
+            >
+              ← Back
+            </button>
+
+            <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+          </div>
+
+          <button
+            onClick={handleExportPDF}
+            className="bg-gray-200 px-3 py-1 rounded"
+          >
+            Export PDF
+          </button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {charts.map((c) => (
-            <div key={c.key} className="bg-white p-4 shadow rounded">
+            <div key={c.key} className="bg-white p-4 rounded shadow">
               <div className="flex justify-between mb-2">
                 <h3 className="font-semibold">{c.name}</h3>
                 <button
+                  className="text-sm text-blue-600"
                   onClick={() => {
                     setDetailChart(c);
                     setFilter(null);
@@ -197,13 +211,18 @@ export default function DashboardView() {
               </div>
 
               <ChartRenderer
-                data={c.excel_data}
+                datasetId={c.dataset}
+                type={c.chart_type}
                 xField={c.x_field}
                 yField={c.y_field}
-                type={c.chart_type}
-                onPointClick={({ x }) => {
+                excelData={c.excel_data}
+                logicRules={c.logic_rules || []}
+                selectedFields={c.selected_fields || []}
+                filters={{}}
+                stackedFields={c.stacked_fields || []}
+                onPointClick={({ field, value }) => {
                   setDetailChart(c);
-                  setFilter({ field: c.x_field, value: x });
+                  setFilter({ field, value });
                 }}
               />
             </div>
