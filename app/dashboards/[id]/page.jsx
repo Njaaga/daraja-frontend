@@ -124,7 +124,7 @@ export default function DashboardView() {
             {charts.map((c) => (
               <div key={c.key} className="bg-white p-4 rounded shadow">
                 <h3 className="font-semibold mb-2">{c.title}</h3>
-
+                
                 <ChartRenderer
                   datasetId={c.datasetId}
                   excelData={c.excelData}
@@ -134,8 +134,9 @@ export default function DashboardView() {
                   filters={c.filters}
                   logicRules={c.logicRules}
                   selectedFields={c.selectedFields}
-                  onPointClick={handleChartClick}   {/* 🔥 THIS WAS MISSING */}
+                  onPointClick={handleChartClick}
                 />
+
               </div>
             ))}
           </div>
