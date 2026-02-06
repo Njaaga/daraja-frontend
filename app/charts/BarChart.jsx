@@ -35,9 +35,9 @@ export default function BarChart({ data, onBarClick }) {
 
       if (onBarClick) {
         onBarClick({
-          field: "y",          // yField
+          field: "y",
           value: values[index],
-          row: data[index],    // 🔥 ensures modal opens
+          row: data[index], // essential for modal
         });
       }
     },
