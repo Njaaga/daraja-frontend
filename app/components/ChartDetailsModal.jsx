@@ -2,29 +2,21 @@
 
 import * as XLSX from "xlsx";
 
-export default function ChartDetailsModal({
-  open,
-  onClose,
-  rows = [],
-  selectedFields = [],
-}) {
+export default function ChartDetailsModal({ open, onClose, rows = [], selectedFields = [] }) {
   if (!open) return null;
 
-  // Determine fields dynamically
-  const fields =
-    selectedFields && selectedFields.length
-      ? selectedFields
-      : rows.length
-      ? Object.keys(rows[0])
-      : [];
+  const fields = selectedFields.length
+    ? selectedFields
+    : rows.length
+    ? Object.keys(rows[0])
+    : [];
 
-  // Export to Excel
   const exportExcel = () => {
     if (!rows || rows.length === 0) return;
 
-    const data = rows.map((r) => {
+    const data = rows.map(r => {
       const obj = {};
-      fields.forEach((f) => (obj[f] = r[f]));
+      fields.forEach(f => obj[f] = r[f]);
       return obj;
     });
 
@@ -37,18 +29,13 @@ export default function ChartDetailsModal({
   return (
     <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center">
       <div className="bg-white w-[90%] max-w-6xl rounded shadow-lg p-6 flex flex-col">
-        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Drill-down Data</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-black text-xl font-bold"
-          >
+          <button onClick={onClose} className="text-gray-600 hover:text-black text-xl font-bold">
             ✕
           </button>
         </div>
 
-        {/* Actions */}
         <div className="flex justify-end mb-3">
           <button
             onClick={exportExcel}
@@ -58,36 +45,23 @@ export default function ChartDetailsModal({
           </button>
         </div>
 
-        {/* Table */}
         {rows.length === 0 ? (
-          <p className="text-gray-500 text-center py-10">
-            No matching data.
-          </p>
+          <p className="text-gray-500 text-center py-10">No matching data.</p>
         ) : (
           <div className="overflow-auto max-h-[70vh] border rounded">
             <table className="w-full text-sm border-collapse">
               <thead className="bg-gray-100 sticky top-0">
                 <tr>
-                  {fields.map((f) => (
-                    <th
-                      key={f}
-                      className="border px-3 py-2 text-left font-semibold"
-                    >
-                      {f}
-                    </th>
+                  {fields.map(f => (
+                    <th key={f} className="border px-3 py-2 text-left font-semibold">{f}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    {fields.map((f) => (
-                      <td key={f} className="border px-3 py-1">
-                        {String(row[f] ?? "")}
-                      </td>
+                  <tr key={i} className="hover:bg-gray-50 transition-colors">
+                    {fields.map(f => (
+                      <td key={f} className="border px-3 py-1">{String(row[f] ?? '')}</td>
                     ))}
                   </tr>
                 ))}
