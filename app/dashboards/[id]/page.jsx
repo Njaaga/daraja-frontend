@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -9,6 +9,48 @@ import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+/* ===================== SLICER PANEL ===================== */
+function SlicerPanel({ fields, filters, onChange, onClear }) {
+  if (!fields.length) return null;
+
+  return (
+    <div className="bg-white p-4 rounded shadow mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-semibold">Filters</h3>
+        <button
+          onClick={onClear}
+          className="text-sm text-gray-500 hover:text-black"
+        >
+          Clear all
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {fields.map((field) => (
+          <div key={field}>
+            <label className="block text-xs text-gray-600 mb-1">
+              {field}
+            </label>
+            <input
+              type="text"
+              value={filters[field]?.value || ""}
+              onChange={(e) =>
+                onChange(field, {
+                  type: "text",
+                  value: e.target.value,
+                })
+              }
+              placeholder={`Filter ${field}`}
+              className="w-full border rounded px-2 py-1 text-sm"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ===================== DASHBOARD VIEW ===================== */
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
@@ -19,12 +61,15 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* 🔥 Drilldown modal */
+  /* Drill-down modal */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
-  /* ================= FETCH DASHBOARD ================= */
+  /* Global slicers */
+  const [dashboardFilters, setDashboardFilters] = useState({});
+
+  /* ===================== FETCH DASHBOARD ===================== */
   useEffect(() => {
     if (!id) return;
 
@@ -34,7 +79,7 @@ export default function DashboardView() {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mappedCharts = (db.dashboard_charts || []).map(dc => {
+        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
           const c = dc.chart_detail;
           return {
             key: dc.id,
@@ -44,9 +89,9 @@ export default function DashboardView() {
             xField: c.x_field,
             yField: c.y_field,
             stackedFields: c.stacked_fields || [],
-            excelData: c.excel_data || null,
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
+            excelData: c.excel_data || [],
             selectedFields: c.selected_fields || null,
           };
         });
@@ -62,28 +107,36 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
-  /* ================= CLICK HANDLER (THIS WAS WRONG BEFORE) ================= */
-  const handleChartClick = ({ rows }) => {
-    if (!rows || !rows.length) return;
-
-    // Flatten JSON so table renders cleanly
-    const flattened = rows.map(row => {
-      const out = {};
-      Object.entries(row).forEach(([k, v]) => {
-        out[k] =
-          typeof v === "object" && v !== null
-            ? JSON.stringify(v)
-            : v;
-      });
-      return out;
+  /* ===================== SLICER FIELDS ===================== */
+  const slicerFields = useMemo(() => {
+    const fields = new Set();
+    charts.forEach((c) => {
+      if (c.xField) fields.add(c.xField);
+      if (c.yField) fields.add(c.yField);
     });
+    return Array.from(fields);
+  }, [charts]);
 
-    setModalRows(flattened);
-    setModalFields(Object.keys(flattened[0] || {}));
+  /* ===================== SLICER HANDLERS ===================== */
+  const handleSlicerChange = (field, rule) => {
+    setDashboardFilters((prev) => ({
+      ...prev,
+      [field]: rule,
+    }));
+  };
+
+  const clearSlicers = () => setDashboardFilters({});
+
+  /* ===================== CHART CLICK ===================== */
+  const handleChartClick = ({ row }) => {
+    if (!row) return;
+
+    setModalRows([row]);
+    setModalFields(Object.keys(row));
     setModalOpen(true);
   };
 
-  /* ================= EXPORT PDF ================= */
+  /* ===================== EXPORT PDF ===================== */
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
 
@@ -98,14 +151,14 @@ export default function DashboardView() {
     pdf.save(`${dashboard.name}.pdf`);
   };
 
-  /* ================= RENDER ================= */
+  /* ===================== RENDER ===================== */
   if (loading) return <p className="p-6">Loading dashboard…</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <Layout>
       <div className="p-6">
-        {/* HEADER */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button
@@ -119,35 +172,46 @@ export default function DashboardView() {
 
           <button
             onClick={handleExportPDF}
-            className="bg-gray-200 px-3 py-1 rounded"
+            className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
           >
             Export PDF
           </button>
         </div>
 
-        {/* DASHBOARD */}
+        {/* Slicers */}
+        <SlicerPanel
+          fields={slicerFields}
+          filters={dashboardFilters}
+          onChange={handleSlicerChange}
+          onClear={clearSlicers}
+        />
+
+        {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {charts.map(c => (
+          {charts.map((c) => (
             <div key={c.key} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
 
               <ChartRenderer
                 datasetId={c.datasetId}
-                excelData={c.excelData}
                 type={c.type}
                 xField={c.xField}
                 yField={c.yField}
                 stackedFields={c.stackedFields}
-                filters={c.filters}
+                excelData={c.excelData}
                 logicRules={c.logicRules}
                 selectedFields={c.selectedFields}
+                filters={{
+                  ...c.filters,        // chart filters
+                  ...dashboardFilters, // slicers override
+                }}
                 onPointClick={handleChartClick}
               />
             </div>
           ))}
         </div>
 
-        {/* MODAL */}
+        {/* Drill-down modal */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
