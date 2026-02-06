@@ -2,6 +2,7 @@
 
 import "@/lib/chartjs";
 import { Doughnut } from "react-chartjs-2";
+import { deepFlatten } from "@/lib/utils"; // <-- import flatten helper
 
 export default function PieChart({ data, onSliceClick }) {
   // Attach original row for drilldown
@@ -37,14 +38,16 @@ export default function PieChart({ data, onSliceClick }) {
       const index = elements[0].index;
       const label = processed[index].label;
 
-      // ✅ Collect all rows that match this slice
-      const rowsForSlice = data.filter((r) => r.x === label);
+      // Collect all rows that match this slice
+      const rowsForSlice = data
+        .filter((r) => r.x === label)
+        .map((r) => deepFlatten(r)); // <-- flatten each row
 
       if (onSliceClick) {
         onSliceClick({
           x: label,
           y: processed[index].value,
-          __rows: rowsForSlice,
+          __rows: rowsForSlice, // flattened rows now
         });
       }
     },
