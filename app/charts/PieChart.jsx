@@ -4,6 +4,7 @@ import "@/lib/chartjs";
 import { Doughnut } from "react-chartjs-2";
 
 export default function PieChart({ data, onSliceClick }) {
+  // Attach original row for drilldown
   const processed = data
     .map((row) => ({ label: row.x, value: Number(row.y), __row: row }))
     .filter((row) => !isNaN(row.value));
@@ -35,8 +36,17 @@ export default function PieChart({ data, onSliceClick }) {
       if (!elements.length) return;
       const index = elements[0].index;
       const label = processed[index].label;
+
+      // ✅ Collect all rows that match this slice
       const rowsForSlice = data.filter((r) => r.x === label);
-      if (onSliceClick) onSliceClick({ x: label, y: processed[index].value, __rows: rowsForSlice });
+
+      if (onSliceClick) {
+        onSliceClick({
+          x: label,
+          y: processed[index].value,
+          __rows: rowsForSlice,
+        });
+      }
     },
   };
 
