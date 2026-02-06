@@ -4,8 +4,9 @@ import "@/lib/chartjs";
 import { Bar } from "react-chartjs-2";
 
 export default function BarChart({ data, onBarClick }) {
-  const labels = data.map((d) => d.x);
-  const values = data.map((d) => Number(d.y));
+  // Ensure each item is an object
+  const labels = data.map((d) => d.x ?? ""); 
+  const values = data.map((d) => Number(d.y ?? 0));
 
   const chartData = {
     labels,
@@ -30,16 +31,12 @@ export default function BarChart({ data, onBarClick }) {
     },
     onClick: (_evt, elements) => {
       if (!elements.length) return;
-
       const index = elements[0].index;
+      const row = data[index];
+      if (!row) return;
 
-      if (onBarClick) {
-        onBarClick({
-          field: "y",
-          value: values[index],
-          row: data[index], // essential for modal
-        });
-      }
+      // Send row object to modal
+      if (onBarClick) onBarClick({ field: "y", value: row.y, row });
     },
   };
 
