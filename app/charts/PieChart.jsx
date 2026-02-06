@@ -4,7 +4,6 @@ import "@/lib/chartjs";
 import { Doughnut } from "react-chartjs-2";
 
 export default function PieChart({ data, onSliceClick }) {
-  // Prepare numeric data
   const processed = data
     .map((row) => ({ label: row.x, value: Number(row.y), __row: row }))
     .filter((row) => !isNaN(row.value));
@@ -31,18 +30,13 @@ export default function PieChart({ data, onSliceClick }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "bottom" },
-    },
+    plugins: { legend: { position: "bottom" } },
     onClick: (evt, elements) => {
       if (!elements.length) return;
       const index = elements[0].index;
-      if (onSliceClick) {
-        // For pie, we might want to pass an array of all rows with the same label
-        const label = processed[index].label;
-        const rowsForSlice = data.filter((r) => r.x === label);
-        onSliceClick({ x: label, y: processed[index].value, __rows: rowsForSlice });
-      }
+      const label = processed[index].label;
+      const rowsForSlice = data.filter((r) => r.x === label);
+      if (onSliceClick) onSliceClick({ x: label, y: processed[index].value, __rows: rowsForSlice });
     },
   };
 
