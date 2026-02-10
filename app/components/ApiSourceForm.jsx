@@ -4,28 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 
-export default function ApiSourceForm({ initialData = null, isEdit = false }) {
+export default function ApiSourceForm({
+  initialData = null,
+  isEdit = false,
+  tenantId, // 🔑 REQUIRED for OAuth state
+}) {
   const router = useRouter();
 
   const [form, setForm] = useState(
     initialData || {
+      id: null,
       name: "",
-      base_url: "",
       provider: "generic",
       auth_type: "NONE",
-
-      api_key: "",
-      api_key_header: "Authorization",
-
-      bearer_token: "",
-      bearer_prefix: "Bearer",
-
-      jwt_secret: "",
-      jwt_subject: "",
-      jwt_audience: "",
-      jwt_issuer: "",
-      jwt_ttl_seconds: 3600,
-
+      base_url: "",
       realm_id: null,
     }
   );
@@ -33,33 +25,25 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const isQuickBooks = form.provider === "quickbooks";
+
   /* -----------------------------
      Helpers
   ------------------------------*/
   const update = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const isQuickBooks = form.provider === "quickbooks";
-  const isApiKey =
-    form.auth_type === "API_KEY_HEADER" ||
-    form.auth_type === "API_KEY_QUERY";
-  const isBearer = form.auth_type === "BEARER";
-  const isJWT = form.auth_type === "JWT_HS256";
-
   /* -----------------------------
-     Save
+     Save (Non-QuickBooks only)
   ------------------------------*/
   const saveSource = async () => {
+    if (isQuickBooks) return;
     if (loading) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      const payload = { ...form };
-      ["api_key", "bearer_token", "jwt_secret"].forEach(
-        (k) => !payload[k] && delete payload[k]
-      );
-
       await apiClient(
         isEdit
           ? `/api/api-sources/${form.id}/`
@@ -67,7 +51,7 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
         {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(form),
         }
       );
 
@@ -78,6 +62,17 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* -----------------------------
+     QuickBooks OAuth
+  ------------------------------*/
+  const connectQuickBooks = () => {
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      "https://api.darajatechnologies.ca";
+
+    window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenantId}`;
   };
 
   /* -----------------------------
@@ -99,14 +94,6 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
 
         {error && <p className="text-red-600">{error}</p>}
 
-        {/* Name */}
-        <input
-          className="border p-3 rounded-lg w-full"
-          placeholder="Name"
-          value={form.name}
-          onChange={update("name")}
-        />
-
         {/* Provider */}
         <select
           className="border p-3 rounded-lg w-full"
@@ -117,112 +104,35 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
           <option value="quickbooks">QuickBooks Online</option>
         </select>
 
+        {/* Name */}
+        <input
+          className="border p-3 rounded-lg w-full"
+          placeholder="Name"
+          value={
+            isQuickBooks ? "QuickBooks Online" : form.name
+          }
+          onChange={update("name")}
+          disabled={isQuickBooks}
+        />
+
         {/* Base URL */}
         <input
-          className="border p-3 rounded-lg w-full disabled:bg-gray-100"
-          placeholder="Base API URL"
+          className="border p-3 rounded-lg w-full bg-gray-100"
           value={
             isQuickBooks
               ? "https://quickbooks.api.intuit.com/v3/company/{realm_id}"
               : form.base_url
           }
-          onChange={update("base_url")}
-          disabled={isQuickBooks}
+          disabled
         />
-
-        {/* Auth Type */}
-        {!isQuickBooks && (
-          <select
-            className="border p-3 rounded-lg w-full"
-            value={form.auth_type}
-            onChange={update("auth_type")}
-          >
-            <option value="NONE">None</option>
-            <option value="API_KEY_HEADER">API Key</option>
-            <option value="BEARER">Bearer</option>
-            <option value="JWT_HS256">JWT (HS256)</option>
-          </select>
-        )}
-
-        {/* API Key */}
-        {isApiKey && !isQuickBooks && (
-          <>
-            <input
-              className="border p-3 rounded-lg w-full"
-              type="password"
-              placeholder="API Key"
-              value={form.api_key}
-              onChange={update("api_key")}
-            />
-            <input
-              className="border p-3 rounded-lg w-full"
-              placeholder="Header / Query Param"
-              value={form.api_key_header}
-              onChange={update("api_key_header")}
-            />
-          </>
-        )}
-
-        {/* Bearer */}
-        {isBearer && !isQuickBooks && (
-          <>
-            <input
-              className="border p-3 rounded-lg w-full"
-              type="password"
-              placeholder="Bearer Token"
-              value={form.bearer_token}
-              onChange={update("bearer_token")}
-            />
-            <input
-              className="border p-3 rounded-lg w-full"
-              placeholder="Prefix"
-              value={form.bearer_prefix}
-              onChange={update("bearer_prefix")}
-            />
-          </>
-        )}
-
-        {/* JWT */}
-        {isJWT && (
-          <>
-            <input
-              className="border p-3 rounded-lg w-full"
-              type="password"
-              placeholder="JWT Secret"
-              value={form.jwt_secret}
-              onChange={update("jwt_secret")}
-            />
-            <input
-              className="border p-3 rounded-lg w-full"
-              placeholder="Subject (sub)"
-              value={form.jwt_subject}
-              onChange={update("jwt_subject")}
-            />
-            <input
-              className="border p-3 rounded-lg w-full"
-              placeholder="Audience (aud)"
-              value={form.jwt_audience}
-              onChange={update("jwt_audience")}
-            />
-            <input
-              className="border p-3 rounded-lg w-full"
-              placeholder="Issuer (iss)"
-              value={form.jwt_issuer}
-              onChange={update("jwt_issuer")}
-            />
-          </>
-        )}
 
         {/* QuickBooks OAuth */}
         {isQuickBooks && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <button
               type="button"
-              onClick={() =>
-                (window.location.href =
-                  "/api/oauth/quickbooks/connect")
-              }
-              className="bg-green-600 text-white py-2 rounded-lg w-full"
+              onClick={connectQuickBooks}
+              className="bg-green-600 text-white py-2 rounded-lg w-full hover:bg-green-700"
             >
               {form.realm_id
                 ? "Reconnect QuickBooks"
@@ -230,24 +140,31 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
             </button>
 
             {form.realm_id && (
-              <p className="text-sm text-green-600">
-                ✔ Connected to company {form.realm_id}
+              <p className="text-sm text-green-700">
+                ✔ Connected to company ID {form.realm_id}
               </p>
             )}
+
+            <p className="text-xs text-gray-500">
+              You’ll be redirected to Intuit to authorize access.
+            </p>
           </div>
         )}
 
-        <button
-          onClick={saveSource}
-          disabled={loading}
-          className={`py-2 rounded-lg w-full text-white ${
-            loading
-              ? "bg-gray-400"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {loading ? "Saving..." : isEdit ? "Update Source" : "Save Source"}
-        </button>
+        {/* Save Button (disabled for QuickBooks) */}
+        {!isQuickBooks && (
+          <button
+            onClick={saveSource}
+            disabled={loading}
+            className={`py-2 rounded-lg w-full text-white ${
+              loading
+                ? "bg-gray-400"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {loading ? "Saving..." : isEdit ? "Update Source" : "Save Source"}
+          </button>
+        )}
       </div>
     </div>
   );
