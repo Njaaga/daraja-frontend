@@ -6,14 +6,25 @@ import { apiClient, getTenant } from "@/lib/apiClient";
 
 export default function ApiSourceForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
+  const tenant = getTenant();
+
   const [form, setForm] = useState(
     initialData || {
+      id: null,
       name: "",
       provider: "generic",
       auth_type: "NONE",
       base_url: "",
-      realm_id: null,
+      realm_id: null, // for QuickBooks
+      api_key: "",
+      api_key_header: "Authorization",
       bearer_token: "",
+      bearer_prefix: "Bearer",
+      jwt_secret: "",
+      jwt_subject: "",
+      jwt_audience: "",
+      jwt_issuer: "",
+      jwt_ttl_seconds: 3600,
     }
   );
 
@@ -21,26 +32,40 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
   const [error, setError] = useState(null);
 
   const isQuickBooks = form.provider === "quickbooks";
+  const isApiKey =
+    form.auth_type === "API_KEY_HEADER" || form.auth_type === "API_KEY_QUERY";
+  const isJWT = form.auth_type === "JWT_HS256";
+  const isBearer = form.auth_type === "BEARER";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm({ ...form, [name]: value });
   };
 
-  // Save generic API sources
   const saveSource = async () => {
-    if (loading) return;
+    if (!tenant || loading) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      const url = isEdit ? `/api/api-sources/${form.id}/` : "/api/api-sources/";
-      await apiClient(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      router.push("/api-sources");
+      // QuickBooks is handled separately
+      if (!isQuickBooks) {
+        const url = isEdit
+          ? `/api/api-sources/${form.id}/`
+          : `/api/api-sources/`;
+
+        const method = isEdit ? "PUT" : "POST";
+        const payload = { ...form };
+
+        if (!payload.api_key) delete payload.api_key;
+        if (!payload.jwt_secret) delete payload.jwt_secret;
+        if (!payload.bearer_token) delete payload.bearer_token;
+
+        await apiClient(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }, tenant);
+
+        router.push("/api-sources");
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to save API source");
@@ -49,15 +74,12 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
     }
   };
 
-  // QuickBooks OAuth connect
   const connectQuickBooks = () => {
-    const tenant = getTenant();
     if (!tenant) {
-      setError("Tenant not set. Cannot start QuickBooks OAuth.");
+      alert("Tenant not set. Refresh page.");
       return;
     }
-
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.darajatechnologies.ca";
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
     window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
   };
 
@@ -90,11 +112,11 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
 
         {/* Name */}
         <input
+          name="name"
           className="border p-3 rounded-lg w-full"
           placeholder="Name"
           value={isQuickBooks ? "QuickBooks Online" : form.name}
           onChange={handleChange}
-          name="name"
           disabled={isQuickBooks}
         />
 
@@ -103,13 +125,15 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
           className="border p-3 rounded-lg w-full bg-gray-100"
           value={
             isQuickBooks
-              ? `https://quickbooks.api.intuit.com/v3/company/${form.realm_id || "{realm_id}"}`
+              ? form.realm_id
+                ? `https://quickbooks.api.intuit.com/v3/company/${form.realm_id}`
+                : "https://quickbooks.api.intuit.com/v3/company/{realm_id}"
               : form.base_url
           }
           disabled
         />
 
-        {/* QuickBooks connect button */}
+        {/* QuickBooks OAuth */}
         {isQuickBooks && (
           <div className="space-y-3">
             <button
@@ -132,6 +156,7 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
           </div>
         )}
 
+        {/* Save Button */}
         {!isQuickBooks && (
           <button
             onClick={saveSource}
