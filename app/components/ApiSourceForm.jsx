@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient, getTenant } from "@/lib/apiClient";
 
@@ -13,16 +13,10 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
       name: "",
       base_url: "",
       auth_type: "NONE",
-
-      // API key
       api_key: "",
       api_key_header: "Authorization",
-
-      // Bearer
       bearer_token: "",
       bearer_prefix: "Bearer",
-
-      // JWT
       jwt_secret: "",
       jwt_subject: "",
       jwt_audience: "",
@@ -33,29 +27,16 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(
+    searchParams?.get("qb_connected") ? "QuickBooks connected!" : null
+  );
   const [blocked, setBlocked] = useState(false);
-  const [qbConnected, setQbConnected] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ---------------------------
-  // Detect if QuickBooks just connected
-  // ---------------------------
-  useEffect(() => {
-    if (searchParams.get("qb_connected") === "1") {
-      setQbConnected(true);
-      setSuccessMsg("QuickBooks connected successfully!");
-      // Optionally, refresh API sources list here
-    }
-  }, [searchParams]);
-
-  // ---------------------------
-  // Save Generic API Source
-  // ---------------------------
   const saveSource = async () => {
     if (loading || blocked) return;
 
@@ -64,22 +45,20 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
     setSuccessMsg(null);
 
     try {
+      const tenant = getTenant();
+      if (!tenant) throw new Error("Tenant not set");
+
       const url = isEdit
         ? `/api/api-sources/${form.id}/`
         : `/api/api-sources/`;
-
       const method = isEdit ? "PUT" : "POST";
-      const payload = { ...form };
 
+      const payload = { ...form };
       if (!payload.api_key) delete payload.api_key;
       if (!payload.jwt_secret) delete payload.jwt_secret;
       if (!payload.bearer_token) delete payload.bearer_token;
 
-      const res = await apiClient(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await apiClient(url, { method, body: JSON.stringify(payload) });
 
       if (res?.status === "subscription_blocked") {
         setBlocked(true);
@@ -88,37 +67,21 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
       }
 
       setSuccessMsg("API source saved successfully!");
-      setTimeout(() => {
-        router.push("/api-sources");
-      }, 800);
+      setTimeout(() => router.push("/api-sources"), 800);
     } catch (err) {
       console.error(err);
-      setError("Error saving API source.");
+      setError(err.message || "Error saving API source.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------------------
-  // Connect QuickBooks OAuth
-  // ---------------------------
-  const connectQuickBooks = () => {
-    const tenant = getTenant();
-    if (!tenant) {
-      setError("Tenant not found. Please login again.");
-      return;
-    }
-    window.location.href = `/api/oauth/quickbooks/connect/?tenant=${tenant}`;
-  };
-
-  const isApiKey =
-    form.auth_type === "API_KEY_HEADER" || form.auth_type === "API_KEY_QUERY";
-  const isJWT = form.auth_type === "JWT_HS256";
+  const isApiKey = ["API_KEY_HEADER", "API_KEY_QUERY"].includes(form.auth_type);
   const isBearer = form.auth_type === "BEARER";
+  const isJWT = form.auth_type === "JWT_HS256";
 
   return (
     <div className="max-w-lg mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => router.push("/api-sources")}
@@ -136,26 +99,6 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
         {error && <div className="mb-4 text-red-600">{error}</div>}
         {successMsg && <div className="mb-4 text-green-600">{successMsg}</div>}
 
-        {/* ------------------------- */}
-        {/* QuickBooks Connect */}
-        {/* ------------------------- */}
-        <div className="mb-6">
-          <button
-            onClick={connectQuickBooks}
-            disabled={qbConnected}
-            className={`w-full py-2 rounded-lg text-white ${
-              qbConnected
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {qbConnected ? "QuickBooks Connected" : "Connect QuickBooks"}
-          </button>
-        </div>
-
-        {/* ------------------------- */}
-        {/* Generic API Form */}
-        {/* ------------------------- */}
         <div className="grid gap-4">
           <input
             name="name"
@@ -186,7 +129,6 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
             <option value="JWT_HS256">JWT (HS256)</option>
           </select>
 
-          {/* API Key */}
           {isApiKey && (
             <>
               <input
@@ -207,7 +149,6 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
             </>
           )}
 
-          {/* Bearer */}
           {isBearer && (
             <>
               <input
@@ -228,7 +169,6 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
             </>
           )}
 
-          {/* JWT */}
           {isJWT && (
             <>
               <input
