@@ -1,304 +1,148 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, getTenant } from "@/lib/apiClient";
 
 export default function ApiSourceForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
-
   const [form, setForm] = useState(
     initialData || {
-      tenant_id: getTenant() || null,
       name: "",
-      base_url: "",
-      auth_type: "NONE",
-      api_key: "",
-      api_key_header: "Authorization",
-      bearer_token: "",
-      bearer_prefix: "Bearer",
-      jwt_secret: "",
-      jwt_subject: "",
-      jwt_audience: "",
-      jwt_issuer: "",
-      jwt_ttl_seconds: 3600,
       provider: "generic",
+      auth_type: "NONE",
+      base_url: "",
       realm_id: null,
+      bearer_token: "",
     }
   );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
-  const [blocked, setBlocked] = useState(false);
 
-  const isApiKey =
-    form.auth_type === "API_KEY_HEADER" || form.auth_type === "API_KEY_QUERY";
-  const isJWT = form.auth_type === "JWT_HS256";
-  const isBearer = form.auth_type === "BEARER";
   const isQuickBooks = form.provider === "quickbooks";
 
-  // -----------------------------
-  // Keep tenant_id in sync with API client
-  // -----------------------------
-  useEffect(() => {
-    const tenant = getTenant();
-    if (!form.tenant_id && tenant) {
-      setForm((prev) => ({ ...prev, tenant_id: tenant }));
-    }
-  }, [form.tenant_id]);
-
-  // -----------------------------
-  // Handlers
-  // -----------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Save generic API sources
   const saveSource = async () => {
-    if (loading || blocked || isQuickBooks) return;
-
-    if (!form.tenant_id) {
-      setError("Tenant context is missing. Please reload the page.");
-      return;
-    }
-
+    if (loading) return;
     setLoading(true);
     setError(null);
-    setSuccessMsg(null);
 
     try {
-      const url = isEdit
-        ? `/api/api-sources/${form.id}/`
-        : `/api/api-sources/`;
-
-      const method = isEdit ? "PUT" : "POST";
-      const payload = { ...form };
-
-      if (!payload.api_key) delete payload.api_key;
-      if (!payload.jwt_secret) delete payload.jwt_secret;
-      if (!payload.bearer_token) delete payload.bearer_token;
-
-      const res = await apiClient(url, { method, body: JSON.stringify(payload) });
-
-      if (res?.status === "subscription_blocked") {
-        setBlocked(true);
-        setError("Your subscription plan does not allow more API sources.");
-        return;
-      }
-
-      setSuccessMsg("API source saved successfully!");
-      setTimeout(() => {
-        router.push("/api-sources");
-      }, 800);
+      const url = isEdit ? `/api/api-sources/${form.id}/` : "/api/api-sources/";
+      await apiClient(url, {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      router.push("/api-sources");
     } catch (err) {
       console.error(err);
-      setError(err.message || "Error saving API source.");
+      setError("Failed to save API source");
     } finally {
       setLoading(false);
     }
   };
 
+  // QuickBooks OAuth connect
   const connectQuickBooks = () => {
-    const tenant = form.tenant_id;
+    const tenant = getTenant();
     if (!tenant) {
-      setError("Tenant context missing. Cannot start QuickBooks OAuth.");
+      setError("Tenant not set. Cannot start QuickBooks OAuth.");
       return;
     }
 
-    const apiBase =
-      process.env.NEXT_PUBLIC_API_BASE_URL ||
-      "https://api.darajatechnologies.ca";
-
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.darajatechnologies.ca";
     window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
   };
 
-  // -----------------------------
-  // UI
-  // -----------------------------
   return (
-    <div className="max-w-lg mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => router.push("/api-sources")}
-          className="text-sm text-gray-600 hover:underline"
-        >
-          ← Back to API sources
-        </button>
-      </div>
+    <div className="max-w-lg mx-auto space-y-4">
+      <button
+        onClick={() => router.push("/api-sources")}
+        className="text-sm text-gray-600 hover:underline"
+      >
+        ← Back to API sources
+      </button>
 
-      <div className="p-6 bg-white rounded-2xl shadow">
-        <h2 className="text-xl font-semibold mb-4">
+      <div className="bg-white p-6 rounded-2xl shadow space-y-4">
+        <h2 className="text-xl font-semibold">
           {isEdit ? "Edit API Source" : "Add API Source"}
         </h2>
 
-        {error && <div className="mb-4 text-red-600">{error}</div>}
-        {successMsg && <div className="mb-4 text-green-600">{successMsg}</div>}
+        {error && <p className="text-red-600">{error}</p>}
 
-        <div className="grid gap-4">
-          {/* Provider */}
-          <select
-            name="provider"
-            value={form.provider}
-            onChange={handleChange}
-            className="border p-3 rounded-lg"
-          >
-            <option value="generic">Generic API</option>
-            <option value="quickbooks">QuickBooks Online</option>
-          </select>
+        {/* Provider */}
+        <select
+          className="border p-3 rounded-lg w-full"
+          value={form.provider}
+          onChange={handleChange}
+          name="provider"
+        >
+          <option value="generic">Generic API</option>
+          <option value="quickbooks">QuickBooks Online</option>
+        </select>
 
-          {/* Name */}
-          <input
-            name="name"
-            placeholder="Name"
-            value={isQuickBooks ? "QuickBooks Online" : form.name}
-            onChange={handleChange}
-            className="border p-3 rounded-lg"
-            disabled={isQuickBooks}
-          />
+        {/* Name */}
+        <input
+          className="border p-3 rounded-lg w-full"
+          placeholder="Name"
+          value={isQuickBooks ? "QuickBooks Online" : form.name}
+          onChange={handleChange}
+          name="name"
+          disabled={isQuickBooks}
+        />
 
-          {/* Base URL */}
-          <input
-            name="base_url"
-            placeholder="Base API URL"
-            value={
-              isQuickBooks
-                ? `https://quickbooks.api.intuit.com/v3/company/${form.realm_id || "{realm_id}"}`
-                : form.base_url
-            }
-            onChange={!isQuickBooks ? handleChange : undefined}
-            className="border p-3 rounded-lg bg-gray-100"
-            disabled={isQuickBooks}
-          />
+        {/* Base URL */}
+        <input
+          className="border p-3 rounded-lg w-full bg-gray-100"
+          value={
+            isQuickBooks
+              ? `https://quickbooks.api.intuit.com/v3/company/${form.realm_id || "{realm_id}"}`
+              : form.base_url
+          }
+          disabled
+        />
 
-          {/* QuickBooks OAuth */}
-          {isQuickBooks && (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={connectQuickBooks}
-                className="bg-green-600 text-white py-2 rounded-lg w-full hover:bg-green-700"
-              >
-                {form.realm_id ? "Reconnect QuickBooks" : "Connect QuickBooks"}
-              </button>
+        {/* QuickBooks connect button */}
+        {isQuickBooks && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={connectQuickBooks}
+              className="bg-green-600 text-white py-2 rounded-lg w-full hover:bg-green-700"
+            >
+              {form.realm_id ? "Reconnect QuickBooks" : "Connect QuickBooks"}
+            </button>
 
-              {form.realm_id && (
-                <p className="text-sm text-green-700">
-                  ✔ Connected to company ID {form.realm_id}
-                </p>
-              )}
-
-              <p className="text-xs text-gray-500">
-                You’ll be redirected to Intuit to authorize access.
+            {form.realm_id && (
+              <p className="text-sm text-green-700">
+                ✔ Connected to company ID {form.realm_id}
               </p>
-            </div>
-          )}
+            )}
 
-          {/* API Auth Sections (non-QB) */}
-          {!isQuickBooks && (
-            <>
-              {isApiKey && (
-                <>
-                  <input
-                    name="api_key"
-                    type="password"
-                    placeholder="API Key (write-only)"
-                    value={form.api_key}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                  <input
-                    name="api_key_header"
-                    placeholder="API Key Header / Query Param"
-                    value={form.api_key_header}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                </>
-              )}
+            <p className="text-xs text-gray-500">
+              You’ll be redirected to Intuit to authorize access.
+            </p>
+          </div>
+        )}
 
-              {isBearer && (
-                <>
-                  <input
-                    name="bearer_token"
-                    type="password"
-                    placeholder="Bearer Token (write-only)"
-                    value={form.bearer_token}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                  <input
-                    name="bearer_prefix"
-                    placeholder='Prefix (default: "Bearer")'
-                    value={form.bearer_prefix}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                </>
-              )}
-
-              {isJWT && (
-                <>
-                  <input
-                    name="jwt_secret"
-                    type="password"
-                    placeholder="JWT Secret (HS256)"
-                    value={form.jwt_secret}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                  <input
-                    name="jwt_subject"
-                    placeholder="JWT Subject (sub)"
-                    value={form.jwt_subject}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                  <input
-                    name="jwt_audience"
-                    placeholder="JWT Audience (aud)"
-                    value={form.jwt_audience}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                  <input
-                    name="jwt_issuer"
-                    placeholder="JWT Issuer (iss) — optional"
-                    value={form.jwt_issuer}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                  <input
-                    name="jwt_ttl_seconds"
-                    type="number"
-                    placeholder="JWT TTL (seconds)"
-                    value={form.jwt_ttl_seconds}
-                    onChange={handleChange}
-                    className="border p-3 rounded-lg"
-                  />
-                </>
-              )}
-
-              <button
-                onClick={saveSource}
-                disabled={loading || blocked}
-                className={`py-2 rounded-lg text-white ${
-                  loading || blocked
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                {loading
-                  ? "Saving..."
-                  : isEdit
-                  ? "Update Source"
-                  : "Save Source"}
-              </button>
-            </>
-          )}
-        </div>
+        {!isQuickBooks && (
+          <button
+            onClick={saveSource}
+            disabled={loading}
+            className={`py-2 rounded-lg w-full text-white ${
+              loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {loading ? "Saving..." : isEdit ? "Update Source" : "Save Source"}
+          </button>
+        )}
       </div>
     </div>
   );
