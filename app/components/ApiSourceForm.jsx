@@ -17,7 +17,7 @@ export default function ApiSourceForm({
   const [form, setForm] = useState(
     initialData || {
       id: null,
-      tenant_id: tenantId || null, // ✅ FIX: persist tenant
+      tenant_id: tenantId || null, // ✅ FIX
       name: "",
       provider: "generic",
       auth_type: "NONE",
@@ -27,15 +27,19 @@ export default function ApiSourceForm({
   );
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const isQuickBooks = form.provider === "quickbooks";
 
   /* -----------------------------
      Helpers
   ------------------------------*/
-  const update = (field: string) => (e: any) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const update = (field) => (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
+  };
 
   /* -----------------------------
      Save (Non-QuickBooks)
@@ -59,7 +63,7 @@ export default function ApiSourceForm({
         {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form), // ✅ tenant_id included
+          body: JSON.stringify(form),
         }
       );
 
@@ -85,7 +89,6 @@ export default function ApiSourceForm({
       process.env.NEXT_PUBLIC_API_BASE_URL ||
       "https://api.darajatechnologies.ca";
 
-    // ✅ tenant passed in OAuth state
     window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenantId}`;
   };
 
