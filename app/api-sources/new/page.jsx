@@ -1,3 +1,5 @@
+"use client"
+
 import AuthGuard from "@/app/components/AuthGuard";
 import ApiSourceForm from "@/app/components/ApiSourceForm";
 import Layout from "@/app/components/Layout";
