@@ -7,14 +7,15 @@ import { apiClient } from "@/lib/apiClient";
 export default function ApiSourceForm({
   initialData = null,
   isEdit = false,
-  tenantId, // ✅ added (optional but recommended)
+  tenantId, // ✅ Required for QuickBooks OAuth
 }) {
   const router = useRouter();
 
   const [form, setForm] = useState(
     initialData || {
-      tenant_id: tenantId || null, // ✅ FIX: persist tenant
+      tenant_id: tenantId || null,
 
+      // Common fields
       name: "",
       base_url: "",
       auth_type: "NONE",
@@ -33,6 +34,10 @@ export default function ApiSourceForm({
       jwt_audience: "",
       jwt_issuer: "",
       jwt_ttl_seconds: 3600,
+
+      // QuickBooks
+      provider: "generic",
+      realm_id: null,
     }
   );
 
@@ -40,6 +45,12 @@ export default function ApiSourceForm({
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [blocked, setBlocked] = useState(false);
+
+  const isApiKey =
+    form.auth_type === "API_KEY_HEADER" || form.auth_type === "API_KEY_QUERY";
+  const isJWT = form.auth_type === "JWT_HS256";
+  const isBearer = form.auth_type === "BEARER";
+  const isQuickBooks = form.provider === "quickbooks";
 
   /* -----------------------------
      Handlers
@@ -49,11 +60,8 @@ export default function ApiSourceForm({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* -----------------------------
-     Save
-  ------------------------------*/
   const saveSource = async () => {
-    if (loading || blocked) return;
+    if (loading || blocked || isQuickBooks) return;
 
     if (!form.tenant_id) {
       setError("Tenant context is missing. Please reload the page.");
@@ -72,7 +80,6 @@ export default function ApiSourceForm({
       const method = isEdit ? "PUT" : "POST";
       const payload = { ...form };
 
-      // Write-only secrets
       if (!payload.api_key) delete payload.api_key;
       if (!payload.jwt_secret) delete payload.jwt_secret;
       if (!payload.bearer_token) delete payload.bearer_token;
@@ -80,7 +87,7 @@ export default function ApiSourceForm({
       const res = await apiClient(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload), // ✅ tenant included
+        body: JSON.stringify(payload),
       });
 
       if (res?.status === "subscription_blocked") {
@@ -101,15 +108,18 @@ export default function ApiSourceForm({
     }
   };
 
-  /* -----------------------------
-     Auth helpers
-  ------------------------------*/
-  const isApiKey =
-    form.auth_type === "API_KEY_HEADER" ||
-    form.auth_type === "API_KEY_QUERY";
+  const connectQuickBooks = () => {
+    if (!tenantId) {
+      setError("Tenant context missing. Cannot start QuickBooks OAuth.");
+      return;
+    }
 
-  const isJWT = form.auth_type === "JWT_HS256";
-  const isBearer = form.auth_type === "BEARER";
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      "https://api.darajatechnologies.ca";
+
+    window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenantId}`;
+  };
 
   /* -----------------------------
      UI
@@ -135,131 +145,170 @@ export default function ApiSourceForm({
         {successMsg && <div className="mb-4 text-green-600">{successMsg}</div>}
 
         <div className="grid gap-4">
+          {/* Provider */}
+          <select
+            name="provider"
+            value={form.provider}
+            onChange={handleChange}
+            className="border p-3 rounded-lg"
+          >
+            <option value="generic">Generic API</option>
+            <option value="quickbooks">QuickBooks Online</option>
+          </select>
+
+          {/* Name */}
           <input
             name="name"
             placeholder="Name"
-            value={form.name}
+            value={isQuickBooks ? "QuickBooks Online" : form.name}
             onChange={handleChange}
             className="border p-3 rounded-lg"
+            disabled={isQuickBooks}
           />
 
+          {/* Base URL */}
           <input
             name="base_url"
             placeholder="Base API URL"
-            value={form.base_url}
-            onChange={handleChange}
-            className="border p-3 rounded-lg"
+            value={
+              isQuickBooks
+                ? "https://quickbooks.api.intuit.com/v3/company/{realm_id}"
+                : form.base_url
+            }
+            onChange={!isQuickBooks ? handleChange : undefined}
+            className="border p-3 rounded-lg bg-gray-100"
+            disabled={isQuickBooks}
           />
 
-          <select
-            name="auth_type"
-            value={form.auth_type}
-            onChange={handleChange}
-            className="border p-3 rounded-lg"
-          >
-            <option value="NONE">None</option>
-            <option value="API_KEY_HEADER">API Key (Header)</option>
-            <option value="API_KEY_QUERY">API Key (Query)</option>
-            <option value="BEARER">Bearer Token</option>
-            <option value="JWT_HS256">JWT (HS256)</option>
-          </select>
+          {/* QuickBooks OAuth */}
+          {isQuickBooks && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={connectQuickBooks}
+                className="bg-green-600 text-white py-2 rounded-lg w-full hover:bg-green-700"
+              >
+                {form.realm_id ? "Reconnect QuickBooks" : "Connect QuickBooks"}
+              </button>
 
-          {/* API Key */}
-          {isApiKey && (
-            <>
-              <input
-                name="api_key"
-                type="password"
-                placeholder="API Key (write-only)"
-                value={form.api_key}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-              <input
-                name="api_key_header"
-                placeholder="API Key Header / Query Param"
-                value={form.api_key_header}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-            </>
+              {form.realm_id && (
+                <p className="text-sm text-green-700">
+                  ✔ Connected to company ID {form.realm_id}
+                </p>
+              )}
+
+              <p className="text-xs text-gray-500">
+                You’ll be redirected to Intuit to authorize access.
+              </p>
+            </div>
           )}
 
-          {/* Bearer */}
-          {isBearer && (
+          {/* API Auth Sections (only if not QuickBooks) */}
+          {!isQuickBooks && (
             <>
-              <input
-                name="bearer_token"
-                type="password"
-                placeholder="Bearer Token (write-only)"
-                value={form.bearer_token}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-              <input
-                name="bearer_prefix"
-                placeholder='Prefix (default: "Bearer")'
-                value={form.bearer_prefix}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
+              {/* API Key */}
+              {isApiKey && (
+                <>
+                  <input
+                    name="api_key"
+                    type="password"
+                    placeholder="API Key (write-only)"
+                    value={form.api_key}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                  <input
+                    name="api_key_header"
+                    placeholder="API Key Header / Query Param"
+                    value={form.api_key_header}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                </>
+              )}
+
+              {/* Bearer */}
+              {isBearer && (
+                <>
+                  <input
+                    name="bearer_token"
+                    type="password"
+                    placeholder="Bearer Token (write-only)"
+                    value={form.bearer_token}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                  <input
+                    name="bearer_prefix"
+                    placeholder='Prefix (default: "Bearer")'
+                    value={form.bearer_prefix}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                </>
+              )}
+
+              {/* JWT */}
+              {isJWT && (
+                <>
+                  <input
+                    name="jwt_secret"
+                    type="password"
+                    placeholder="JWT Secret (HS256)"
+                    value={form.jwt_secret}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                  <input
+                    name="jwt_subject"
+                    placeholder="JWT Subject (sub)"
+                    value={form.jwt_subject}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                  <input
+                    name="jwt_audience"
+                    placeholder="JWT Audience (aud)"
+                    value={form.jwt_audience}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                  <input
+                    name="jwt_issuer"
+                    placeholder="JWT Issuer (iss) — optional"
+                    value={form.jwt_issuer}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                  <input
+                    name="jwt_ttl_seconds"
+                    type="number"
+                    placeholder="JWT TTL (seconds)"
+                    value={form.jwt_ttl_seconds}
+                    onChange={handleChange}
+                    className="border p-3 rounded-lg"
+                  />
+                </>
+              )}
+
+              {/* Save button for non-QB */}
+              <button
+                onClick={saveSource}
+                disabled={loading || blocked}
+                className={`py-2 rounded-lg text-white ${
+                  loading || blocked
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {loading
+                  ? "Saving..."
+                  : isEdit
+                  ? "Update Source"
+                  : "Save Source"}
+              </button>
             </>
           )}
-
-          {/* JWT */}
-          {isJWT && (
-            <>
-              <input
-                name="jwt_secret"
-                type="password"
-                placeholder="JWT Secret (HS256)"
-                value={form.jwt_secret}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-              <input
-                name="jwt_subject"
-                placeholder="JWT Subject (sub)"
-                value={form.jwt_subject}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-              <input
-                name="jwt_audience"
-                placeholder="JWT Audience (aud)"
-                value={form.jwt_audience}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-              <input
-                name="jwt_issuer"
-                placeholder="JWT Issuer (iss) — optional"
-                value={form.jwt_issuer}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-              <input
-                name="jwt_ttl_seconds"
-                type="number"
-                placeholder="JWT TTL (seconds)"
-                value={form.jwt_ttl_seconds}
-                onChange={handleChange}
-                className="border p-3 rounded-lg"
-              />
-            </>
-          )}
-
-          <button
-            onClick={saveSource}
-            disabled={loading || blocked}
-            className={`py-2 rounded-lg text-white ${
-              loading || blocked
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {loading ? "Saving..." : isEdit ? "Update Source" : "Save Source"}
-          </button>
         </div>
       </div>
     </div>
