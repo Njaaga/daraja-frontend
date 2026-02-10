@@ -1,41 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 
 export default function ApiSourceForm({
   initialData = null,
   isEdit = false,
-  tenantId, // ✅ Required for QuickBooks OAuth
+  tenantId: propTenantId, // optional prop
 }) {
   const router = useRouter();
 
   const [form, setForm] = useState(
     initialData || {
-      tenant_id: tenantId || null,
-
-      // Common fields
+      tenant_id: propTenantId || null, // ✅ initialize tenant
       name: "",
       base_url: "",
       auth_type: "NONE",
-
-      // API key
       api_key: "",
       api_key_header: "Authorization",
-
-      // Bearer
       bearer_token: "",
       bearer_prefix: "Bearer",
-
-      // JWT
       jwt_secret: "",
       jwt_subject: "",
       jwt_audience: "",
       jwt_issuer: "",
       jwt_ttl_seconds: 3600,
-
-      // QuickBooks
       provider: "generic",
       realm_id: null,
     }
@@ -51,6 +41,15 @@ export default function ApiSourceForm({
   const isJWT = form.auth_type === "JWT_HS256";
   const isBearer = form.auth_type === "BEARER";
   const isQuickBooks = form.provider === "quickbooks";
+
+  /* -----------------------------
+     Ensure tenant_id is always set
+  ------------------------------*/
+  useEffect(() => {
+    if (!form.tenant_id && propTenantId) {
+      setForm((prev) => ({ ...prev, tenant_id: propTenantId }));
+    }
+  }, [propTenantId, form.tenant_id]);
 
   /* -----------------------------
      Handlers
@@ -109,7 +108,8 @@ export default function ApiSourceForm({
   };
 
   const connectQuickBooks = () => {
-    if (!tenantId) {
+    const tenant = form.tenant_id || propTenantId;
+    if (!tenant) {
       setError("Tenant context missing. Cannot start QuickBooks OAuth.");
       return;
     }
@@ -118,7 +118,7 @@ export default function ApiSourceForm({
       process.env.NEXT_PUBLIC_API_BASE_URL ||
       "https://api.darajatechnologies.ca";
 
-    window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenantId}`;
+    window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
   };
 
   /* -----------------------------
@@ -126,7 +126,6 @@ export default function ApiSourceForm({
   ------------------------------*/
   return (
     <div className="max-w-lg mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => router.push("/api-sources")}
@@ -203,7 +202,7 @@ export default function ApiSourceForm({
             </div>
           )}
 
-          {/* API Auth Sections (only if not QuickBooks) */}
+          {/* API Auth Sections (non-QB) */}
           {!isQuickBooks && (
             <>
               {/* API Key */}
@@ -291,7 +290,6 @@ export default function ApiSourceForm({
                 </>
               )}
 
-              {/* Save button for non-QB */}
               <button
                 onClick={saveSource}
                 disabled={loading || blocked}
