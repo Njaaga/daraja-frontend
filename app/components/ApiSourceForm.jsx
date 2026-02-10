@@ -2,18 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, getTenant } from "@/lib/apiClient";
 
-export default function ApiSourceForm({
-  initialData = null,
-  isEdit = false,
-  tenantId: propTenantId, // optional prop
-}) {
+export default function ApiSourceForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
 
   const [form, setForm] = useState(
     initialData || {
-      tenant_id: propTenantId || null, // ✅ initialize tenant
+      tenant_id: getTenant() || null, // ✅ auto from API client
       name: "",
       base_url: "",
       auth_type: "NONE",
@@ -42,18 +38,19 @@ export default function ApiSourceForm({
   const isBearer = form.auth_type === "BEARER";
   const isQuickBooks = form.provider === "quickbooks";
 
-  /* -----------------------------
-     Ensure tenant_id is always set
-  ------------------------------*/
+  // -----------------------------
+  // Keep tenant_id in sync with API client
+  // -----------------------------
   useEffect(() => {
-    if (!form.tenant_id && propTenantId) {
-      setForm((prev) => ({ ...prev, tenant_id: propTenantId }));
+    const tenant = getTenant();
+    if (!form.tenant_id && tenant) {
+      setForm((prev) => ({ ...prev, tenant_id: tenant }));
     }
-  }, [propTenantId, form.tenant_id]);
+  }, [form.tenant_id]);
 
-  /* -----------------------------
-     Handlers
-  ------------------------------*/
+  // -----------------------------
+  // Handlers
+  // -----------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -83,11 +80,7 @@ export default function ApiSourceForm({
       if (!payload.jwt_secret) delete payload.jwt_secret;
       if (!payload.bearer_token) delete payload.bearer_token;
 
-      const res = await apiClient(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await apiClient(url, { method, body: JSON.stringify(payload) });
 
       if (res?.status === "subscription_blocked") {
         setBlocked(true);
@@ -101,14 +94,14 @@ export default function ApiSourceForm({
       }, 800);
     } catch (err) {
       console.error(err);
-      setError("Error saving API source.");
+      setError(err.message || "Error saving API source.");
     } finally {
       setLoading(false);
     }
   };
 
   const connectQuickBooks = () => {
-    const tenant = form.tenant_id || propTenantId;
+    const tenant = form.tenant_id;
     if (!tenant) {
       setError("Tenant context missing. Cannot start QuickBooks OAuth.");
       return;
@@ -121,9 +114,9 @@ export default function ApiSourceForm({
     window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
   };
 
-  /* -----------------------------
-     UI
-  ------------------------------*/
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div className="max-w-lg mx-auto">
       <div className="flex items-center gap-3 mb-4">
@@ -205,7 +198,6 @@ export default function ApiSourceForm({
           {/* API Auth Sections (non-QB) */}
           {!isQuickBooks && (
             <>
-              {/* API Key */}
               {isApiKey && (
                 <>
                   <input
@@ -226,7 +218,6 @@ export default function ApiSourceForm({
                 </>
               )}
 
-              {/* Bearer */}
               {isBearer && (
                 <>
                   <input
@@ -247,7 +238,6 @@ export default function ApiSourceForm({
                 </>
               )}
 
-              {/* JWT */}
               {isJWT && (
                 <>
                   <input
