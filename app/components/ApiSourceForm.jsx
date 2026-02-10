@@ -9,7 +9,7 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
 
   const [form, setForm] = useState(
     initialData || {
-      tenant_id: getTenant() || null, // ✅ auto from API client
+      tenant_id: getTenant() || null,
       name: "",
       base_url: "",
       auth_type: "NONE",
@@ -100,27 +100,26 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
     }
   };
 
-const connectQuickBooks = () => {
-  const tenant = form.tenant_id; // from localStorage / apiClient
-  if (!tenant) {
-    setError("Tenant context missing. Cannot start QuickBooks OAuth.");
-    return;
-  }
+  const connectQuickBooks = () => {
+    const tenant = form.tenant_id;
+    if (!tenant) {
+      setError("Tenant context missing. Cannot start QuickBooks OAuth.");
+      return;
+    }
 
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "https://api.darajatechnologies.ca";
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      "https://api.darajatechnologies.ca";
 
-  // Include tenant in state param
-  window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
-};
-
+    window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
+  };
 
   // -----------------------------
   // UI
   // -----------------------------
   return (
     <div className="max-w-lg mx-auto">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => router.push("/api-sources")}
@@ -166,7 +165,7 @@ const connectQuickBooks = () => {
             placeholder="Base API URL"
             value={
               isQuickBooks
-                ? "https://quickbooks.api.intuit.com/v3/company/{realm_id}"
+                ? `https://quickbooks.api.intuit.com/v3/company/${form.realm_id || "{realm_id}"}`
                 : form.base_url
             }
             onChange={!isQuickBooks ? handleChange : undefined}
