@@ -100,19 +100,21 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
     }
   };
 
-  const connectQuickBooks = () => {
-    const tenant = form.tenant_id;
-    if (!tenant) {
-      setError("Tenant context missing. Cannot start QuickBooks OAuth.");
-      return;
-    }
+const connectQuickBooks = () => {
+  const tenant = form.tenant_id; // from localStorage / apiClient
+  if (!tenant) {
+    setError("Tenant context missing. Cannot start QuickBooks OAuth.");
+    return;
+  }
 
-    const apiBase =
-      process.env.NEXT_PUBLIC_API_BASE_URL ||
-      "https://api.darajatechnologies.ca";
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    "https://api.darajatechnologies.ca";
 
-    window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
-  };
+  // Include tenant in state param
+  window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenant}`;
+};
+
 
   // -----------------------------
   // UI
