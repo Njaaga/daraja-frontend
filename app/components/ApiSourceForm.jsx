@@ -7,13 +7,17 @@ import { apiClient } from "@/lib/apiClient";
 export default function ApiSourceForm({
   initialData = null,
   isEdit = false,
-  tenantId, // 🔑 REQUIRED for OAuth state
+  tenantId, // 🔑 REQUIRED
 }) {
   const router = useRouter();
 
+  /* -----------------------------
+     State
+  ------------------------------*/
   const [form, setForm] = useState(
     initialData || {
       id: null,
+      tenant_id: tenantId || null, // ✅ FIX: persist tenant
       name: "",
       provider: "generic",
       auth_type: "NONE",
@@ -23,22 +27,26 @@ export default function ApiSourceForm({
   );
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const isQuickBooks = form.provider === "quickbooks";
 
   /* -----------------------------
      Helpers
   ------------------------------*/
-  const update = (field) => (e) =>
+  const update = (field: string) => (e: any) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   /* -----------------------------
-     Save (Non-QuickBooks only)
+     Save (Non-QuickBooks)
   ------------------------------*/
   const saveSource = async () => {
-    if (isQuickBooks) return;
-    if (loading) return;
+    if (isQuickBooks || loading) return;
+
+    if (!form.tenant_id) {
+      setError("Tenant context is missing. Please reload the page.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -51,7 +59,7 @@ export default function ApiSourceForm({
         {
           method: isEdit ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(form), // ✅ tenant_id included
         }
       );
 
@@ -68,10 +76,16 @@ export default function ApiSourceForm({
      QuickBooks OAuth
   ------------------------------*/
   const connectQuickBooks = () => {
+    if (!tenantId) {
+      setError("Tenant context missing. Cannot start OAuth.");
+      return;
+    }
+
     const apiBase =
       process.env.NEXT_PUBLIC_API_BASE_URL ||
       "https://api.darajatechnologies.ca";
 
+    // ✅ tenant passed in OAuth state
     window.location.href = `${apiBase}/api/oauth/quickbooks/connect/?state=${tenantId}`;
   };
 
@@ -108,9 +122,7 @@ export default function ApiSourceForm({
         <input
           className="border p-3 rounded-lg w-full"
           placeholder="Name"
-          value={
-            isQuickBooks ? "QuickBooks Online" : form.name
-          }
+          value={isQuickBooks ? "QuickBooks Online" : form.name}
           onChange={update("name")}
           disabled={isQuickBooks}
         />
@@ -123,7 +135,8 @@ export default function ApiSourceForm({
               ? "https://quickbooks.api.intuit.com/v3/company/{realm_id}"
               : form.base_url
           }
-          disabled
+          onChange={!isQuickBooks ? update("base_url") : undefined}
+          disabled={isQuickBooks}
         />
 
         {/* QuickBooks OAuth */}
@@ -134,9 +147,7 @@ export default function ApiSourceForm({
               onClick={connectQuickBooks}
               className="bg-green-600 text-white py-2 rounded-lg w-full hover:bg-green-700"
             >
-              {form.realm_id
-                ? "Reconnect QuickBooks"
-                : "Connect QuickBooks"}
+              {form.realm_id ? "Reconnect QuickBooks" : "Connect QuickBooks"}
             </button>
 
             {form.realm_id && (
@@ -151,7 +162,7 @@ export default function ApiSourceForm({
           </div>
         )}
 
-        {/* Save Button (disabled for QuickBooks) */}
+        {/* Save Button */}
         {!isQuickBooks && (
           <button
             onClick={saveSource}
@@ -162,7 +173,11 @@ export default function ApiSourceForm({
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {loading ? "Saving..." : isEdit ? "Update Source" : "Save Source"}
+            {loading
+              ? "Saving..."
+              : isEdit
+              ? "Update Source"
+              : "Save Source"}
           </button>
         )}
       </div>
