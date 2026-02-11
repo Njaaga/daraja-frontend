@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 /**
- * Wrapper required for useSearchParams
+ * Wrapper required by Next.js
  */
 export default function APISourceForm() {
   return (
@@ -17,31 +17,34 @@ export default function APISourceForm() {
 function APISourceFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState("generic");
-
-  // Example: how you already store tenant
-  const tenant =
-    typeof window !== "undefined"
-      ? localStorage.getItem("tenant")
-      : null;
+  const [loading, setLoading] = useState(false);
 
   /**
-   * Detect QuickBooks return
+   * 🔑 IMPORTANT:
+   * Reuse how your app already gets tenant
    */
+  const getTenant = () => {
+    // CHANGE ONLY THIS if needed
+    return (
+      localStorage.getItem("tenant_slug") ||
+      localStorage.getItem("activeTenant") ||
+      localStorage.getItem("currentTenant")
+    );
+  };
+
+  const tenant = getTenant();
+
   useEffect(() => {
     if (searchParams.get("qb_connected")) {
       router.push("/api-sources");
     }
   }, [searchParams, router]);
 
-  /**
-   * Start QuickBooks OAuth
-   */
   const connectQuickBooks = () => {
     if (!tenant) {
-      alert("Tenant missing");
+      console.error("Tenant missing in frontend");
+      alert("Tenant not detected. Please reload the app.");
       return;
     }
 
@@ -49,41 +52,7 @@ function APISourceFormInner() {
 
     window.location.href =
       `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
-      `/api/oauth/quickbooks/connect?tenant=${tenant}`;
-  };
-
-  /**
-   * Generic API submit (unchanged behavior)
-   */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/api-sources/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Tenant-Slug": tenant, // ✅ still works
-          },
-          body: JSON.stringify({
-            name: "My API",
-            provider: "generic",
-            base_url: "https://example.com",
-          }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to create API source");
-
-      router.push("/api-sources");
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
+      `/api/oauth/quickbooks/connect?tenant=${encodeURIComponent(tenant)}`;
   };
 
   return (
@@ -108,15 +77,12 @@ function APISourceFormInner() {
           {loading ? "Connecting..." : "Connect QuickBooks"}
         </button>
       ) : (
-        <form onSubmit={handleSubmit}>
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-black text-white px-4 py-2 rounded"
-          >
-            {loading ? "Saving..." : "Save API Source"}
-          </button>
-        </form>
+        <button
+          className="bg-black text-white px-4 py-2 rounded"
+          onClick={() => router.push("/api-sources")}
+        >
+          Save API Source
+        </button>
       )}
     </div>
   );
