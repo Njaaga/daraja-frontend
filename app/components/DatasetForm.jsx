@@ -17,6 +17,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
 
   const [sources, setSources] = useState([]);
   const [fieldsOptions, setFieldsOptions] = useState([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false); // 🔥 loading state
   const [form, setForm] = useState(
     initialData || {
       name: "",
@@ -52,7 +53,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     fetchSources();
   }, []);
 
-  // Find selected source for easier conditional rendering
+  // Find selected source
   const selectedSource = sources.find(
     (s) => s.id.toString() === form.api_source?.toString()
   );
@@ -64,6 +65,8 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       if (selectedSource.provider?.toLowerCase() !== "quickbooks") return;
       if (!form.entity) return;
 
+      setFieldsLoading(true);
+      setFieldsOptions([]);
       try {
         const res = await apiClient(
           `/api/api-sources/${selectedSource.id}/entities/${form.entity}/fields/`
@@ -71,6 +74,8 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
         if (Array.isArray(res)) setFieldsOptions(res);
       } catch {
         setError("Failed to fetch QuickBooks entity fields.");
+      } finally {
+        setFieldsLoading(false);
       }
     };
     fetchFields();
@@ -212,7 +217,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             ))}
           </select>
 
-          {/* ---------- QuickBooks Section ---------- */}
+          {/* QuickBooks Section */}
           {selectedSource?.provider?.toLowerCase() === "quickbooks" && (
             <>
               <select
@@ -232,16 +237,22 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
               {/* Fields Picker */}
               <div className="space-y-1 border p-3 rounded-lg">
                 <p className="font-medium mb-2">Fields</p>
-                {fieldsOptions.map((f) => (
-                  <label key={f} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.fields.includes(f)}
-                      onChange={() => handleFieldToggle(f)}
-                    />
-                    {f}
-                  </label>
-                ))}
+                {fieldsLoading ? (
+                  <p className="text-gray-500">Loading fields...</p>
+                ) : fieldsOptions.length > 0 ? (
+                  fieldsOptions.map((f) => (
+                    <label key={f} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={form.fields.includes(f)}
+                        onChange={() => handleFieldToggle(f)}
+                      />
+                      {f}
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-gray-400">No fields available.</p>
+                )}
               </div>
 
               {/* Filters */}
@@ -276,7 +287,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             </>
           )}
 
-          {/* ---------- REST Section ---------- */}
+          {/* REST Section */}
           {selectedSource?.provider?.toLowerCase() !== "quickbooks" && (
             <>
               <input
