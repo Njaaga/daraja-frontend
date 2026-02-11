@@ -52,28 +52,29 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     fetchSources();
   }, []);
 
-  // Fetch QuickBooks fields when entity or source changes
+  // Find selected source for easier conditional rendering
+  const selectedSource = sources.find(
+    (s) => s.id.toString() === form.api_source?.toString()
+  );
+
+  // Fetch QuickBooks fields when entity changes
   useEffect(() => {
     const fetchFields = async () => {
-      if (
-        !form.api_source ||
-        !form.entity ||
-        !sources.find((s) => s.id === form.api_source)?.provider?.toLowerCase() ===
-          "quickbooks"
-      )
-        return;
+      if (!selectedSource) return;
+      if (selectedSource.provider?.toLowerCase() !== "quickbooks") return;
+      if (!form.entity) return;
 
       try {
         const res = await apiClient(
-          `/api/api-sources/${form.api_source}/entities/${form.entity}/fields/`
+          `/api/api-sources/${selectedSource.id}/entities/${form.entity}/fields/`
         );
         if (Array.isArray(res)) setFieldsOptions(res);
       } catch {
-        setError("Failed to fetch entity fields.");
+        setError("Failed to fetch QuickBooks entity fields.");
       }
     };
     fetchFields();
-  }, [form.api_source, form.entity, sources]);
+  }, [selectedSource, form.entity]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -211,9 +212,8 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             ))}
           </select>
 
-          {/* QuickBooks Entity */}
-          {sources.find((s) => s.id === form.api_source)?.provider?.toLowerCase() ===
-            "quickbooks" && (
+          {/* ---------- QuickBooks Section ---------- */}
+          {selectedSource?.provider?.toLowerCase() === "quickbooks" && (
             <>
               <select
                 name="entity"
@@ -251,7 +251,9 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                   type="text"
                   placeholder="Date field"
                   value={form.filters.date_field}
-                  onChange={(e) => handleFilterChange("date_field", e.target.value)}
+                  onChange={(e) =>
+                    handleFilterChange("date_field", e.target.value)
+                  }
                   className="border p-2 rounded w-full"
                 />
                 <div className="flex gap-2">
@@ -274,9 +276,8 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             </>
           )}
 
-          {/* REST endpoint */}
-          {sources.find((s) => s.id === form.api_source)?.provider?.toLowerCase() !==
-            "quickbooks" && (
+          {/* ---------- REST Section ---------- */}
+          {selectedSource?.provider?.toLowerCase() !== "quickbooks" && (
             <>
               <input
                 name="endpoint"
