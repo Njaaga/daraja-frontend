@@ -1,115 +1,290 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
+import DatasetRunner from "./DatasetRunner";
 
-export default function DatasetForm({ apiSource }) {
+export default function DatasetForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
-  const [entity, setEntity] = useState("");
-  const [columns, setColumns] = useState([]);
-  const [rows, setRows] = useState([]);
+
+  const [sources, setSources] = useState([]);
+  const [form, setForm] = useState(
+    initialData || {
+      name: "",
+      api_source: "",
+      endpoint: "",
+      query_params: {},
+    }
+  );
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [entities, setEntities] = useState([]);
+  const [selectedEntity, setSelectedEntity] = useState("");
 
-  // Fetch fields + mock data for the selected entity
+  // Load API sources
   useEffect(() => {
-    const fetchEntityData = async () => {
-      if (!apiSource?.id || !entity) return;
+    const fetchSources = async () => {
+      try {
+        const data = await apiClient("/api/api-sources/");
+        if (Array.isArray(data)) setSources(data);
+      } catch {
+        setError("Failed to load API sources.");
+      }
+    };
+    fetchSources();
+  }, []);
 
-      setLoading(true);
-      setError(null);
+  // Load entity fields when an API source is selected
+  useEffect(() => {
+    const fetchEntities = async () => {
+      if (!form.api_source) return;
 
       try {
-        const res = await fetch(
-          `/api/api-sources/${apiSource.id}/entity_fields/${entity}/`
-        );
+        // Fetch fields for QB source
+        const res = await fetch(`/api/api-sources/${form.api_source}/entity_fields/`);
         const data = await res.json();
 
         if (res.ok) {
-          setColumns(data.fields || []);
-          setRows(data.data || []);
+          setEntities(Object.keys(data || {}));
         } else {
-          setError(data.error || "Failed to fetch entity data");
-          setColumns([]);
-          setRows([]);
+          setEntities([]);
         }
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch entity data");
-        setColumns([]);
-        setRows([]);
-      } finally {
-        setLoading(false);
+      } catch {
+        setEntities([]);
       }
     };
 
-    fetchEntityData();
-  }, [apiSource, entity]);
+    fetchEntities();
+  }, [form.api_source]);
 
-  // Dynamically get entity options if available
-  const entityOptions = ["Customer", "Invoice", "Account", "Payment"];
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const addQueryParam = () => {
+    setForm({
+      ...form,
+      query_params: { ...form.query_params, [""]: "" },
+    });
+  };
+
+  // Save dataset
+  const saveDataset = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const url = isEdit ? `/api/datasets/${form.id}/` : `/api/datasets/`;
+      const method = isEdit ? "PUT" : "POST";
+
+      const res = await apiClient(url, {
+        method,
+        body: JSON.stringify(form),
+      });
+
+      if (!res || res.detail) {
+        setError(res?.detail || "Failed to save dataset.");
+        return;
+      }
+
+      setSuccessMsg("Dataset saved successfully!");
+      setTimeout(() => {
+        router.push("/datasets");
+      }, 800);
+    } catch {
+      setError("Error saving dataset.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Preview dataset
+  const runPreview = async () => {
+    setPreview(null);
+    setError(null);
+
+    if (!form.api_source) {
+      setError("Please select an API source.");
+      return;
+    }
+
+    if (!selectedEntity) {
+      setError("Please select an entity to preview.");
+      return;
+    }
+
+    try {
+      // Fetch from backend endpoint or use mock QB data
+      const res = await fetch(
+        `/api/api-sources/${form.api_source}/entity_fields/${selectedEntity}/`
+      );
+      const data = await res.json();
+
+      if (!res.ok || !data.fields) {
+        setError("Failed to fetch dataset preview.");
+        return;
+      }
+
+      // Generate mock rows for preview
+      const mockRows = Array.from({ length: 5 }, (_, i) => {
+        const row = {};
+        data.fields.forEach((field) => {
+          row[field] = `${field}_${i + 1}`;
+        });
+        return row;
+      });
+
+      setPreview({ columns: data.fields, rows: mockRows });
+    } catch {
+      setError("Error running dataset preview.");
+    }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
-      <h2 className="text-xl font-semibold mb-4">Dataset Viewer</h2>
+    <div className="max-w-2xl mx-auto">
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => router.push("/datasets")}
+          className="text-sm text-gray-600 hover:underline"
+        >
+          ← Back to datasets
+        </button>
+      </div>
 
-      {error && <div className="mb-4 text-red-600">{error}</div>}
+      <div className="bg-white p-6 rounded-xl shadow">
+        <h2 className="text-xl font-semibold mb-4">
+          {isEdit ? "Edit Dataset" : "Create Dataset"}
+        </h2>
 
-      {/* Entity selector */}
-      <select
-        value={entity}
-        onChange={(e) => setEntity(e.target.value)}
-        className="border p-3 rounded-lg mb-4"
-      >
-        <option value="">Select Entity</option>
-        {entityOptions.map((ent) => (
-          <option key={ent} value={ent}>
-            {ent}
-          </option>
-        ))}
-      </select>
+        {error && <div className="mb-4 text-red-600">{error}</div>}
+        {successMsg && <div className="mb-4 text-green-600">{successMsg}</div>}
 
-      {loading && <div>Loading data...</div>}
+        <div className="grid gap-4">
+          <input
+            name="name"
+            placeholder="Dataset name"
+            value={form.name}
+            onChange={handleChange}
+            className="border p-3 rounded-lg"
+          />
 
-      {/* Table showing fields + mock data */}
-      {!loading && columns.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col}
-                    className="border px-4 py-2 text-left bg-gray-100"
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length > 0 ? (
-                rows.map((row, idx) => (
-                  <tr key={idx}>
-                    {columns.map((col) => (
-                      <td key={col} className="border px-4 py-2">
-                        {row[col] ?? "-"}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={columns.length} className="border px-4 py-2 text-center">
-                    No data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <select
+            name="api_source"
+            value={form.api_source}
+            onChange={handleChange}
+            className="border p-3 rounded-lg"
+          >
+            <option value="">Select API Source</option>
+            {sources.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Entity selector (QB-specific) */}
+          {entities.length > 0 && (
+            <select
+              value={selectedEntity}
+              onChange={(e) => setSelectedEntity(e.target.value)}
+              className="border p-3 rounded-lg"
+            >
+              <option value="">Select Entity</option>
+              {entities.map((ent) => (
+                <option key={ent} value={ent}>
+                  {ent}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <input
+            name="endpoint"
+            placeholder="/users or /sales/daily"
+            value={form.endpoint}
+            onChange={handleChange}
+            className="border p-3 rounded-lg"
+          />
+
+          {/* Query Params */}
+          <div>
+            <div className="flex justify-between mb-2">
+              <label className="font-medium">Query Parameters</label>
+              <button
+                onClick={addQueryParam}
+                className="text-sm bg-gray-200 px-2 py-1 rounded"
+                type="button"
+              >
+                + Add
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {Object.entries(form.query_params).map(([k, v], idx) => (
+                <div key={idx} className="flex gap-2">
+                  <input
+                    placeholder="key"
+                    value={k}
+                    onChange={(e) => {
+                      const newParams = { ...form.query_params };
+                      delete newParams[k];
+                      newParams[e.target.value] = v;
+                      setForm({ ...form, query_params: newParams });
+                    }}
+                    className="border p-2 rounded w-1/2"
+                  />
+                  <input
+                    placeholder="value"
+                    value={v}
+                    onChange={(e) => {
+                      setForm({
+                        ...form,
+                        query_params: {
+                          ...form.query_params,
+                          [k]: e.target.value,
+                        },
+                      });
+                    }}
+                    className="border p-2 rounded w-1/2"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={runPreview}
+              className="bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex-1"
+            >
+              Preview Data
+            </button>
+
+            <button
+              onClick={saveDataset}
+              className={`py-2 rounded-lg text-white flex-1 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+              disabled={loading}
+            >
+              {loading ? "Saving..." : "Save Dataset"}
+            </button>
+          </div>
         </div>
-      )}
+
+        {preview && (
+          <div className="mt-6">
+            <DatasetRunner data={preview} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
