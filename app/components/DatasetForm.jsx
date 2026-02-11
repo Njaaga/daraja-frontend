@@ -47,6 +47,9 @@ export default function DatasetForm({ apiSource }) {
     fetchEntityData();
   }, [apiSource, entity]);
 
+  // Dynamically get entity options if available
+  const entityOptions = ["Customer", "Invoice", "Account", "Payment"];
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
       <h2 className="text-xl font-semibold mb-4">Dataset Viewer</h2>
@@ -60,16 +63,17 @@ export default function DatasetForm({ apiSource }) {
         className="border p-3 rounded-lg mb-4"
       >
         <option value="">Select Entity</option>
-        <option value="Customer">Customer</option>
-        <option value="Invoice">Invoice</option>
-        <option value="Account">Account</option>
-        <option value="Payment">Payment</option>
+        {entityOptions.map((ent) => (
+          <option key={ent} value={ent}>
+            {ent}
+          </option>
+        ))}
       </select>
 
       {loading && <div>Loading data...</div>}
 
       {/* Table showing fields + mock data */}
-      {!loading && columns.length > 0 && rows.length > 0 && (
+      {!loading && columns.length > 0 && (
         <div className="overflow-x-auto">
           <table className="min-w-full border">
             <thead>
@@ -85,22 +89,26 @@ export default function DatasetForm({ apiSource }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, idx) => (
-                <tr key={idx}>
-                  {columns.map((col) => (
-                    <td key={col} className="border px-4 py-2">
-                      {row[col] ?? "-"}
-                    </td>
-                  ))}
+              {rows.length > 0 ? (
+                rows.map((row, idx) => (
+                  <tr key={idx}>
+                    {columns.map((col) => (
+                      <td key={col} className="border px-4 py-2">
+                        {row[col] ?? "-"}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns.length} className="border px-4 py-2 text-center">
+                    No data available
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
-      )}
-
-      {!loading && entity && rows.length === 0 && (
-        <div className="mt-4 text-gray-500">No data available</div>
       )}
     </div>
   );
