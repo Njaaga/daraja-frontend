@@ -44,11 +44,13 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       if (!form.api_source) return;
 
       try {
-        // Fetch fields for QB source
-        const res = await fetch(`/api/api-sources/${form.api_source}/entity_fields/`);
+        const res = await fetch(
+          `/api/api-sources/${form.api_source}/entity_fields/`
+        );
         const data = await res.json();
 
         if (res.ok) {
+          // Expecting { Customer: [...fields], Invoice: [...fields], ... }
           setEntities(Object.keys(data || {}));
         } else {
           setEntities([]);
@@ -61,6 +63,40 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     fetchEntities();
   }, [form.api_source]);
 
+  // Auto-preview when entity changes
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (!selectedEntity || !form.api_source) return;
+
+      try {
+        const res = await fetch(
+          `/api/api-sources/${form.api_source}/entity_fields/${selectedEntity}/`
+        );
+        const data = await res.json();
+
+        if (!res.ok || !data.fields) {
+          setPreview(null);
+          return;
+        }
+
+        // Generate mock rows for preview
+        const mockRows = Array.from({ length: 5 }, (_, i) => {
+          const row = {};
+          data.fields.forEach((field) => {
+            row[field] = `${field}_${i + 1}`;
+          });
+          return row;
+        });
+
+        setPreview({ columns: data.fields, rows: mockRows });
+      } catch {
+        setPreview(null);
+      }
+    };
+
+    fetchPreview();
+  }, [selectedEntity, form.api_source]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -72,7 +108,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     });
   };
 
-  // Save dataset
   const saveDataset = async () => {
     setLoading(true);
     setError(null);
@@ -103,46 +138,10 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     }
   };
 
-  // Preview dataset
   const runPreview = async () => {
+    // manual refresh if needed
+    if (!selectedEntity) return;
     setPreview(null);
-    setError(null);
-
-    if (!form.api_source) {
-      setError("Please select an API source.");
-      return;
-    }
-
-    if (!selectedEntity) {
-      setError("Please select an entity to preview.");
-      return;
-    }
-
-    try {
-      // Fetch from backend endpoint or use mock QB data
-      const res = await fetch(
-        `/api/api-sources/${form.api_source}/entity_fields/${selectedEntity}/`
-      );
-      const data = await res.json();
-
-      if (!res.ok || !data.fields) {
-        setError("Failed to fetch dataset preview.");
-        return;
-      }
-
-      // Generate mock rows for preview
-      const mockRows = Array.from({ length: 5 }, (_, i) => {
-        const row = {};
-        data.fields.forEach((field) => {
-          row[field] = `${field}_${i + 1}`;
-        });
-        return row;
-      });
-
-      setPreview({ columns: data.fields, rows: mockRows });
-    } catch {
-      setError("Error running dataset preview.");
-    }
   };
 
   return (
@@ -187,7 +186,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             ))}
           </select>
 
-          {/* Entity selector (QB-specific) */}
           {entities.length > 0 && (
             <select
               value={selectedEntity}
@@ -211,7 +209,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             className="border p-3 rounded-lg"
           />
 
-          {/* Query Params */}
           <div>
             <div className="flex justify-between mb-2">
               <label className="font-medium">Query Parameters</label>
@@ -262,7 +259,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
               onClick={runPreview}
               className="bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex-1"
             >
-              Preview Data
+              Refresh Preview
             </button>
 
             <button
