@@ -80,16 +80,10 @@ export default function ApiSourceForm({ initialData = null, isEdit = false }) {
   // QuickBooks OAuth redirect
   // ----------------------------
   const connectQuickBooks = () => {
-    const tenant = getTenant();
-
-    if (!tenant) {
-      setError("Tenant not set");
-      return;
-    }
-
+    const tenant = localStorage.getItem("tenant");
+    
     window.location.href =
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}` +
-      `/api/oauth/quickbooks/connect?state=${tenant}`;
+      `${API_BASE}/api/oauth/quickbooks/connect?tenant=${tenant}`;
   };
 
   const isApiKey =
