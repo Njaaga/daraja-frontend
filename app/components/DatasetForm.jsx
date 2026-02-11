@@ -45,7 +45,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
 
       try {
         const res = await fetch(
-          `/api/api-sources/${form.api_source}/entity_fields/`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/api-sources/${form.api_source}/entity_fields/`
         );
         const data = await res.json();
 
