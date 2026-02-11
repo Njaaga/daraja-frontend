@@ -5,16 +5,32 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import DatasetRunner from "./DatasetRunner";
 
+const QUICKBOOKS_ENTITIES = [
+  { value: "Invoice", label: "Invoices" },
+  { value: "Customer", label: "Customers" },
+  { value: "Account", label: "Chart of Accounts" },
+  { value: "Payment", label: "Payments" },
+];
+
 export default function DatasetForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
 
   const [sources, setSources] = useState([]);
+  const [fieldsOptions, setFieldsOptions] = useState([]);
   const [form, setForm] = useState(
     initialData || {
       name: "",
       api_source: "",
       endpoint: "",
       query_params: {},
+      entity: "",
+      fields: [],
+      filters: {
+        date_field: "",
+        from: "",
+        to: "",
+        equals: {},
+      },
     }
   );
 
@@ -36,6 +52,29 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     fetchSources();
   }, []);
 
+  // Fetch QuickBooks fields when entity or source changes
+  useEffect(() => {
+    const fetchFields = async () => {
+      if (
+        !form.api_source ||
+        !form.entity ||
+        !sources.find((s) => s.id === form.api_source)?.provider?.toLowerCase() ===
+          "quickbooks"
+      )
+        return;
+
+      try {
+        const res = await apiClient(
+          `/api/api-sources/${form.api_source}/entities/${form.entity}/fields/`
+        );
+        if (Array.isArray(res)) setFieldsOptions(res);
+      } catch {
+        setError("Failed to fetch entity fields.");
+      }
+    };
+    fetchFields();
+  }, [form.api_source, form.entity, sources]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -44,6 +83,30 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     setForm({
       ...form,
       query_params: { ...form.query_params, [""]: "" },
+    });
+  };
+
+  const handleFieldToggle = (field) => {
+    const updatedFields = form.fields.includes(field)
+      ? form.fields.filter((f) => f !== field)
+      : [...form.fields, field];
+    setForm({ ...form, fields: updatedFields });
+  };
+
+  const handleFilterChange = (key, value) => {
+    setForm({
+      ...form,
+      filters: { ...form.filters, [key]: value },
+    });
+  };
+
+  const handleEqualsFilterChange = (key, value) => {
+    setForm({
+      ...form,
+      filters: {
+        ...form.filters,
+        equals: { ...form.filters.equals, [key]: value },
+      },
     });
   };
 
@@ -148,59 +211,128 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             ))}
           </select>
 
-          <input
-            name="endpoint"
-            placeholder="/users or /sales/daily"
-            value={form.endpoint}
-            onChange={handleChange}
-            className="border p-3 rounded-lg"
-          />
-
-          {/* Query Params */}
-          <div>
-            <div className="flex justify-between mb-2">
-              <label className="font-medium">Query Parameters</label>
-              <button
-                onClick={addQueryParam}
-                className="text-sm bg-gray-200 px-2 py-1 rounded"
-                type="button"
+          {/* QuickBooks Entity */}
+          {sources.find((s) => s.id === form.api_source)?.provider?.toLowerCase() ===
+            "quickbooks" && (
+            <>
+              <select
+                name="entity"
+                value={form.entity}
+                onChange={handleChange}
+                className="border p-3 rounded-lg"
               >
-                + Add
-              </button>
-            </div>
+                <option value="">Select Entity</option>
+                {QUICKBOOKS_ENTITIES.map((e) => (
+                  <option key={e.value} value={e.value}>
+                    {e.label}
+                  </option>
+                ))}
+              </select>
 
-            <div className="space-y-2">
-              {Object.entries(form.query_params).map(([k, v], idx) => (
-                <div key={idx} className="flex gap-2">
+              {/* Fields Picker */}
+              <div className="space-y-1 border p-3 rounded-lg">
+                <p className="font-medium mb-2">Fields</p>
+                {fieldsOptions.map((f) => (
+                  <label key={f} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.fields.includes(f)}
+                      onChange={() => handleFieldToggle(f)}
+                    />
+                    {f}
+                  </label>
+                ))}
+              </div>
+
+              {/* Filters */}
+              <div className="space-y-2 border p-3 rounded-lg">
+                <p className="font-medium">Filters</p>
+                <input
+                  type="text"
+                  placeholder="Date field"
+                  value={form.filters.date_field}
+                  onChange={(e) => handleFilterChange("date_field", e.target.value)}
+                  className="border p-2 rounded w-full"
+                />
+                <div className="flex gap-2">
                   <input
-                    placeholder="key"
-                    value={k}
-                    onChange={(e) => {
-                      const newParams = { ...form.query_params };
-                      delete newParams[k];
-                      newParams[e.target.value] = v;
-                      setForm({ ...form, query_params: newParams });
-                    }}
+                    type="date"
+                    placeholder="From"
+                    value={form.filters.from}
+                    onChange={(e) => handleFilterChange("from", e.target.value)}
                     className="border p-2 rounded w-1/2"
                   />
                   <input
-                    placeholder="value"
-                    value={v}
-                    onChange={(e) => {
-                      setForm({
-                        ...form,
-                        query_params: {
-                          ...form.query_params,
-                          [k]: e.target.value,
-                        },
-                      });
-                    }}
+                    type="date"
+                    placeholder="To"
+                    value={form.filters.to}
+                    onChange={(e) => handleFilterChange("to", e.target.value)}
                     className="border p-2 rounded w-1/2"
                   />
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
+
+          {/* REST endpoint */}
+          {sources.find((s) => s.id === form.api_source)?.provider?.toLowerCase() !==
+            "quickbooks" && (
+            <>
+              <input
+                name="endpoint"
+                placeholder="/users or /sales/daily"
+                value={form.endpoint}
+                onChange={handleChange}
+                className="border p-3 rounded-lg"
+              />
+
+              {/* Query Params */}
+              <div>
+                <div className="flex justify-between mb-2">
+                  <label className="font-medium">Query Parameters</label>
+                  <button
+                    onClick={addQueryParam}
+                    className="text-sm bg-gray-200 px-2 py-1 rounded"
+                    type="button"
+                  >
+                    + Add
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {Object.entries(form.query_params).map(([k, v], idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <input
+                        placeholder="key"
+                        value={k}
+                        onChange={(e) => {
+                          const newParams = { ...form.query_params };
+                          delete newParams[k];
+                          newParams[e.target.value] = v;
+                          setForm({ ...form, query_params: newParams });
+                        }}
+                        className="border p-2 rounded w-1/2"
+                      />
+                      <input
+                        placeholder="value"
+                        value={v}
+                        onChange={(e) => {
+                          setForm({
+                            ...form,
+                            query_params: {
+                              ...form.query_params,
+                              [k]: e.target.value,
+                            },
+                          });
+                        }}
+                        className="border p-2 rounded w-1/2"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Actions */}
           <div className="flex gap-4 mt-4">
