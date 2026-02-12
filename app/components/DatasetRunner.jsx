@@ -24,17 +24,32 @@ function truncate(val, length = 50) {
 }
 
 export default function DatasetRunner({ data, apiSource, endpoint, queryParams }) {
-  if (!data || (Array.isArray(data) && data.length === 0))
+  // Determine actual rows
+  const rows = Array.isArray(data?.rows)
+    ? data.rows
+    : Array.isArray(data)
+    ? data
+    : [];
+
+  // Determine fields
+  const fields =
+    Array.isArray(data?.fields) && data.fields.length > 0
+      ? data.fields
+      : (() => {
+          // If fields not provided, infer from first row
+          if (rows.length > 0) return Object.keys(flattenObject(rows[0]));
+          return [];
+        })();
+
+  if (!rows.length)
     return <div className="text-gray-500 mt-4">No data returned.</div>;
 
-  const rows = Array.isArray(data) ? data : [data];
+  // Flatten rows
+  const flattenedRows = rows.map((row) => flattenObject(row));
 
-  const columnsSet = new Set();
-  const flattenedRows = rows.map((row) => {
-    const flat = flattenObject(row);
-    Object.keys(flat).forEach((k) => columnsSet.add(k));
-    return flat;
-  });
+  // Table columns
+  const columnsSet = new Set(fields);
+  flattenedRows.forEach((row) => Object.keys(row).forEach((k) => columnsSet.add(k)));
   const columns = Array.from(columnsSet);
 
   return (
@@ -42,19 +57,32 @@ export default function DatasetRunner({ data, apiSource, endpoint, queryParams }
       {/* Debug / info */}
       <div className="bg-gray-50 p-4 rounded-xl border">
         <h4 className="font-semibold mb-2">Preview Info</h4>
-        {apiSource && <div><strong>API Source:</strong> {apiSource}</div>}
-        {endpoint && <div><strong>Endpoint:</strong> {endpoint}</div>}
+        {apiSource && (
+          <div>
+            <strong>API Source:</strong> {apiSource}
+          </div>
+        )}
+        {endpoint && (
+          <div>
+            <strong>Endpoint:</strong> {endpoint}
+          </div>
+        )}
         {queryParams && Object.keys(queryParams).length > 0 && (
           <div>
-            <strong>Query Params:</strong>{" "}
-            {JSON.stringify(queryParams)}
+            <strong>Query Params:</strong> {JSON.stringify(queryParams)}
+          </div>
+        )}
+        {data?.meta && (
+          <div>
+            <strong>Count:</strong> {data.meta.count} | <strong>Entity:</strong>{" "}
+            {data.meta.entity || "-"}
           </div>
         )}
       </div>
 
       {/* Raw JSON preview (truncated) */}
       <div className="bg-gray-100 p-4 rounded-xl overflow-auto max-h-40">
-        <pre className="text-sm">{truncate(JSON.stringify(data, null, 2), 500)}</pre>
+        <pre className="text-sm">{truncate(JSON.stringify(rows, null, 2), 500)}</pre>
       </div>
 
       {/* Flattened table */}
@@ -63,7 +91,10 @@ export default function DatasetRunner({ data, apiSource, endpoint, queryParams }
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               {columns.map((col) => (
-                <th key={col} className="p-2 border-b font-medium text-left">
+                <th
+                  key={col}
+                  className="p-2 border-b font-medium text-left whitespace-nowrap"
+                >
                   {col}
                 </th>
               ))}
