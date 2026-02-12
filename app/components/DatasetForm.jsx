@@ -71,6 +71,13 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
         const res = await apiClient(
           `/api/api-sources/${selectedSource.id}/entities/${form.entity}/fields/`
         );
+        
+        if (res?.fields && Array.isArray(res.fields)) {
+          setFieldsOptions(res.fields);
+        } else {
+          setFieldsOptions([]);
+        }
+
         if (Array.isArray(res)) setFieldsOptions(res);
       } catch {
         setError("Failed to fetch QuickBooks entity fields.");
