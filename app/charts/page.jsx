@@ -904,6 +904,9 @@ setPreview(rows || []);
     layout,
   }, `${dashboardName || "dashboard"}-template.json`);
 
+
+const isExcelChart = !!excelData && selectedDatasets.length === 0;
+
   /* ---------- add chart (POST to backend) ---------- */
 const addChart = async () => {
   if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
@@ -945,21 +948,25 @@ const addChart = async () => {
     // Apply logic before sending
     const filteredData = applyLogicGates(preview, logicExpr, logicSaved);
 
-    const payload = {
-      name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
-      chart_type: chartType,
-      x_field: chartX,
-      y_field: chartY,
-      aggregation: chartAgg || null,
-      dataset: selectedDatasets.length > 0 ? selectedDatasets[0].id : null,
-      excel_data: filteredData,
-      filters,
-      joins: sanitizedJoins,
-      calculated_fields: calculatedFields,
-      logic_expression: logicExpr || null,
-      logic_rules: logicSaved || [],
-      selected_fields: selectedFieldsArray || null,
-    };
+  const payload = {
+    name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+    chart_type: chartType,
+    x_field: chartX,
+    y_field: chartY,
+    aggregation: chartAgg || null,
+  
+    // IMPORTANT
+    dataset: !isExcelChart ? selectedDatasets[0]?.id : null,
+    excel_data: isExcelChart ? filteredData : null,
+  
+    filters,
+    joins: sanitizedJoins,
+    calculated_fields: calculatedFields,
+    logic_expression: logicExpr || null,
+    logic_rules: logicSaved || [],
+    selected_fields: selectedFieldsArray || null,
+  };
+
 
 
     try {
