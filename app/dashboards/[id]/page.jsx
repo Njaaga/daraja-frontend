@@ -40,8 +40,8 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
                   value: e.target.value,
                 })
               }
-              placeholder={`Filter ${field}`}
               className="w-full border rounded px-2 py-1 text-sm"
+              placeholder={`Filter ${field}`}
             />
           </div>
         ))}
@@ -61,6 +61,9 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /* Realtime refresh */
+  const [refreshKey, setRefreshKey] = useState(0);
+
   /* Drill-down modal */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
@@ -79,7 +82,7 @@ export default function DashboardView() {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
+        const mapped = (db.dashboard_charts || []).map((dc) => {
           const c = dc.chart_detail;
           return {
             key: dc.id,
@@ -91,12 +94,11 @@ export default function DashboardView() {
             stackedFields: c.stacked_fields || [],
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
-            excelData: c.excel_data || [],
             selectedFields: c.selected_fields || null,
           };
         });
 
-        setCharts(mappedCharts);
+        setCharts(mapped);
       } catch {
         setError("Dashboard not found or access denied.");
       } finally {
@@ -106,6 +108,15 @@ export default function DashboardView() {
 
     fetchDashboard();
   }, [id]);
+
+  /* ===================== AUTO REFRESH (QB SAFE) ===================== */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey((k) => k + 1);
+    }, 120000); // 2 minutes
+
+    return () => clearInterval(interval);
+  }, []);
 
   /* ===================== SLICER FIELDS ===================== */
   const slicerFields = useMemo(() => {
@@ -130,7 +141,6 @@ export default function DashboardView() {
   /* ===================== CHART CLICK ===================== */
   const handleChartClick = ({ row }) => {
     if (!row) return;
-
     setModalRows([row]);
     setModalFields(Object.keys(row));
     setModalOpen(true);
@@ -170,12 +180,21 @@ export default function DashboardView() {
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
 
-          <button
-            onClick={handleExportPDF}
-            className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-          >
-            Export PDF
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setRefreshKey((k) => k + 1)}
+              className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+            >
+              Refresh
+            </button>
+
+            <button
+              onClick={handleExportPDF}
+              className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+            >
+              Export PDF
+            </button>
+          </div>
         </div>
 
         {/* Slicers */}
@@ -193,17 +212,17 @@ export default function DashboardView() {
               <h3 className="font-semibold mb-2">{c.title}</h3>
 
               <ChartRenderer
+                key={`${c.key}-${refreshKey}`}
                 datasetId={c.datasetId}
                 type={c.type}
                 xField={c.xField}
                 yField={c.yField}
                 stackedFields={c.stackedFields}
-                excelData={c.excelData}
                 logicRules={c.logicRules}
                 selectedFields={c.selectedFields}
                 filters={{
-                  ...c.filters,        // chart filters
-                  ...dashboardFilters, // slicers override
+                  ...c.filters,
+                  ...dashboardFilters,
                 }}
                 onPointClick={handleChartClick}
               />
