@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { deepFlatten } from "@/lib/utils";
+
 import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
@@ -11,7 +12,7 @@ import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
-// --------------------- HELPERS ---------------------
+/* ===================== HELPERS ===================== */
 function evaluateRule(row, rule) {
   const { field, operator, value } = rule;
   const rowValue = row[field];
@@ -37,7 +38,7 @@ function getValueByPath(obj, path) {
   return path?.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
-// --------------------- CHART RENDERER ---------------------
+/* ===================== CHART RENDERER ===================== */
 export default function ChartRenderer({
   datasetId,
   type,
@@ -51,79 +52,126 @@ export default function ChartRenderer({
   onPointClick,
   fullscreen = false,
 }) {
-  const [data, setData] = useState([]);
+  const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ---------- Load Data ----------
+  /* ===================== LOAD DATA (LIVE) ===================== */
   useEffect(() => {
-    if (!datasetId) {
-      setData(excelData || []);
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
 
-    const load = async () => {
+    const loadData = async () => {
+      setLoading(true);
+
       try {
-        const res = await apiClient(`/api/datasets/${datasetId}/run/`, { method: "POST" });
-        setData(Array.isArray(res) ? res : res?.data || res?.results || []);
+        /* Excel charts are static */
+        if (!datasetId) {
+          if (!cancelled) setRawData(excelData || []);
+          return;
+        }
+
+        /* Dataset-backed charts (QuickBooks) */
+        const res = await apiClient(
+          `/api/datasets/${datasetId}/run/`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              filters,
+              selected_fields: selectedFields,
+            }),
+          }
+        );
+
+        const rows =
+          Array.isArray(res) ? res :
+          res?.data || res?.results || [];
+
+        if (!cancelled) setRawData(rows);
       } catch {
-        setData([]);
+        if (!cancelled) setRawData([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     };
 
-    load();
-  }, [datasetId, excelData]);
+    loadData();
 
-  // ---------- Apply Logic + Filters ----------
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    datasetId,
+    excelData,
+    JSON.stringify(filters),
+    JSON.stringify(selectedFields),
+  ]);
+
+  /* ===================== APPLY LOGIC & FILTERS ===================== */
   const filteredData = useMemo(() => {
-    let output = [...data];
+    let output = [...rawData];
 
-    if (logicRules.length) output = applyLogic(output, logicRules);
+    if (logicRules.length) {
+      output = applyLogic(output, logicRules);
+    }
 
     Object.entries(filters).forEach(([field, rule]) => {
-      if (!rule) return;
-      const val = rule.value;
+      if (!rule || rule.value === "" || rule.value == null) return;
 
-      if (rule.type === "text" && val) {
-        output = output.filter(r =>
-          String(getValueByPath(r, field)).toLowerCase().includes(String(val).toLowerCase())
+      const value = rule.value;
+
+      if (rule.type === "text") {
+        output = output.filter(row =>
+          String(getValueByPath(row, field) ?? "")
+            .toLowerCase()
+            .includes(String(value).toLowerCase())
         );
       }
 
-      if (rule.type === "min" && val !== "") {
-        output = output.filter(r => Number(getValueByPath(r, field)) >= Number(val));
+      if (rule.type === "min") {
+        output = output.filter(row =>
+          Number(getValueByPath(row, field)) >= Number(value)
+        );
       }
 
-      if (rule.type === "max" && val !== "") {
-        output = output.filter(r => Number(getValueByPath(r, field)) <= Number(val));
+      if (rule.type === "max") {
+        output = output.filter(row =>
+          Number(getValueByPath(row, field)) <= Number(value)
+        );
       }
     });
 
     if (selectedFields?.length) {
       output = output.map(row => {
         const pruned = {};
-        selectedFields.forEach(f => pruned[f] = getValueByPath(row, f));
+        selectedFields.forEach(f => {
+          pruned[f] = getValueByPath(row, f);
+        });
         return pruned;
       });
     }
 
     return output;
-  }, [data, filters, logicRules, selectedFields]);
+  }, [rawData, filters, logicRules, selectedFields]);
 
-  // ---------- Prepare Chart Data ----------
+  /* ===================== PREPARE CHART DATA ===================== */
   const chartData = useMemo(() => {
     if (type === "kpi") {
-      return filteredData.reduce((sum, r) => sum + Number(r[yField] || 0), 0);
+      return filteredData.reduce(
+        (sum, row) => sum + Number(row[yField] || 0),
+        0
+      );
     }
 
     if (type === "stacked_bar") {
       return filteredData.map(row => {
         const obj = { x: row[xField] };
-        const fields = stackedFields.length
+        const keys = stackedFields.length
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
-        fields.forEach(f => obj[f] = Number(row[f] || 0));
+
+        keys.forEach(k => {
+          obj[k] = Number(row[k] || 0);
+        });
+
         obj.__row = row;
         return obj;
       });
@@ -140,29 +188,35 @@ export default function ChartRenderer({
     return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
 
-  // ---------- Click Handler ----------
+  /* ===================== CLICK HANDLER ===================== */
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
 
-    const originalRow = payload.__row || payload;
+    const original = payload.__row || payload;
+    const flattened = deepFlatten(original);
 
-    // Deep flatten nested objects
-    const flattenedRow = deepFlatten(originalRow);
-
-    onPointClick({ row: flattenedRow });
+    onPointClick({ row: flattened });
   };
 
-  // ---------- Render ----------
-  if (loading) return <div>Loading dataset…</div>;
+  /* ===================== RENDER ===================== */
+  if (loading) return <div>Loading data…</div>;
   if (!filteredData.length) return <div>No matching data</div>;
 
-  const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
+  const wrapperClass = fullscreen
+    ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
+    : "";
 
   return (
     <div className={wrapperClass}>
-      {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
-      {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
+      {type === "line" && (
+        <LineChart data={chartData} onPointClick={handlePointClick} />
+      )}
+      {type === "bar" && (
+        <BarChart data={chartData} onBarClick={handlePointClick} />
+      )}
+      {type === "pie" && (
+        <PieChart data={chartData} onSliceClick={handlePointClick} />
+      )}
       {type === "stacked_bar" && (
         <StackedBarChart
           data={chartData}
@@ -171,9 +225,15 @@ export default function ChartRenderer({
           onBarClick={handlePointClick}
         />
       )}
-      {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "kpi" && <KPI value={chartData} label={yField} />}
+      {type === "area" && (
+        <AreaChart data={chartData} onPointClick={handlePointClick} />
+      )}
+      {type === "scatter" && (
+        <ScatterChart data={chartData} onPointClick={handlePointClick} />
+      )}
+      {type === "kpi" && (
+        <KPI value={chartData} label={yField} />
+      )}
     </div>
   );
 }
