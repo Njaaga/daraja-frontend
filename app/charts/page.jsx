@@ -909,12 +909,12 @@ const isExcelChart = !!excelData && selectedDatasets.length === 0;
 
   /* ---------- add chart (POST to backend) ---------- */
 const addChart = async () => {
-  if ((!preview || preview.length === 0) && (!selectedDatasets.length && !excelData)) {
-    return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
-  }
+  // 1️⃣ Check if there is data to chart
+  const hasData = preview?.length > 0 || selectedDatasets.length > 0 || excelData;
+  if (!hasData) return alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
   if (!chartX || !chartY) return alert("Select X and Y fields");
 
-  // Create dashboard if needed
+  // 2️⃣ Create dashboard if it doesn't exist
   let id = dashboardId;
   if (!id) {
     const res = await apiClient("/api/dashboards/", {
@@ -926,18 +926,23 @@ const addChart = async () => {
     id = res.id;
   }
 
-  // Build sanitized joins
-  const sanitizedJoins = joins
-    .filter(j => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
-    .map(j => ({
-      left_dataset: Number(j.leftDataset) || j.leftDataset,
-      right_dataset: Number(j.rightDataset) || j.rightDataset,
-      left_field: j.leftField.trim(),
-      right_field: j.rightField.trim(),
-      type: j.type.trim(),
-    }));
+  // 3️⃣ Determine chart type: Excel vs API (QuickBooks / Dataset)
+  const isExcelChart = excelData && selectedDatasets.length === 0;
 
-  // Flatten selectedFields to array of field names
+  // 4️⃣ Sanitize joins (only for API-based charts)
+  const sanitizedJoins = !isExcelChart
+    ? joins
+        .filter(j => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
+        .map(j => ({
+          left_dataset: Number(j.leftDataset) || j.leftDataset,
+          right_dataset: Number(j.rightDataset) || j.rightDataset,
+          left_field: j.leftField.trim(),
+          right_field: j.rightField.trim(),
+          type: j.type.trim(),
+        }))
+    : [];
+
+  // 5️⃣ Flatten selected fields into array of field names
   const selectedFieldsArray = Object.values(selectedFields)
     .flatMap(fieldsObj =>
       Object.entries(fieldsObj)
@@ -945,72 +950,71 @@ const addChart = async () => {
         .map(([fieldName]) => fieldName)
     );
 
-    // Apply logic before sending
-    const filteredData = applyLogicGates(preview, logicExpr, logicSaved);
+  // 6️⃣ Apply logic gates (Excel charts only)
+  const filteredData = isExcelChart ? applyLogicGates(preview, logicExpr, logicSaved) : null;
 
+  // 7️⃣ Build chart payload
   const payload = {
     name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
     chart_type: chartType,
     x_field: chartX,
     y_field: chartY,
     aggregation: chartAgg || null,
-  
-    // IMPORTANT
-    dataset: !isExcelChart ? selectedDatasets[0]?.id : null,
-    excel_data: isExcelChart ? filteredData : null,
-  
-    filters,
+    dataset: !isExcelChart && selectedDatasets.length > 0 ? selectedDatasets[0].id : null,
     joins: sanitizedJoins,
+    filters,
     calculated_fields: calculatedFields,
     logic_expression: logicExpr || null,
     logic_rules: logicSaved || [],
     selected_fields: selectedFieldsArray || null,
+    ...(isExcelChart && { excel_data: filteredData }), // only include for Excel charts
   };
 
+  // 8️⃣ Send chart to backend and add to dashboard
+  try {
+    const chartRes = await apiClient("/api/charts/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (!chartRes?.id) return alert("Chart creation failed: backend returned no id");
 
+    await apiClient(`/api/dashboards/${id}/add_chart/`, {
+      method: "POST",
+      body: JSON.stringify({
+        chart_id: chartRes.id,
+        layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
+        order: charts.length,
+      }),
+    });
 
-    try {
-      const chartRes = await apiClient("/api/charts/", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      if (!chartRes?.id) return alert("Chart creation failed: backend returned no id");
+    // 9️⃣ Update local state
+    const newChart = {
+      i: chartRes.id.toString(),
+      chartId: chartRes.id,
+      name: payload.name,
+      type: chartType,
+      xField: chartX,
+      yField: chartY,
+      aggregation: chartAgg,
+      datasetIds: payload.dataset ? [payload.dataset] : [],
+      excelData: filteredData,
+      filters,
+      joins: sanitizedJoins,
+      calculated_fields: calculatedFields,
+      logic_rules: logicSaved || [],
+      logic_expression: logicExpr || null,
+    };
 
-      await apiClient(`/api/dashboards/${id}/add_chart/`, {
-        method: "POST",
-        body: JSON.stringify({
-          chart_id: chartRes.id,
-          layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
-          order: charts.length,
-        }),
-      });
+    setCharts(c => [...c, newChart]);
+    setLayout(l => [...l, { i: newChart.i, x: 0, y: charts.length * 3, w: 6, h: 3 }]);
+    setChartTitle("");
+    alert("Chart added!");
+  } catch (err) {
+    console.error("addChart error:", err);
+    alert(err.message || "Chart creation failed");
+  }
+};
 
-      const newChart = {
-        i: chartRes.id.toString(),
-        chartId: chartRes.id,
-        name: payload.name,
-        type: chartType,
-        xField: chartX,
-        yField: chartY,
-        aggregation: chartAgg,
-        datasetIds: payload.dataset_ids,
-        excelData: filteredData,
-        filters,
-        joins: sanitizedJoins,
-        calculated_fields: calculatedFields,
-        logic_rules: logicSaved || [],
-        logic_expression: logicExpr || null,
-      };
-
-      setCharts((c) => [...c, newChart]);
-      setLayout((l) => [...l, { i: newChart.i, x: 0, y: charts.length * 3, w: 6, h: 3 }]);
-      setChartTitle("");
-      alert("Chart added!");
-    } catch (err) {
-      console.error("addChart error:", err);
-      alert(err.message || "Chart creation failed");
-    }
-  };
 
 
 
