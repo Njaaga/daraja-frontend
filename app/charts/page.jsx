@@ -1046,35 +1046,49 @@ function aggregateData(rows, xField, yField, aggregation) {
 
   for (const row of rows) {
     const x = row[xField];
-    let y = row[yField];
+    const rawY = row[yField];
 
     if (x == null) continue;
 
-    // Convert to number if possible
-    y = Number(y);
-    if (isNaN(y)) y = 0; // treat missing/non-numeric as 0 instead of skipping
+    if (!map[x]) {
+      map[x] = { x, values: [] };
+    }
 
-    if (!map[x]) map[x] = { x, values: [] };
-    map[x].values.push(y);
+    // COUNT works for ANY value (boolean, string, number)
+    if (aggregation === "count") {
+      map[x].values.push(1);
+      continue;
+    }
+
+    // SUM / AVG → numbers only
+    const y = Number(rawY);
+    if (!isNaN(y)) {
+      map[x].values.push(y);
+    }
   }
 
-  return Object.values(map).map(({ x, values }) => {
-    let y;
+  const result = Object.values(map).map(({ x, values }) => {
+    let y = 0;
+
     switch (aggregation) {
       case "sum":
         y = values.reduce((a, b) => a + b, 0);
         break;
       case "avg":
-        y = values.reduce((a, b) => a + b, 0) / values.length;
+        y = values.length
+          ? values.reduce((a, b) => a + b, 0) / values.length
+          : 0;
         break;
       case "count":
         y = values.length;
         break;
-      default:
-        y = values[0];
     }
+
     return { x, y };
   });
+
+  console.log("AGGREGATED DATA:", result);
+  return result;
 }
 
 
