@@ -9,7 +9,7 @@ import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-/* ===================== SLICER PANEL ===================== */
+// Slicer panel
 function SlicerPanel({ fields, filters, onChange, onClear }) {
   if (!fields.length) return null;
 
@@ -17,21 +17,16 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
     <div className="bg-white p-4 rounded shadow mb-6">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold">Filters</h3>
-        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">
-          Clear all
-        </button>
+        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">Clear all</button>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {fields.map((field) => (
+        {fields.map(field => (
           <div key={field}>
             <label className="block text-xs text-gray-600 mb-1">{field}</label>
             <input
               type="text"
               value={filters[field]?.value || ""}
-              onChange={(e) =>
-                onChange(field, { type: "text", value: e.target.value })
-              }
+              onChange={(e) => onChange(field, { type: "text", value: e.target.value })}
               className="w-full border rounded px-2 py-1 text-sm"
               placeholder={`Filter ${field}`}
             />
@@ -42,7 +37,6 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
   );
 }
 
-/* ===================== DASHBOARD VIEW ===================== */
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
@@ -59,21 +53,19 @@ export default function DashboardView() {
   const [modalFields, setModalFields] = useState([]);
   const [dashboardFilters, setDashboardFilters] = useState({});
 
-  /* ===================== FETCH DASHBOARD ===================== */
+  // Fetch dashboard
   useEffect(() => {
     if (!id) return;
-
     const fetchDashboard = async () => {
       try {
         setLoading(true);
         const db = await apiClient(`/api/dashboards/${id}/`);
-
         setDashboard(db);
 
         const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
           return {
-            key: c.id, // Chart ID
+            key: c.id,
             title: c.name,
             type: c.chart_type,
             stackedFields: c.stacked_fields || [],
@@ -82,7 +74,6 @@ export default function DashboardView() {
             selectedFields: c.selected_fields || null,
           };
         });
-
         setCharts(mappedCharts);
       } catch {
         setError("Dashboard not found or access denied.");
@@ -90,11 +81,10 @@ export default function DashboardView() {
         setLoading(false);
       }
     };
-
     fetchDashboard();
   }, [id]);
 
-  /* ===================== AUTO REFRESH ===================== */
+  // Auto refresh
   useEffect(() => {
     const interval = setInterval(() => setRefreshKey(k => k + 1), 120000);
     return () => clearInterval(interval);
@@ -102,15 +92,11 @@ export default function DashboardView() {
 
   const slicerFields = useMemo(() => {
     const set = new Set();
-    charts.forEach(c => {
-      c.stackedFields.forEach(f => set.add(f));
-    });
+    charts.forEach(c => c.stackedFields.forEach(f => set.add(f)));
     return Array.from(set);
   }, [charts]);
 
-  const handleSlicerChange = (field, rule) => {
-    setDashboardFilters(prev => ({ ...prev, [field]: rule }));
-  };
+  const handleSlicerChange = (field, rule) => setDashboardFilters(prev => ({ ...prev, [field]: rule }));
   const clearSlicers = () => setDashboardFilters({});
 
   const handleChartClick = ({ row }) => {
@@ -124,7 +110,6 @@ export default function DashboardView() {
     if (!dashboardRef.current) return;
     const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
-
     const pdf = new jsPDF("p", "mm", "a4");
     const width = pdf.internal.pageSize.getWidth();
     const height = (canvas.height * width) / canvas.width;
@@ -149,7 +134,6 @@ export default function DashboardView() {
           </div>
         </div>
 
-        {/* Filters */}
         <SlicerPanel
           fields={slicerFields}
           filters={dashboardFilters}
@@ -157,13 +141,12 @@ export default function DashboardView() {
           onClear={clearSlicers}
         />
 
-        {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
               <ChartRenderer
-                chartId={c.key} 
+                chartId={c.key}
                 type={c.type}
                 stackedFields={c.stackedFields}
                 selectedFields={c.selectedFields}
