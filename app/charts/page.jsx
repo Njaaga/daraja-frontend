@@ -1539,7 +1539,11 @@ const getAggregatedData = (data, xField, yField, agg) => {
         className="border p-2 rounded col-span-3"
       />
 
-      <select value={chartType} onChange={(e) => setChartType(e.target.value)} className="border p-2 rounded col-span-1">
+      <select
+        value={chartType}
+        onChange={(e) => setChartType(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
         <option value="bar">Bar</option>
         <option value="stacked_bar">Stacked Bar</option>
         <option value="line">Line</option>
@@ -1550,50 +1554,70 @@ const getAggregatedData = (data, xField, yField, agg) => {
         <option value="kpi">KPI</option>
       </select>
 
-      <select value={chartAgg} onChange={(e) => setChartAgg(e.target.value)} className="border p-2 rounded col-span-1">
+      <select
+        value={chartAgg}
+        onChange={(e) => setChartAgg(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
         <option value="none">No Aggregate</option>
         <option value="sum">SUM</option>
         <option value="avg">AVG</option>
         <option value="count">COUNT</option>
       </select>
 
-      <select value={chartX} onChange={(e) => setChartX(e.target.value)} className="border p-2 rounded col-span-1">
+      <select
+        value={chartX}
+        onChange={(e) => setChartX(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
         <option value="">X Field</option>
         {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
           <option key={f} value={f}>{f}</option>
         ))}
       </select>
 
-      <select value={chartY} onChange={(e) => setChartY(e.target.value)} className="border p-2 rounded col-span-1">
+      <select
+        value={chartY}
+        onChange={(e) => setChartY(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
         <option value="">Y Field</option>
         {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
           <option key={f} value={f}>{f}</option>
         ))}
       </select>
 
-      <button onClick={addChart} className="bg-blue-600 text-white p-2 rounded col-span-6 md:col-auto">➕ Add Chart</button>
+      <button
+        onClick={addChart}
+        className="bg-blue-600 text-white p-2 rounded col-span-6 md:col-auto"
+      >
+        ➕ Add Chart
+      </button>
     </div>
 
     <div>
       <h4 className="font-semibold mb-2">Preview charts (local previews)</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {charts.length === 0 && <div className="text-gray-600">No charts yet</div>}
+
         {charts.map((c) => {
-          // --- compute aggregated data here ---
+          // Prepare chart data
           const chartData = c.excelData || preview;
-          const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
+          const aggregatedData =
+            c.type === "table" ? chartData : getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
 
           return (
             <div key={c.i} className="bg-gray-50 p-3 rounded">
               <h5 className="font-semibold mb-2">{c.name}</h5>
               <button
                 onClick={() => handleDeleteChart(c.chartId)}
-                className="text-sm text-red-600 hover:underline"
+                className="text-sm text-red-600 hover:underline mb-2"
               >
                 Delete
               </button>
 
               {c.type === "table" ? (
-                <TableRenderer dataset={getPrunedPreview()} />
+                <TableRenderer dataset={aggregatedData} />
               ) : (
                 <ChartRenderer
                   type={c.type}
@@ -1613,11 +1637,11 @@ const getAggregatedData = (data, xField, yField, agg) => {
             </div>
           );
         })}
-        {charts.length === 0 && <div className="text-gray-600">No charts yet</div>}
       </div>
     </div>
   </div>
 )}
+
 
         {/* Step 7 - Layout */}
         {step === STEPS.LAYOUT && (
