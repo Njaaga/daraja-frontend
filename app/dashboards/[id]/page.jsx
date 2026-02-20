@@ -28,17 +28,12 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {fields.map((field) => (
           <div key={field}>
-            <label className="block text-xs text-gray-600 mb-1">
-              {field}
-            </label>
+            <label className="block text-xs text-gray-600 mb-1">{field}</label>
             <input
               type="text"
               value={filters[field]?.value || ""}
               onChange={(e) =>
-                onChange(field, {
-                  type: "text",
-                  value: e.target.value,
-                })
+                onChange(field, { type: "text", value: e.target.value })
               }
               className="w-full border rounded px-2 py-1 text-sm"
               placeholder={`Filter ${field}`}
@@ -61,15 +56,12 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /* Realtime refresh */
   const [refreshKey, setRefreshKey] = useState(0);
 
-  /* Drill-down modal */
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
-  /* Global slicers */
   const [dashboardFilters, setDashboardFilters] = useState({});
 
   /* ===================== FETCH DASHBOARD ===================== */
@@ -79,18 +71,21 @@ export default function DashboardView() {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
+
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mapped = (db.dashboard_charts || []).map((dc) => {
+        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
           const c = dc.chart_detail;
+
           return {
             key: dc.id,
-            title: c.name || c.y_field,
+            title: c.name,
             type: c.chart_type,
             datasetId: c.dataset,
             xField: c.x_field,
             yField: c.y_field,
+            aggregation: c.aggregation || "none", // ✅ CRITICAL
             stackedFields: c.stacked_fields || [],
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
@@ -98,7 +93,7 @@ export default function DashboardView() {
           };
         });
 
-        setCharts(mapped);
+        setCharts(mappedCharts);
       } catch {
         setError("Dashboard not found or access denied.");
       } finally {
@@ -109,23 +104,23 @@ export default function DashboardView() {
     fetchDashboard();
   }, [id]);
 
-  /* ===================== AUTO REFRESH (QB SAFE) ===================== */
+  /* ===================== AUTO REFRESH ===================== */
   useEffect(() => {
     const interval = setInterval(() => {
       setRefreshKey((k) => k + 1);
-    }, 120000); // 2 minutes
+    }, 120000); // 2 min
 
     return () => clearInterval(interval);
   }, []);
 
   /* ===================== SLICER FIELDS ===================== */
   const slicerFields = useMemo(() => {
-    const fields = new Set();
+    const set = new Set();
     charts.forEach((c) => {
-      if (c.xField) fields.add(c.xField);
-      if (c.yField) fields.add(c.yField);
+      if (c.xField) set.add(c.xField);
+      if (c.yField) set.add(c.yField);
     });
-    return Array.from(fields);
+    return Array.from(set);
   }, [charts]);
 
   /* ===================== SLICER HANDLERS ===================== */
@@ -197,7 +192,7 @@ export default function DashboardView() {
           </div>
         </div>
 
-        {/* Slicers */}
+        {/* Filters */}
         <SlicerPanel
           fields={slicerFields}
           filters={dashboardFilters}
@@ -217,13 +212,11 @@ export default function DashboardView() {
                 type={c.type}
                 xField={c.xField}
                 yField={c.yField}
+                aggregation={c.aggregation} // ✅ PASSED
                 stackedFields={c.stackedFields}
                 logicRules={c.logicRules}
                 selectedFields={c.selectedFields}
-                filters={{
-                  ...c.filters,
-                  ...dashboardFilters,
-                }}
+                filters={{ ...c.filters, ...dashboardFilters }}
                 onPointClick={handleChartClick}
               />
             </div>
