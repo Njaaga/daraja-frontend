@@ -1039,7 +1039,45 @@ const getSelectableFields = (datasetId) => {
   /* ---------- small helpers ---------- */
   const replaceIntoLogicExpr = (token) => setLogicExpr((e) => (e ? e + " " + token : token));
 
-  
+function aggregateData(rows, xField, yField, aggregation) {
+  if (!aggregation || aggregation === "none") return rows;
+
+  const map = {};
+
+  for (const row of rows) {
+    const x = row[xField];
+    const y = Number(row[yField]);
+
+    if (x == null || isNaN(y)) continue;
+
+    if (!map[x]) {
+      map[x] = { x, values: [] };
+    }
+
+    map[x].values.push(y);
+  }
+
+  return Object.values(map).map(({ x, values }) => {
+    let y;
+
+    switch (aggregation) {
+      case "sum":
+        y = values.reduce((a, b) => a + b, 0);
+        break;
+      case "avg":
+        y = values.reduce((a, b) => a + b, 0) / values.length;
+        break;
+      case "count":
+        y = values.length;
+        break;
+      default:
+        y = values[0];
+    }
+
+    return { x, y };
+  });
+}
+ 
 
   /* ---------- UI ---------- */
   return (
