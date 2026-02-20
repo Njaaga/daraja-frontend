@@ -36,7 +36,7 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
-  // Fetch chart data
+  // Fetch data
   useEffect(() => {
     let cancelled = false;
 
@@ -53,11 +53,8 @@ export default function ChartRenderer({
           }),
         });
 
-        console.log("🔹 ChartRenderer DEBUG: raw API response:", res);
-
         const rows = res?.data?.data || [];
-        console.log("🔹 ChartRenderer DEBUG: processed rows (first 5):", rows.slice(0, 5));
-
+        console.log("🔹 ChartRenderer DEBUG: raw API rows:", rows.slice(0, 5));
         if (!cancelled) setRawData(rows);
       } catch (err) {
         console.error("🔹 ChartRenderer DEBUG: API fetch error", err);
@@ -72,50 +69,36 @@ export default function ChartRenderer({
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
   // -----------------------
-  // Prepare chart data (DEBUG MODE)
+  // Prepare chart data
   // -----------------------
   const chartData = useMemo(() => {
     if (!rawData.length) return [];
 
-    console.log("🔹 ChartRenderer DEBUG: rawData full sample (first 5):", rawData.slice(0, 5));
+    // Auto-pick X: first string field if xField missing
+    const pickXField = xField || Object.keys(rawData[0]).find(k => typeof rawData[0][k] === "string") || Object.keys(rawData[0])[0];
 
-    // KPI charts
-    if (type === "kpi") {
-      const sum = rawData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
-      console.log("🔹 KPI chart value:", sum);
-      return sum;
-    }
+    // Auto-pick Y: first numeric field if yField missing
+    const pickYField = yField || Object.keys(rawData[0]).find(k => typeof rawData[0][k] === "number") || null;
 
-    // Stacked bar
-    if (type === "stacked_bar") {
-      const data = rawData.map(row => {
-        const obj = { x: row[xField] ?? row[Object.keys(row)[0]] }; // fallback
-        const keys = stackedFields.length
-          ? stackedFields
-          : Object.keys(row).filter(k => ![xField, yField].includes(k));
-        keys.forEach(k => obj[k] = Number(row[k] || 0));
-        obj.__row = row;
-        return obj;
-      });
-      console.log("🔹 Stacked bar chart data (first 5):", data.slice(0, 5));
-      return data;
-    }
+    const data = rawData.map(row => {
+      let xVal = row[pickXField];
+      if (xVal == null) xVal = Object.values(row)[0];
 
-    // Other charts (line/bar/pie/area/scatter)
-// Other charts (line/bar/pie/area/scatter)
-const data = rawData.map(row => {
-  const xVal = row[xField] ?? row[Object.keys(row)[0]]; // fallback
-  const yVal = Number((row[yField] ?? row[Object.keys(row)[1]]) || 0); // FIXED
-  return { x: xVal, y: yVal, __row: row };
-});
-console.log(`🔹 ${type} chart data (first 5):`, data.slice(0, 5));
-return data;
+      let yVal;
+      if (pickYField && !isNaN(Number(row[pickYField]))) {
+        yVal = Number(row[pickYField]);
+      } else {
+        yVal = 1; // fallback count for non-numeric
+      }
 
-  }, [rawData, xField, yField, type, stackedFields]);
+      const obj = { x: xVal, y: yVal, __row: row };
+      return obj;
+    });
 
-  // -----------------------
-  // Point click handler
-  // -----------------------
+    console.log("🔹 ChartRenderer DEBUG: processed chartData:", data.slice(0, 5));
+    return data;
+  }, [rawData, xField, yField]);
+
   const handlePointClick = payload => {
     if (!onPointClick || !payload) return;
     const original = payload.__row || payload;
@@ -124,11 +107,7 @@ return data;
   };
 
   if (loading) return <div>Loading chart…</div>;
-  if (!rawData.length) return (
-    <div style={{ color: "red", fontWeight: "bold" }}>
-      No data to display — check browser console for debug logs
-    </div>
-  );
+  if (!chartData.length) return <div>No data to display</div>;
 
   const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
 
@@ -137,10 +116,10 @@ return data;
       {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
       {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
       {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
-      {type === "stacked_bar" && <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />}
+      {type === "stacked_bar" && <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields.length ? stackedFields : ["y"]} onBarClick={handlePointClick} />}
       {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
       {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "kpi" && <KPI value={chartData} label={yField} />}
+      {type === "kpi" && <KPI value={chartData.reduce((sum, r) => sum + r.y, 0)} label={pickYField} />}
     </div>
   );
 }
