@@ -3,14 +3,14 @@
 import "@/lib/chartjs";
 import { Bar } from "react-chartjs-2";
 
-export default function BarChart({ data = [], onBarClick }) {
+export default function BarChart({ data, onBarClick }) {
   if (!Array.isArray(data) || data.length === 0) {
     return <p>No data to display</p>;
   }
 
-  // ✅ Explicit keys (no guessing)
-  const labels = data.map((row) => row.x);
-  const values = data.map((row) => Number(row.y ?? 0));
+  // ✅ Backend-controlled contract
+  const labels = data.map(d => d.x);
+  const values = data.map(d => Number(d.y ?? 0));
 
   const chartData = {
     labels,
@@ -29,24 +29,23 @@ export default function BarChart({ data = [], onBarClick }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
       tooltip: { mode: "index", intersect: false },
+      legend: { display: false },
     },
     scales: {
       x: { grid: { display: false } },
       y: { beginAtZero: true },
     },
     onClick: (_evt, elements) => {
-      if (!elements.length || !onBarClick) return;
-
+      if (!elements.length) return;
       const index = elements[0].index;
       const row = data[index];
-
-      onBarClick({
-        field: "y",
-        value: row.y,
-        row,
-      });
+      if (onBarClick) {
+        onBarClick({
+          x: row.x,
+          y: row.y,
+        });
+      }
     },
   };
 
