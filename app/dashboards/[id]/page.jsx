@@ -62,18 +62,21 @@ export default function DashboardView() {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mappedCharts = (db.dashboard_charts || []).map(dc => {
-          const c = dc.chart_detail;
-          return {
-            key: c.id,
-            title: c.name,
-            type: c.chart_type,
-            stackedFields: c.stacked_fields || [],
-            filters: c.filters || {},
-            logicRules: c.logic_rules || [],
-            selectedFields: c.selected_fields || null,
-          };
-        });
+    const mappedCharts = (db.dashboard_charts || []).map(dc => {
+      const c = dc.chart_detail;
+      return {
+        key: c.id,
+        title: c.name,
+        type: c.chart_type,
+        stackedFields: c.stacked_fields || [],
+        filters: c.filters || {},
+        logicRules: c.logic_rules || [],
+        selectedFields: c.selected_fields || null,
+        xField: c.x_field,    // <-- ADD THIS
+        yField: c.y_field,    // <-- ADD THIS
+      };
+    });
+
         setCharts(mappedCharts);
       } catch {
         setError("Dashboard not found or access denied.");
@@ -145,14 +148,17 @@ export default function DashboardView() {
           {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
-              <ChartRenderer
-                chartId={c.key}
-                type={c.type}
-                stackedFields={c.stackedFields}
-                selectedFields={c.selectedFields}
-                filters={{ ...c.filters, ...dashboardFilters }}
-                onPointClick={handleChartClick}
-              />
+                <ChartRenderer
+                  chartId={c.key}
+                  type={c.type}
+                  stackedFields={c.stackedFields}
+                  selectedFields={c.selectedFields}
+                  filters={{ ...c.filters, ...dashboardFilters }}
+                  xField={c.xField}      // <-- ADD THIS
+                  yField={c.yField}      // <-- ADD THIS
+                  onPointClick={handleChartClick}
+                />
+
             </div>
           ))}
         </div>
