@@ -9,6 +9,40 @@ import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+/* ===================== SLICER PANEL ===================== */
+function SlicerPanel({ fields, filters, onChange, onClear }) {
+  if (!fields.length) return null;
+
+  return (
+    <div className="bg-white p-4 rounded shadow mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-semibold">Filters</h3>
+        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">
+          Clear all
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {fields.map((field) => (
+          <div key={field}>
+            <label className="block text-xs text-gray-600 mb-1">{field}</label>
+            <input
+              type="text"
+              value={filters[field]?.value || ""}
+              onChange={(e) =>
+                onChange(field, { type: "text", value: e.target.value })
+              }
+              className="w-full border rounded px-2 py-1 text-sm"
+              placeholder={`Filter ${field}`}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ===================== DASHBOARD VIEW ===================== */
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
@@ -20,11 +54,9 @@ export default function DashboardView() {
   const [error, setError] = useState("");
 
   const [refreshKey, setRefreshKey] = useState(0);
-
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
-
   const [dashboardFilters, setDashboardFilters] = useState({});
 
   /* ===================== FETCH DASHBOARD ===================== */
@@ -40,12 +72,11 @@ export default function DashboardView() {
         const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
           return {
-            key: c.id,           // 🔹 Chart ID
+            key: c.id, // Chart ID
             title: c.name,
             type: c.chart_type,
             xField: c.x_field,
             yField: c.y_field,
-            aggregation: c.aggregation || "sum",
             stackedFields: c.stacked_fields || [],
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
@@ -109,7 +140,6 @@ export default function DashboardView() {
   return (
     <Layout>
       <div className="p-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => router.push("/dashboards")} className="text-sm text-gray-600 hover:underline">← Back</button>
@@ -121,15 +151,21 @@ export default function DashboardView() {
           </div>
         </div>
 
+        {/* Filters */}
+        <SlicerPanel
+          fields={slicerFields}
+          filters={dashboardFilters}
+          onChange={handleSlicerChange}
+          onClear={clearSlicers}
+        />
+
         {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
-
               <ChartRenderer
-                key={`${c.key}-${refreshKey}`}
-                chartId={c.key}               // 🔹 Use chartId
+                chartId={c.key} // Use chart ID
                 type={c.type}
                 xField="x"
                 yField="y"
