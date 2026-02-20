@@ -1580,6 +1580,8 @@ function aggregateData(rows, xField, yField, aggregation) {
               <h4 className="font-semibold mb-2">Preview charts (local previews)</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {charts.map((c) => (
+                    const chartData = c.excelData || preview;
+                    const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
                   <div key={c.i} className="bg-gray-50 p-3 rounded">
                     <h5 className="font-semibold mb-2">{c.name}</h5>
                   <button
@@ -1588,8 +1590,7 @@ function aggregateData(rows, xField, yField, aggregation) {
                   >
                     Delete
                   </button>
-                    {const chartData = c.excelData || preview;}
-                    {const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);}
+
                     {c.type === "table" ? (
                       <TableRenderer dataset={getPrunedPreview()} />
                     ) : (
