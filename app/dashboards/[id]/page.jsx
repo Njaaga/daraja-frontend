@@ -17,21 +17,16 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
     <div className="bg-white p-4 rounded shadow mb-6">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold">Filters</h3>
-        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">
-          Clear all
-        </button>
+        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">Clear all</button>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {fields.map((field) => (
+        {fields.map(field => (
           <div key={field}>
             <label className="block text-xs text-gray-600 mb-1">{field}</label>
             <input
               type="text"
               value={filters[field]?.value || ""}
-              onChange={(e) =>
-                onChange(field, { type: "text", value: e.target.value })
-              }
+              onChange={(e) => onChange(field, { type: "text", value: e.target.value })}
               className="w-full border rounded px-2 py-1 text-sm"
               placeholder={`Filter ${field}`}
             />
@@ -69,7 +64,7 @@ export default function DashboardView() {
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        const mappedCharts = (db.dashboard_charts || []).map((dc) => {
+        const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
           return {
             key: c.id,
@@ -95,20 +90,18 @@ export default function DashboardView() {
 
   // -------------------- AUTO REFRESH --------------------
   useEffect(() => {
-    const interval = setInterval(() => setRefreshKey((k) => k + 1), 120000);
+    const interval = setInterval(() => setRefreshKey(k => k + 1), 120000);
     return () => clearInterval(interval);
   }, []);
 
   // -------------------- SLICER FIELDS --------------------
   const slicerFields = useMemo(() => {
     const set = new Set();
-    charts.forEach((c) => c.stackedFields.forEach((f) => set.add(f)));
+    charts.forEach(c => c.stackedFields.forEach(f => set.add(f)));
     return Array.from(set);
   }, [charts]);
 
-  const handleSlicerChange = (field, rule) =>
-    setDashboardFilters((prev) => ({ ...prev, [field]: rule }));
-
+  const handleSlicerChange = (field, rule) => setDashboardFilters(prev => ({ ...prev, [field]: rule }));
   const clearSlicers = () => setDashboardFilters({});
 
   // -------------------- CHART CLICK --------------------
@@ -122,7 +115,6 @@ export default function DashboardView() {
   // -------------------- EXPORT PDF --------------------
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
-
     const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
@@ -141,27 +133,13 @@ export default function DashboardView() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/dashboards")}
-              className="text-sm text-gray-600 hover:underline"
-            >
-              ← Back
-            </button>
+            <button onClick={() => router.push("/dashboards")} className="text-sm text-gray-600 hover:underline">← Back</button>
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
+
           <div className="flex gap-2">
-            <button
-              onClick={() => setRefreshKey((k) => k + 1)}
-              className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-            >
-              Refresh
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-            >
-              Export PDF
-            </button>
+            <button onClick={() => setRefreshKey(k => k + 1)} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Refresh</button>
+            <button onClick={handleExportPDF} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Export PDF</button>
           </div>
         </div>
 
@@ -175,15 +153,16 @@ export default function DashboardView() {
 
         {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {charts.map((c) => (
+          {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
               <ChartRenderer
                 chartId={c.key}
                 type={c.type}
                 stackedFields={c.stackedFields}
-                selectedFields={c.selectedFields}
                 filters={{ ...c.filters, ...dashboardFilters }}
+                xField="x"        // <-- REQUIRED for aggregated charts
+                yField="y"        // <-- REQUIRED for aggregated charts
                 onPointClick={handleChartClick}
               />
             </div>
