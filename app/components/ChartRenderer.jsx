@@ -17,6 +17,8 @@ export default function ChartRenderer({
   stackedFields = [],
   filters = {},
   selectedFields = null,
+  xField = null,
+  yField = null,
   onPointClick,
   fullscreen = false,
 }) {
@@ -51,8 +53,8 @@ export default function ChartRenderer({
           }),
         });
 
+        // 🔹 DEBUG logs
         console.log("🔹 ChartRenderer DEBUG: raw API response:", res);
-
         const rows = res?.data?.data || [];
         console.log("🔹 ChartRenderer DEBUG: processed rows:", rows);
 
@@ -66,52 +68,44 @@ export default function ChartRenderer({
     };
 
     loadData();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
-  // Prepare chart data
-// ----------------------------
-// CHART DATA (Patch)
-// ----------------------------
-const chartData = useMemo(() => {
-  if (!rawData.length) return [];
+  // Prepare chart data dynamically
+  const chartData = useMemo(() => {
+    if (!rawData.length) return [];
 
-  // KPI
-  if (type === "kpi") {
-    return rawData.reduce((sum, row) => sum + Number(row.y || 0), 0);
-  }
+    // Determine which keys to use
+    const xKey = rawData[0]?.x !== undefined ? "x" : xField;
+    const yKey = rawData[0]?.y !== undefined ? "y" : yField;
 
-  // Stacked bar
-  if (type === "stacked_bar") {
-    return rawData.map(row => {
-      const obj = { x: row.x };
-      const keys = stackedFields.length
-        ? stackedFields
-        : Object.keys(row).filter(k => !["x", "y"].includes(k));
+    if (type === "kpi") {
+      return rawData.reduce((sum, row) => sum + Number(row[yKey] || 0), 0);
+    }
 
-      keys.forEach(k => obj[k] = Number(row[k] || 0));
-      obj.__row = row;
-      return obj;
-    });
-  }
+    if (type === "stacked_bar") {
+      return rawData.map(row => {
+        const obj = { x: row[xKey] };
+        const keys = stackedFields.length
+          ? stackedFields
+          : Object.keys(row).filter(k => ![xKey, yKey].includes(k));
+        keys.forEach(k => obj[k] = Number(row[k] || 0));
+        obj.__row = row;
+        return obj;
+      });
+    }
 
-  // Other charts (line/bar/pie/area/scatter)
-  return rawData.map(row => ({
-    x: row.x,           // <-- use backend x
-    y: Number(row.y || 0), // <-- use backend y
-    __row: row,
-  }));
-}, [rawData, type, stackedFields]);
+    return rawData.map(row => ({
+      x: row[xKey],
+      y: Number(row[yKey] || 0),
+      __row: row,
+    }));
+  }, [rawData, type, stackedFields, xField, yField]);
 
-
-  // Point click handler
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
     const original = payload.__row || payload;
-    const flattened = deepFlatten(original);
-    onPointClick({ row: flattened });
+    onPointClick({ row: deepFlatten(original) });
   };
 
   if (loading) return <div>Loading chart…</div>;
@@ -124,12 +118,10 @@ const chartData = useMemo(() => {
       {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
       {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
       {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
-      {type === "stacked_bar" && (
-        <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />
-      )}
+      {type === "stacked_bar" && <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />}
       {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
       {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "kpi" && <KPI value={chartData} label="y" />}
+      {type === "kpi" && <KPI value={chartData} label={yField || "y"} />}
     </div>
   );
 }
