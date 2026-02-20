@@ -1077,7 +1077,15 @@ function aggregateData(rows, xField, yField, aggregation) {
     return { x, y };
   });
 }
- 
+
+
+  const getAggregatedData = (data, xField, yField, agg) => {
+  if (!agg || agg === "none") return data;
+  return aggregateData(data, xField, yField, agg);
+};
+
+  const chartData = c.excelData || preview;
+const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
 
   /* ---------- UI ---------- */
   return (
@@ -1588,7 +1596,7 @@ function aggregateData(rows, xField, yField, aggregation) {
                       <ChartRenderer
                         type={c.type}
                         datasetId={undefined}
-                        excelData={c.excelData || preview}
+                        excelData={aggregatedData}
                         xField={c.xField}
                         yField={c.yField}
                         aggregation={c.aggregation}
