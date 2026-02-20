@@ -36,6 +36,7 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
+  // Fetch chart data
   useEffect(() => {
     let cancelled = false;
 
@@ -55,7 +56,7 @@ export default function ChartRenderer({
         console.log("🔹 ChartRenderer DEBUG: raw API response:", res);
 
         const rows = res?.data?.data || [];
-        console.log("🔹 ChartRenderer DEBUG: processed rows:", rows);
+        console.log("🔹 ChartRenderer DEBUG: processed rows (first 5):", rows.slice(0, 5));
 
         if (!cancelled) setRawData(rows);
       } catch (err) {
@@ -71,18 +72,24 @@ export default function ChartRenderer({
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
   // -----------------------
-  // Prepare chart data
+  // Prepare chart data (DEBUG MODE)
   // -----------------------
   const chartData = useMemo(() => {
     if (!rawData.length) return [];
 
+    console.log("🔹 ChartRenderer DEBUG: rawData full sample (first 5):", rawData.slice(0, 5));
+
+    // KPI charts
     if (type === "kpi") {
-      return rawData.reduce((sum, row) => sum + Number(row[yField] || 0), 0);
+      const sum = rawData.reduce((acc, row) => acc + Number(row[yField] || 0), 0);
+      console.log("🔹 KPI chart value:", sum);
+      return sum;
     }
 
+    // Stacked bar
     if (type === "stacked_bar") {
-      return rawData.map(row => {
-        const obj = { x: row[xField] };
+      const data = rawData.map(row => {
+        const obj = { x: row[xField] ?? row[Object.keys(row)[0]] }; // fallback
         const keys = stackedFields.length
           ? stackedFields
           : Object.keys(row).filter(k => ![xField, yField].includes(k));
@@ -90,15 +97,23 @@ export default function ChartRenderer({
         obj.__row = row;
         return obj;
       });
+      console.log("🔹 Stacked bar chart data (first 5):", data.slice(0, 5));
+      return data;
     }
 
-    return rawData.map(row => ({
-      x: row[xField],
-      y: Number(row[yField] || 0),
-      __row: row,
-    }));
+    // Other charts (line/bar/pie/area/scatter)
+    const data = rawData.map(row => {
+      const xVal = row[xField] ?? row[Object.keys(row)[0]]; // fallback
+      const yVal = Number(row[yField] ?? row[Object.keys(row)[1]] || 0);
+      return { x: xVal, y: yVal, __row: row };
+    });
+    console.log(`🔹 ${type} chart data (first 5):`, data.slice(0, 5));
+    return data;
   }, [rawData, xField, yField, type, stackedFields]);
 
+  // -----------------------
+  // Point click handler
+  // -----------------------
   const handlePointClick = payload => {
     if (!onPointClick || !payload) return;
     const original = payload.__row || payload;
@@ -107,7 +122,11 @@ export default function ChartRenderer({
   };
 
   if (loading) return <div>Loading chart…</div>;
-  if (!rawData.length) return <div>No data to display</div>;
+  if (!rawData.length) return (
+    <div style={{ color: "red", fontWeight: "bold" }}>
+      No data to display — check browser console for debug logs
+    </div>
+  );
 
   const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
 
