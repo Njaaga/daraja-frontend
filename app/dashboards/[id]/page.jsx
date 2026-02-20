@@ -67,6 +67,7 @@ export default function DashboardView() {
       try {
         setLoading(true);
         const db = await apiClient(`/api/dashboards/${id}/`);
+
         setDashboard(db);
 
         const mappedCharts = (db.dashboard_charts || []).map(dc => {
@@ -75,8 +76,6 @@ export default function DashboardView() {
             key: c.id, // Chart ID
             title: c.name,
             type: c.chart_type,
-            xField: c.x_field,
-            yField: c.y_field,
             stackedFields: c.stacked_fields || [],
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
@@ -104,8 +103,7 @@ export default function DashboardView() {
   const slicerFields = useMemo(() => {
     const set = new Set();
     charts.forEach(c => {
-      if (c.xField) set.add(c.xField);
-      if (c.yField) set.add(c.yField);
+      c.stackedFields.forEach(f => set.add(f));
     });
     return Array.from(set);
   }, [charts]);
@@ -165,12 +163,9 @@ export default function DashboardView() {
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
               <ChartRenderer
-                chartId={c.key} // Use chart ID
+                chartId={c.key} 
                 type={c.type}
-                xField="x"
-                yField="y"
                 stackedFields={c.stackedFields}
-                logicRules={c.logicRules}
                 selectedFields={c.selectedFields}
                 filters={{ ...c.filters, ...dashboardFilters }}
                 onPointClick={handleChartClick}
