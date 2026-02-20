@@ -72,33 +72,39 @@ export default function ChartRenderer({
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
   // Prepare chart data
-  const chartData = useMemo(() => {
-    if (!rawData.length) return [];
+// ----------------------------
+// CHART DATA (Patch)
+// ----------------------------
+const chartData = useMemo(() => {
+  if (!rawData.length) return [];
 
-    if (type === "kpi") {
-      return rawData.reduce((sum, row) => sum + Number(row.y || 0), 0);
-    }
+  // KPI
+  if (type === "kpi") {
+    return rawData.reduce((sum, row) => sum + Number(row.y || 0), 0);
+  }
 
-    if (type === "stacked_bar") {
-      return rawData.map(row => {
-        const obj = { x: row.x };
-        const keys = stackedFields.length
-          ? stackedFields
-          : Object.keys(row).filter(k => !["x", "y"].includes(k));
+  // Stacked bar
+  if (type === "stacked_bar") {
+    return rawData.map(row => {
+      const obj = { x: row.x };
+      const keys = stackedFields.length
+        ? stackedFields
+        : Object.keys(row).filter(k => !["x", "y"].includes(k));
 
-        keys.forEach(k => obj[k] = Number(row[k] || 0));
-        obj.__row = row;
-        return obj;
-      });
-    }
+      keys.forEach(k => obj[k] = Number(row[k] || 0));
+      obj.__row = row;
+      return obj;
+    });
+  }
 
-    // Other charts (line/bar/pie/area/scatter)
-    return rawData.map(row => ({
-      x: row.x,
-      y: Number(row.y || 0),
-      __row: row,
-    }));
-  }, [rawData, type, stackedFields]);
+  // Other charts (line/bar/pie/area/scatter)
+  return rawData.map(row => ({
+    x: row.x,           // <-- use backend x
+    y: Number(row.y || 0), // <-- use backend y
+    __row: row,
+  }));
+}, [rawData, type, stackedFields]);
+
 
   // Point click handler
   const handlePointClick = (payload) => {
