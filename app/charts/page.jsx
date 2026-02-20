@@ -1529,6 +1529,7 @@ const getAggregatedData = (data, xField, yField, agg) => {
       />
     </div>
 
+    {/* Chart options */}
     <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3">
       <input
         type="text"
@@ -1594,29 +1595,39 @@ const getAggregatedData = (data, xField, yField, agg) => {
       </button>
     </div>
 
+    {/* Chart previews */}
     <div>
       <h4 className="font-semibold mb-2">Preview charts (local previews)</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {charts.length === 0 && <div className="text-gray-600">No charts yet</div>}
 
         {charts.map((c) => {
-          // Prepare chart data
+          // Raw chart data
           const chartData = c.excelData || preview;
+
+          // Apply aggregation safely for charts (not tables)
           const aggregatedData =
-            c.type === "table" ? chartData : getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
+            c.type !== "table" && c.xField && c.yField
+              ? getAggregatedData(chartData, c.xField, c.yField, c.aggregation)
+              : chartData;
+
+          // Debug log (optional)
+          // console.log("Aggregating chart:", c.name, "agg:", c.aggregation, aggregatedData);
 
           return (
             <div key={c.i} className="bg-gray-50 p-3 rounded">
-              <h5 className="font-semibold mb-2">{c.name}</h5>
-              <button
-                onClick={() => handleDeleteChart(c.chartId)}
-                className="text-sm text-red-600 hover:underline mb-2"
-              >
-                Delete
-              </button>
+              <div className="flex justify-between items-center mb-2">
+                <h5 className="font-semibold">{c.name}</h5>
+                <button
+                  onClick={() => handleDeleteChart(c.chartId)}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
 
               {c.type === "table" ? (
-                <TableRenderer dataset={aggregatedData} />
+                <TableRenderer dataset={chartData} />
               ) : (
                 <ChartRenderer
                   type={c.type}
