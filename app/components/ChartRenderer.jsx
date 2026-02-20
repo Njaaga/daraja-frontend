@@ -11,8 +11,9 @@ import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 import { deepFlatten } from "@/lib/utils";
 
+/* ===================== CHART RENDERER ===================== */
 export default function ChartRenderer({
-  chartId, // 🔹 Now using chartId, not datasetId
+  chartId,
   type,
   xField = "x",
   yField = "y",
@@ -25,6 +26,17 @@ export default function ChartRenderer({
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /* ===================== FORMAT FILTERS FOR BACKEND ===================== */
+  const backendFilters = useMemo(() => {
+    if (!filters) return {};
+    return Object.fromEntries(
+      Object.entries(filters).map(([k, f]) => [
+        k,
+        { type: f?.type || "text", value: f?.value ?? f },
+      ])
+    );
+  }, [filters]);
+
   /* ===================== FETCH AGGREGATED DATA ===================== */
   useEffect(() => {
     let cancelled = false;
@@ -34,10 +46,12 @@ export default function ChartRenderer({
       try {
         if (!chartId) return;
 
-        // 🔹 Call aggregated chart endpoint
         const res = await apiClient(`/api/charts/${chartId}/run/`, {
           method: "POST",
-          body: JSON.stringify({ filters, selected_fields: selectedFields }),
+          body: JSON.stringify({
+            filters: backendFilters,
+            selected_fields: selectedFields,
+          }),
         });
 
         const rows = res?.data?.data || [];
@@ -50,10 +64,12 @@ export default function ChartRenderer({
     };
 
     loadData();
-    return () => { cancelled = true; };
-  }, [chartId, JSON.stringify(filters), JSON.stringify(selectedFields)]);
+    return () => {
+      cancelled = true;
+    };
+  }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
-  /* ===================== CHART DATA ===================== */
+  /* ===================== PREPARE CHART DATA ===================== */
   const chartData = useMemo(() => {
     if (!rawData.length) return [];
 
@@ -77,7 +93,6 @@ export default function ChartRenderer({
       });
     }
 
-    // All other charts
     return rawData.map(row => ({
       x: row[xField],
       y: Number(row[yField] || 0),
@@ -88,7 +103,6 @@ export default function ChartRenderer({
   /* ===================== POINT CLICK ===================== */
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
-
     const original = payload.__row || payload;
     const flattened = deepFlatten(original);
     onPointClick({ row: flattened });
