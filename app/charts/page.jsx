@@ -1046,21 +1046,19 @@ function aggregateData(rows, xField, yField, aggregation) {
 
   for (const row of rows) {
     const x = row[xField];
-    const y = row[yField];
+    let y = row[yField];
 
-    if (x == null) continue; // skip rows with missing X
+    if (x == null) continue;
 
-    if (!map[x]) map[x] = [];
-    
-    if (aggregation === "count") {
-      map[x].push(1); // just count occurrences
-    } else {
-      const num = Number(y);
-      if (!isNaN(num)) map[x].push(num);
-    }
+    // Convert to number if possible
+    y = Number(y);
+    if (isNaN(y)) y = 0; // treat missing/non-numeric as 0 instead of skipping
+
+    if (!map[x]) map[x] = { x, values: [] };
+    map[x].values.push(y);
   }
 
-  return Object.entries(map).map(([x, values]) => {
+  return Object.values(map).map(({ x, values }) => {
     let y;
     switch (aggregation) {
       case "sum":
@@ -1078,6 +1076,7 @@ function aggregateData(rows, xField, yField, aggregation) {
     return { x, y };
   });
 }
+
 
 const getAggregatedData = (data, xField, yField, agg) => {
   if (!agg || agg === "none") return data;
