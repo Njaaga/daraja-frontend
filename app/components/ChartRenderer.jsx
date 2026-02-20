@@ -37,7 +37,7 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
-  /* ===================== FETCH AGGREGATED DATA ===================== */
+  /* ===================== FETCH AGGREGATED DATA WITH DEBUG ===================== */
   useEffect(() => {
     let cancelled = false;
 
@@ -54,9 +54,14 @@ export default function ChartRenderer({
           }),
         });
 
+        console.log("🔹 ChartRenderer DEBUG: raw API response:", res);
+
         const rows = res?.data?.data || [];
+        console.log("🔹 ChartRenderer DEBUG: processed rows:", rows);
+
         if (!cancelled) setRawData(rows);
-      } catch {
+      } catch (err) {
+        console.error("🔹 ChartRenderer DEBUG: API fetch error", err);
         if (!cancelled) setRawData([]);
       } finally {
         if (!cancelled) setLoading(false);
