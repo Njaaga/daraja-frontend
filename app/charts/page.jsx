@@ -1519,105 +1519,105 @@ function aggregateData(rows, xField, yField, aggregation) {
           </div>
         )}
 
-        {/* Step 6 - Charts */}
-        {step === STEPS.CHARTS && (
-          <div className="mb-4 bg-white p-4 rounded shadow">
-            <div className="flex items-center gap-2 mb-2">
-                <h3 className="font-semibold">
-                 Create charts
-                </h3>
-                <InfoTooltip
-                  align="right"
-                  text="Visualize your data using bar, line, pie, or table charts."
+{/* Step 6 - Charts */}
+{step === STEPS.CHARTS && (
+  <div className="mb-4 bg-white p-4 rounded shadow">
+    <div className="flex items-center gap-2 mb-2">
+      <h3 className="font-semibold">Create charts</h3>
+      <InfoTooltip
+        align="right"
+        text="Visualize your data using bar, line, pie, or table charts."
+      />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3">
+      <input
+        type="text"
+        placeholder="Chart title"
+        value={chartTitle}
+        onChange={(e) => setChartTitle(e.target.value)}
+        className="border p-2 rounded col-span-3"
+      />
+
+      <select value={chartType} onChange={(e) => setChartType(e.target.value)} className="border p-2 rounded col-span-1">
+        <option value="bar">Bar</option>
+        <option value="stacked_bar">Stacked Bar</option>
+        <option value="line">Line</option>
+        <option value="area">Area</option>
+        <option value="pie">Pie</option>
+        <option value="scatter">Scatter</option>
+        <option value="table">Table</option>
+        <option value="kpi">KPI</option>
+      </select>
+
+      <select value={chartAgg} onChange={(e) => setChartAgg(e.target.value)} className="border p-2 rounded col-span-1">
+        <option value="none">No Aggregate</option>
+        <option value="sum">SUM</option>
+        <option value="avg">AVG</option>
+        <option value="count">COUNT</option>
+      </select>
+
+      <select value={chartX} onChange={(e) => setChartX(e.target.value)} className="border p-2 rounded col-span-1">
+        <option value="">X Field</option>
+        {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
+
+      <select value={chartY} onChange={(e) => setChartY(e.target.value)} className="border p-2 rounded col-span-1">
+        <option value="">Y Field</option>
+        {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
+
+      <button onClick={addChart} className="bg-blue-600 text-white p-2 rounded col-span-6 md:col-auto">➕ Add Chart</button>
+    </div>
+
+    <div>
+      <h4 className="font-semibold mb-2">Preview charts (local previews)</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {charts.map((c) => {
+          // --- compute aggregated data here ---
+          const chartData = c.excelData || preview;
+          const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
+
+          return (
+            <div key={c.i} className="bg-gray-50 p-3 rounded">
+              <h5 className="font-semibold mb-2">{c.name}</h5>
+              <button
+                onClick={() => handleDeleteChart(c.chartId)}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+
+              {c.type === "table" ? (
+                <TableRenderer dataset={getPrunedPreview()} />
+              ) : (
+                <ChartRenderer
+                  type={c.type}
+                  datasetId={undefined}
+                  excelData={aggregatedData}
+                  xField={c.xField}
+                  yField={c.yField}
+                  aggregation={c.aggregation}
+                  onPointClick={(pt) => {
+                    if (pt && pt.x !== undefined) {
+                      setQuery(String(pt.x));
+                      setStep(STEPS.FILTERS);
+                    }
+                  }}
                 />
-              </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-3">
-              <input type="text" placeholder="Chart title" value={chartTitle} onChange={(e) => setChartTitle(e.target.value)} className="border p-2 rounded col-span-3" />
-
-              <select value={chartType} onChange={(e) => setChartType(e.target.value)} className="border p-2 rounded col-span-1">
-                <option value="bar">Bar</option>
-                <option value="stacked_bar">Stacked Bar</option>
-                <option value="line">Line</option>
-                <option value="area">Area</option>
-                <option value="pie">Pie</option>
-                <option value="scatter">Scatter</option>
-                <option value="table">Table</option>
-                <option value="kpi">KPI</option>
-              </select>
-
-              <select value={chartAgg} onChange={(e) => setChartAgg(e.target.value)} className="border p-2 rounded col-span-1">
-                <option value="none">No Aggregate</option>
-                <option value="sum">SUM</option>
-                <option value="avg">AVG</option>
-                <option value="count">COUNT</option>
-              </select>
-
-              <select value={chartX} onChange={(e) => setChartX(e.target.value)} className="border p-2 rounded col-span-1">
-                <option value="">X Field</option>
-                {getSelectableFields(
-                    selectedDatasets.length ? selectedDatasets[0].id : "excel"
-                  ).map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-
-              </select>
-
-              <select value={chartY} onChange={(e) => setChartY(e.target.value)} className="border p-2 rounded col-span-1">
-                <option value="">Y Field</option>
-                {getSelectableFields(
-                  selectedDatasets.length ? selectedDatasets[0].id : "excel"
-                ).map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-
-              </select>
-
-              <button onClick={addChart} className="bg-blue-600 text-white p-2 rounded col-span-6 md:col-auto">➕ Add Chart</button>
+              )}
             </div>
-
-            <div>
-              <h4 className="font-semibold mb-2">Preview charts (local previews)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {charts.map((c) => (
-                    const chartData = c.excelData || preview;
-                    const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
-                  <div key={c.i} className="bg-gray-50 p-3 rounded">
-                    <h5 className="font-semibold mb-2">{c.name}</h5>
-                  <button
-                    onClick={() => handleDeleteChart(c.chartId)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-
-                    {c.type === "table" ? (
-                      <TableRenderer dataset={getPrunedPreview()} />
-                    ) : (
-
-                      <ChartRenderer
-                        type={c.type}
-                        datasetId={undefined}
-                        excelData={aggregatedData}
-                        xField={c.xField}
-                        yField={c.yField}
-                        aggregation={c.aggregation}
-                        onPointClick={(pt) => {
-                          // Drill into a point: simple click-to-filter hook
-                          if (pt && pt.x !== undefined) {
-                            setQuery(String(pt.x));
-                            setStep(STEPS.FILTERS);
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-                {charts.length === 0 && <div className="text-gray-600">No charts yet</div>}
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })}
+        {charts.length === 0 && <div className="text-gray-600">No charts yet</div>}
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Step 7 - Layout */}
         {step === STEPS.LAYOUT && (
