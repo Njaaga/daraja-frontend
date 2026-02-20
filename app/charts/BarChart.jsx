@@ -3,23 +3,20 @@
 import "@/lib/chartjs";
 import { Bar } from "react-chartjs-2";
 
-export default function BarChart({ data, onBarClick }) {
-  if (!data || !data.length) return <p>No data to display</p>;
+export default function BarChart({ data = [], onBarClick }) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return <p>No data to display</p>;
+  }
 
-  // Dynamically detect x and y fields from first row
-  const firstRow = data[0];
-  const keys = Object.keys(firstRow);
-  const xKey = keys[0]; // first key as x-axis
-  const yKey = keys[1] ?? keys[0]; // second key as y-axis or first if only one
-
-  const labels = data.map((d) => d[xKey]);
-  const values = data.map((d) => Number(d[yKey] ?? 0));
+  // ✅ Explicit keys (no guessing)
+  const labels = data.map((row) => row.x);
+  const values = data.map((row) => Number(row.y ?? 0));
 
   const chartData = {
     labels,
     datasets: [
       {
-        label: yKey,
+        label: "Value",
         data: values,
         borderRadius: 6,
         maxBarThickness: 40,
@@ -31,19 +28,25 @@ export default function BarChart({ data, onBarClick }) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { tooltip: { mode: "index", intersect: false }, legend: { display: false } },
+    plugins: {
+      legend: { display: false },
+      tooltip: { mode: "index", intersect: false },
+    },
     scales: {
       x: { grid: { display: false } },
-      y: { beginAtZero: true, grid: { drawBorder: false } },
+      y: { beginAtZero: true },
     },
     onClick: (_evt, elements) => {
-      if (!elements.length) return;
+      if (!elements.length || !onBarClick) return;
+
       const index = elements[0].index;
       const row = data[index];
-      if (!row) return;
 
-      // Send full row object to modal
-      if (onBarClick) onBarClick({ field: yKey, value: row[yKey], row });
+      onBarClick({
+        field: "y",
+        value: row.y,
+        row,
+      });
     },
   };
 
