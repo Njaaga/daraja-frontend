@@ -102,13 +102,15 @@ export default function ChartRenderer({
     }
 
     // Other charts (line/bar/pie/area/scatter)
-    const data = rawData.map(row => {
-      const xVal = row[xField] ?? row[Object.keys(row)[0]]; // fallback
-      const yVal = Number(row[yField] ?? row[Object.keys(row)[1]] || 0);
-      return { x: xVal, y: yVal, __row: row };
-    });
-    console.log(`🔹 ${type} chart data (first 5):`, data.slice(0, 5));
-    return data;
+// Other charts (line/bar/pie/area/scatter)
+const data = rawData.map(row => {
+  const xVal = row[xField] ?? row[Object.keys(row)[0]]; // fallback
+  const yVal = Number((row[yField] ?? row[Object.keys(row)[1]]) || 0); // FIXED
+  return { x: xVal, y: yVal, __row: row };
+});
+console.log(`🔹 ${type} chart data (first 5):`, data.slice(0, 5));
+return data;
+
   }, [rawData, xField, yField, type, stackedFields]);
 
   // -----------------------
