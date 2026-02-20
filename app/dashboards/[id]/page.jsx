@@ -9,15 +9,16 @@ import { apiClient } from "@/lib/apiClient";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-// -------------------- SLICER PANEL --------------------
+// Slicer panel
 function SlicerPanel({ fields, filters, onChange, onClear }) {
   if (!fields.length) return null;
-
   return (
     <div className="bg-white p-4 rounded shadow mb-6">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-semibold">Filters</h3>
-        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">Clear all</button>
+        <button onClick={onClear} className="text-sm text-gray-500 hover:text-black">
+          Clear all
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {fields.map(field => (
@@ -37,7 +38,6 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
   );
 }
 
-// -------------------- DASHBOARD VIEW --------------------
 export default function DashboardView() {
   const { id } = useParams();
   const router = useRouter();
@@ -54,10 +54,9 @@ export default function DashboardView() {
   const [modalFields, setModalFields] = useState([]);
   const [dashboardFilters, setDashboardFilters] = useState({});
 
-  // -------------------- FETCH DASHBOARD --------------------
+  // Fetch dashboard + charts
   useEffect(() => {
     if (!id) return;
-
     const fetchDashboard = async () => {
       try {
         setLoading(true);
@@ -70,13 +69,15 @@ export default function DashboardView() {
             key: c.id,
             title: c.name,
             type: c.chart_type,
+            xField: c.x_field,          // ✅ from serializer
+            yField: c.y_field,          // ✅ from serializer
+            aggregation: c.aggregation || "sum",
             stackedFields: c.stacked_fields || [],
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
             selectedFields: c.selected_fields || null,
           };
         });
-
         setCharts(mappedCharts);
       } catch {
         setError("Dashboard not found or access denied.");
@@ -84,17 +85,15 @@ export default function DashboardView() {
         setLoading(false);
       }
     };
-
     fetchDashboard();
   }, [id]);
 
-  // -------------------- AUTO REFRESH --------------------
+  // Auto refresh every 2 min
   useEffect(() => {
     const interval = setInterval(() => setRefreshKey(k => k + 1), 120000);
     return () => clearInterval(interval);
   }, []);
 
-  // -------------------- SLICER FIELDS --------------------
   const slicerFields = useMemo(() => {
     const set = new Set();
     charts.forEach(c => c.stackedFields.forEach(f => set.add(f)));
@@ -104,7 +103,6 @@ export default function DashboardView() {
   const handleSlicerChange = (field, rule) => setDashboardFilters(prev => ({ ...prev, [field]: rule }));
   const clearSlicers = () => setDashboardFilters({});
 
-  // -------------------- CHART CLICK --------------------
   const handleChartClick = ({ row }) => {
     if (!row) return;
     setModalRows([row]);
@@ -112,7 +110,6 @@ export default function DashboardView() {
     setModalOpen(true);
   };
 
-  // -------------------- EXPORT PDF --------------------
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
     const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
@@ -130,20 +127,17 @@ export default function DashboardView() {
   return (
     <Layout>
       <div className="p-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={() => router.push("/dashboards")} className="text-sm text-gray-600 hover:underline">← Back</button>
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
-
           <div className="flex gap-2">
             <button onClick={() => setRefreshKey(k => k + 1)} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Refresh</button>
             <button onClick={handleExportPDF} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Export PDF</button>
           </div>
         </div>
 
-        {/* Filters */}
         <SlicerPanel
           fields={slicerFields}
           filters={dashboardFilters}
@@ -151,7 +145,6 @@ export default function DashboardView() {
           onClear={clearSlicers}
         />
 
-        {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
@@ -160,16 +153,17 @@ export default function DashboardView() {
                 chartId={c.key}
                 type={c.type}
                 stackedFields={c.stackedFields}
+                selectedFields={c.selectedFields}
                 filters={{ ...c.filters, ...dashboardFilters }}
-                xField="x"        // <-- REQUIRED for aggregated charts
-                yField="y"        // <-- REQUIRED for aggregated charts
+                xField={c.xField}       // ✅ use serializer fields
+                yField={c.yField}       // ✅ use serializer fields
+                aggregation={c.aggregation}
                 onPointClick={handleChartClick}
               />
             </div>
           ))}
         </div>
 
-        {/* Drill-down modal */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
