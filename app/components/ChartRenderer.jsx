@@ -11,7 +11,6 @@ import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 import { deepFlatten } from "@/lib/utils";
 
-/* ===================== CHART RENDERER ===================== */
 export default function ChartRenderer({
   chartId,
   type,
@@ -24,7 +23,7 @@ export default function ChartRenderer({
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* ===================== FORMAT FILTERS FOR BACKEND ===================== */
+  // Format filters for backend
   const backendFilters = useMemo(() => {
     if (!filters) return {};
     return Object.fromEntries(
@@ -35,7 +34,7 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
-  /* ===================== FETCH AGGREGATED DATA ===================== */
+  // Fetch aggregated chart data
   useEffect(() => {
     let cancelled = false;
 
@@ -72,7 +71,7 @@ export default function ChartRenderer({
     };
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
-  /* ===================== PREPARE CHART DATA ===================== */
+  // Prepare chart data
   const chartData = useMemo(() => {
     if (!rawData.length) return [];
 
@@ -87,16 +86,13 @@ export default function ChartRenderer({
           ? stackedFields
           : Object.keys(row).filter(k => !["x", "y"].includes(k));
 
-        keys.forEach(k => {
-          obj[k] = Number(row[k] || 0);
-        });
-
+        keys.forEach(k => obj[k] = Number(row[k] || 0));
         obj.__row = row;
         return obj;
       });
     }
 
-    // For line/bar/pie/area/scatter
+    // Other charts (line/bar/pie/area/scatter)
     return rawData.map(row => ({
       x: row.x,
       y: Number(row.y || 0),
@@ -104,7 +100,7 @@ export default function ChartRenderer({
     }));
   }, [rawData, type, stackedFields]);
 
-  /* ===================== POINT CLICK ===================== */
+  // Point click handler
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
     const original = payload.__row || payload;
@@ -112,7 +108,6 @@ export default function ChartRenderer({
     onPointClick({ row: flattened });
   };
 
-  /* ===================== RENDER ===================== */
   if (loading) return <div>Loading chart…</div>;
   if (!rawData.length) return <div>No data to display</div>;
 
@@ -124,12 +119,7 @@ export default function ChartRenderer({
       {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
       {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
       {type === "stacked_bar" && (
-        <StackedBarChart
-          data={chartData}
-          xKey="x"
-          yKeys={stackedFields}
-          onBarClick={handlePointClick}
-        />
+        <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />
       )}
       {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
       {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
