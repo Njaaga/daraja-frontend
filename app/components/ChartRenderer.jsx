@@ -14,16 +14,15 @@ import { deepFlatten } from "@/lib/utils";
 export default function ChartRenderer({
   chartId,
   type,
+  xField,
+  yField,
   stackedFields = [],
   filters = {},
   selectedFields = null,
   onPointClick,
-  aggregation = "sum",
   fullscreen = false,
 }) {
   const [rawData, setRawData] = useState([]);
-  const [xField, setXField] = useState(null);
-  const [yField, setYField] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Format filters for backend
@@ -37,7 +36,6 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
-  // Fetch aggregated chart data
   useEffect(() => {
     let cancelled = false;
 
@@ -48,28 +46,20 @@ export default function ChartRenderer({
 
         const res = await apiClient(`/api/charts/${chartId}/run/`, {
           method: "POST",
-          body: JSON.stringify({ filters: backendFilters, selected_fields: selectedFields }),
+          body: JSON.stringify({
+            filters: backendFilters,
+            selected_fields: selectedFields,
+          }),
         });
 
+        console.log("🔹 ChartRenderer DEBUG: raw API response:", res);
+
         const rows = res?.data?.data || [];
+        console.log("🔹 ChartRenderer DEBUG: processed rows:", rows);
 
-        if (!cancelled) {
-          setRawData(rows);
-
-          // Auto-detect x/y fields from first row
-          const firstRow = rows[0] || {};
-          const keys = Object.keys(firstRow);
-
-          // Pick first numeric key as yField, first string key as xField
-          let detectedX = keys.find(k => typeof firstRow[k] === "string") || keys[0];
-          let detectedY = keys.find(k => typeof firstRow[k] === "number") || keys[1];
-
-          setXField(detectedX);
-          setYField(detectedY);
-        }
-
+        if (!cancelled) setRawData(rows);
       } catch (err) {
-        console.error("ChartRenderer API error:", err);
+        console.error("🔹 ChartRenderer DEBUG: API fetch error", err);
         if (!cancelled) setRawData([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -80,9 +70,11 @@ export default function ChartRenderer({
     return () => { cancelled = true; };
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
-  // Map data for charting
+  // -----------------------
+  // Prepare chart data
+  // -----------------------
   const chartData = useMemo(() => {
-    if (!rawData.length || !xField || !yField) return [];
+    if (!rawData.length) return [];
 
     if (type === "kpi") {
       return rawData.reduce((sum, row) => sum + Number(row[yField] || 0), 0);
@@ -100,7 +92,11 @@ export default function ChartRenderer({
       });
     }
 
-    return rawData.map(row => ({ x: row[xField], y: Number(row[yField] || 0), __row: row }));
+    return rawData.map(row => ({
+      x: row[xField],
+      y: Number(row[yField] || 0),
+      __row: row,
+    }));
   }, [rawData, xField, yField, type, stackedFields]);
 
   const handlePointClick = payload => {
@@ -111,7 +107,7 @@ export default function ChartRenderer({
   };
 
   if (loading) return <div>Loading chart…</div>;
-  if (!chartData.length) return <div>No data to display</div>;
+  if (!rawData.length) return <div>No data to display</div>;
 
   const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
 
