@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { deepFlatten } from "@/lib/utils";
+
 import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
@@ -9,22 +11,33 @@ import StackedBarChart from "@/app/charts/StackedBarChart";
 import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
-import { deepFlatten } from "@/lib/utils";
 
 export default function ChartRenderer({
   chartId,
   type,
   stackedFields = [],
   filters = {},
+  selectedFields = null,
   xField,
   yField,
+  aggregation = "sum",
   onPointClick,
   fullscreen = false,
 }) {
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // -------------------- FETCH DATA --------------------
+  const backendFilters = useMemo(() => {
+    if (!filters) return {};
+    return Object.fromEntries(
+      Object.entries(filters).map(([k, f]) => [
+        k,
+        { type: f?.type || "text", value: f?.value ?? f },
+      ])
+    );
+  }, [filters]);
+
+  // Fetch backend aggregated data
   useEffect(() => {
     let cancelled = false;
 
@@ -32,14 +45,15 @@ export default function ChartRenderer({
       setLoading(true);
       try {
         if (!chartId) return;
-
         const res = await apiClient(`/api/charts/${chartId}/run/`, {
           method: "POST",
-          body: JSON.stringify({ filters }),
+          body: JSON.stringify({
+            filters: backendFilters,
+            selected_fields: selectedFields,
+          }),
         });
 
         console.log("🔹 ChartRenderer DEBUG: raw API response:", res);
-
         const rows = res?.data?.data || [];
         console.log("🔹 ChartRenderer DEBUG: processed rows:", rows);
 
@@ -54,32 +68,38 @@ export default function ChartRenderer({
 
     loadData();
     return () => { cancelled = true; };
-  }, [chartId, JSON.stringify(filters)]);
+  }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
-  // -------------------- PREPARE CHART DATA --------------------
+  // Map backend rows to chart data
   const chartData = useMemo(() => {
     if (!rawData.length) return [];
 
+    // KPI
     if (type === "kpi") {
       return rawData.reduce((sum, row) => sum + Number(row[yField] || 0), 0);
     }
 
+    // Stacked bar
     if (type === "stacked_bar") {
-      return rawData.map(row => ({
-        x: row[xField],
-        ...stackedFields.reduce((acc, f) => { acc[f] = row[f] ?? 0; return acc; }, {}),
-        __row: row
-      }));
+      return rawData.map(row => {
+        const obj = { x: row[xField] };
+        const keys = stackedFields.length
+          ? stackedFields
+          : Object.keys(row).filter(k => ![xField, yField].includes(k));
+        keys.forEach(k => obj[k] = Number(row[k] || 0));
+        obj.__row = row;
+        return obj;
+      });
     }
 
+    // Other charts (line/bar/pie/area/scatter)
     return rawData.map(row => ({
       x: row[xField],
       y: Number(row[yField] || 0),
-      __row: row
+      __row: row,
     }));
-  }, [rawData, type, xField, yField, stackedFields]);
+  }, [rawData, type, stackedFields, xField, yField]);
 
-  // -------------------- CLICK HANDLER --------------------
   const handlePointClick = (payload) => {
     if (!onPointClick || !payload) return;
     const original = payload.__row || payload;
@@ -97,7 +117,9 @@ export default function ChartRenderer({
       {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
       {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
       {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
-      {type === "stacked_bar" && <StackedBarChart data={chartData} xKey={xField} yKeys={stackedFields} onBarClick={handlePointClick} />}
+      {type === "stacked_bar" && (
+        <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />
+      )}
       {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
       {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
       {type === "kpi" && <KPI value={chartData} label={yField} />}
