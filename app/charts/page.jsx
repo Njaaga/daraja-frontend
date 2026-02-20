@@ -1084,7 +1084,11 @@ function aggregateData(rows, xField, yField, aggregation) {
         break;
     }
 
-    return { x, y };
+    return {
+  [xField]: x,
+  [yField]: y,
+};
+
   });
 
   console.log("AGGREGATED DATA:", result);
