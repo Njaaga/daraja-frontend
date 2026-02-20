@@ -1588,8 +1588,8 @@ function aggregateData(rows, xField, yField, aggregation) {
                   >
                     Delete
                   </button>
-const chartData = c.excelData || preview;
-const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
+                    {const chartData = c.excelData || preview;}
+                    {const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);}
                     {c.type === "table" ? (
                       <TableRenderer dataset={getPrunedPreview()} />
                     ) : (
