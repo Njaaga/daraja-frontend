@@ -149,17 +149,16 @@ export default function DashboardView() {
           {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
-              <ChartRenderer
-                chartId={c.key}
-                type={c.type}
-                stackedFields={c.stackedFields}
-                selectedFields={c.selectedFields}
-                filters={{ ...c.filters, ...dashboardFilters }}
-                xField={c.xField}       // ✅ use serializer fields
-                yField={c.yField}       // ✅ use serializer fields
-                aggregation={c.aggregation}
-                onPointClick={handleChartClick}
-              />
+                <ChartRenderer
+                  chartId={c.key}
+                  type={c.type}
+                  stackedFields={c.stackedFields}
+                  selectedFields={c.selectedFields}
+                  filters={{ ...c.filters, ...dashboardFilters }}
+                  aggregation={c.aggregation}
+                  onPointClick={handleChartClick}
+                />
+
             </div>
           ))}
         </div>
