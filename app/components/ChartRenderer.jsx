@@ -15,8 +15,6 @@ import { deepFlatten } from "@/lib/utils";
 export default function ChartRenderer({
   chartId,
   type,
-  xField = "x",
-  yField = "y",
   stackedFields = [],
   filters = {},
   selectedFields = null,
@@ -37,7 +35,7 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
-  /* ===================== FETCH AGGREGATED DATA WITH DEBUG ===================== */
+  /* ===================== FETCH AGGREGATED DATA ===================== */
   useEffect(() => {
     let cancelled = false;
 
@@ -79,15 +77,15 @@ export default function ChartRenderer({
     if (!rawData.length) return [];
 
     if (type === "kpi") {
-      return rawData.reduce((sum, row) => sum + Number(row[yField] || 0), 0);
+      return rawData.reduce((sum, row) => sum + Number(row.y || 0), 0);
     }
 
     if (type === "stacked_bar") {
       return rawData.map(row => {
-        const obj = { x: row[xField] };
+        const obj = { x: row.x };
         const keys = stackedFields.length
           ? stackedFields
-          : Object.keys(row).filter(k => ![xField, yField].includes(k));
+          : Object.keys(row).filter(k => !["x", "y"].includes(k));
 
         keys.forEach(k => {
           obj[k] = Number(row[k] || 0);
@@ -98,12 +96,13 @@ export default function ChartRenderer({
       });
     }
 
+    // For line/bar/pie/area/scatter
     return rawData.map(row => ({
-      x: row[xField],
-      y: Number(row[yField] || 0),
+      x: row.x,
+      y: Number(row.y || 0),
       __row: row,
     }));
-  }, [rawData, type, xField, yField, stackedFields]);
+  }, [rawData, type, stackedFields]);
 
   /* ===================== POINT CLICK ===================== */
   const handlePointClick = (payload) => {
@@ -127,14 +126,14 @@ export default function ChartRenderer({
       {type === "stacked_bar" && (
         <StackedBarChart
           data={chartData}
-          xKey={xField}
+          xKey="x"
           yKeys={stackedFields}
           onBarClick={handlePointClick}
         />
       )}
       {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
       {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "kpi" && <KPI value={chartData} label={yField} />}
+      {type === "kpi" && <KPI value={chartData} label="y" />}
     </div>
   );
 }
