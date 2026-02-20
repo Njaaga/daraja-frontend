@@ -1084,8 +1084,7 @@ function aggregateData(rows, xField, yField, aggregation) {
   return aggregateData(data, xField, yField, agg);
 };
 
-  const chartData = c.excelData || preview;
-const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
+
 
   /* ---------- UI ---------- */
   return (
@@ -1592,7 +1591,8 @@ const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggreg
                     {c.type === "table" ? (
                       <TableRenderer dataset={getPrunedPreview()} />
                     ) : (
-
+  const chartData = c.excelData || preview;
+const aggregatedData = getAggregatedData(chartData, c.xField, c.yField, c.aggregation);
                       <ChartRenderer
                         type={c.type}
                         datasetId={undefined}
