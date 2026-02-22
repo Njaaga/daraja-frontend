@@ -25,7 +25,9 @@ export default function ChartRenderer({
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Format filters for backend
+  // -----------------------
+  // Normalize filters
+  // -----------------------
   const backendFilters = useMemo(() => {
     if (!filters) return {};
     return Object.fromEntries(
@@ -36,15 +38,15 @@ export default function ChartRenderer({
     );
   }, [filters]);
 
-  // Fetch data
+  // -----------------------
+  // Fetch chart data
+  // -----------------------
   useEffect(() => {
     let cancelled = false;
 
     const loadData = async () => {
       setLoading(true);
       try {
-        if (!chartId) return;
-
         const res = await apiClient(`/api/charts/${chartId}/run/`, {
           method: "POST",
           body: JSON.stringify({
@@ -53,73 +55,108 @@ export default function ChartRenderer({
           }),
         });
 
-        const rows = res?.data?.data || [];
-        console.log("🔹 ChartRenderer DEBUG: raw API rows:", rows.slice(0, 5));
+        console.log("🔹 ChartRenderer RAW response:", res);
+
+        // ✅ NORMALIZE RESPONSE SHAPE
+        let rows = [];
+        if (Array.isArray(res?.data)) {
+          rows = res.data;
+        } else if (Array.isArray(res?.data?.data)) {
+          rows = res.data.data;
+        }
+
+        console.log("🔹 ChartRenderer normalized rows:", rows.slice(0, 5));
+
         if (!cancelled) setRawData(rows);
       } catch (err) {
-        console.error("🔹 ChartRenderer DEBUG: API fetch error", err);
+        console.error("Chart fetch error:", err);
         if (!cancelled) setRawData([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    loadData();
+    if (chartId) loadData();
     return () => { cancelled = true; };
   }, [chartId, JSON.stringify(backendFilters), JSON.stringify(selectedFields)]);
 
   // -----------------------
-  // Prepare chart data
+  // Build chart data (SAFE)
   // -----------------------
   const chartData = useMemo(() => {
     if (!rawData.length) return [];
 
-    // Auto-pick X: first string field if xField missing
-    const pickXField = xField || Object.keys(rawData[0]).find(k => typeof rawData[0][k] === "string") || Object.keys(rawData[0])[0];
+    const sample = rawData[0];
+    const keys = Object.keys(sample);
 
-    // Auto-pick Y: first numeric field if yField missing
-    const pickYField = yField || Object.keys(rawData[0]).find(k => typeof rawData[0][k] === "number") || null;
+    // 🔐 Auto fallback if fields missing
+    const xKey = xField || keys[0];
+    const yKey = yField || keys[1];
 
-    const data = rawData.map(row => {
-      let xVal = row[pickXField];
-      if (xVal == null) xVal = Object.values(row)[0];
+    console.log("🔹 ChartRenderer using keys:", { xKey, yKey });
 
-      let yVal;
-      if (pickYField && !isNaN(Number(row[pickYField]))) {
-        yVal = Number(row[pickYField]);
-      } else {
-        yVal = 1; // fallback count for non-numeric
-      }
+    if (type === "kpi") {
+      return rawData.reduce(
+        (sum, r) => sum + Number(r[yKey] || 0),
+        0
+      );
+    }
 
-      const obj = { x: xVal, y: yVal, __row: row };
-      return obj;
-    });
+    if (type === "stacked_bar") {
+      return rawData.map(row => {
+        const obj = { x: row[xKey] };
+        const stackKeys = stackedFields.length
+          ? stackedFields
+          : keys.filter(k => k !== xKey);
 
-    console.log("🔹 ChartRenderer DEBUG: processed chartData:", data.slice(0, 5));
-    return data;
-  }, [rawData, xField, yField]);
+        stackKeys.forEach(k => {
+          obj[k] = Number(row[k] || 0);
+        });
+
+        obj.__row = row;
+        return obj;
+      });
+    }
+
+    return rawData.map(row => ({
+      x: row[xKey],
+      y: Number(row[yKey] || 0),
+      __row: row,
+    }));
+  }, [rawData, xField, yField, type, stackedFields]);
 
   const handlePointClick = payload => {
     if (!onPointClick || !payload) return;
     const original = payload.__row || payload;
-    const flattened = deepFlatten(original);
-    onPointClick({ row: flattened });
+    onPointClick({ row: deepFlatten(original) });
   };
 
+  // -----------------------
+  // Render
+  // -----------------------
   if (loading) return <div>Loading chart…</div>;
   if (!chartData.length) return <div>No data to display</div>;
 
-  const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
+  const wrapperClass = fullscreen
+    ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
+    : "";
 
   return (
     <div className={wrapperClass}>
       {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
       {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
       {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
-      {type === "stacked_bar" && <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields.length ? stackedFields : ["y"]} onBarClick={handlePointClick} />}
+      {type === "stacked_bar" && (
+        <StackedBarChart
+          data={chartData}
+          xKey="x"
+          yKeys={stackedFields}
+          onBarClick={handlePointClick}
+        />
+      )}
       {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
       {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "kpi" && <KPI value={chartData.reduce((sum, r) => sum + r.y, 0)} label={pickYField} />}
+      {type === "kpi" && <KPI value={chartData} label={yField} />}
     </div>
   );
 }
