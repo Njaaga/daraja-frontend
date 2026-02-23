@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -15,29 +15,29 @@ export default function DashboardView() {
 
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔹 Dashboard-level slicers
+  // Dashboard slicers (NO auto fetch)
   const [slicers, setSlicers] = useState({
     date_field: "",
     from: "",
     to: "",
   });
 
-  // 🔹 Drilldown modal
+  // Drilldown modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
   // ----------------------------
-  // LOAD DASHBOARD (QB LIVE)
+  // IN-PLACE DASHBOARD REFRESH
   // ----------------------------
-  const loadDashboard = async () => {
-    if (!id) return;
+  const refreshDashboard = async () => {
+    if (!id || refreshing) return;
 
     try {
-      setLoading(true);
+      setRefreshing(true);
       setError("");
 
       const query = new URLSearchParams(
@@ -48,20 +48,16 @@ export default function DashboardView() {
         `/api/dashboards/${id}/run/${query ? `?${query}` : ""}`
       );
 
-      setDashboard({ id: res.id, name: res.name });
+      // 🔹 Replace data ONLY
+      setDashboard(prev => prev || { id: res.id, name: res.name });
       setCharts(res.charts || []);
     } catch (err) {
-      console.error("Dashboard load error:", err);
-      setError("Failed to load QuickBooks dashboard.");
+      console.error(err);
+      setError("Failed to refresh QuickBooks data.");
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   };
-
-  // Initial load + slicer changes
-  useEffect(() => {
-    loadDashboard();
-  }, [id, slicers]);
 
   // ----------------------------
   // SLICER HANDLERS
@@ -77,7 +73,7 @@ export default function DashboardView() {
     });
 
   // ----------------------------
-  // CHART CLICK (DRILLDOWN)
+  // CHART CLICK
   // ----------------------------
   const handleChartClick = ({ row }) => {
     if (!row) return;
@@ -87,27 +83,12 @@ export default function DashboardView() {
   };
 
   // ----------------------------
-  // RENDER STATES
-  // ----------------------------
-  if (loading) {
-    return <p className="p-6">Loading QuickBooks dashboard…</p>;
-  }
-
-  if (error) {
-    return <p className="p-6 text-red-600">{error}</p>;
-  }
-
-  if (!dashboard) {
-    return <p className="p-6">Dashboard not found.</p>;
-  }
-
-  // ----------------------------
   // RENDER
   // ----------------------------
   return (
     <Layout>
       <div className="p-6">
-        {/* Header */}
+        {/* Header never disappears */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button
@@ -116,29 +97,47 @@ export default function DashboardView() {
             >
               ← Back
             </button>
-            <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+            <h2 className="text-2xl font-bold">
+              {dashboard?.name || "Dashboard"}
+            </h2>
           </div>
 
           <button
-            onClick={loadDashboard}
-            className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+            onClick={refreshDashboard}
+            disabled={refreshing}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
           >
-            Refresh
+            {refreshing ? "Refreshing…" : "Refresh"}
           </button>
         </div>
 
-        {/* Dashboard Slicers */}
+        {/* Slicers */}
         <DashboardSlicers
           slicers={slicers}
           onChange={updateSlicer}
           onClear={clearSlicers}
         />
 
-        {/* Charts */}
+        {/* Charts container NEVER unmounts */}
         <div
           ref={dashboardRef}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          className="relative grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"
         >
+          {/* Subtle overlay */}
+          {refreshing && (
+            <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center pointer-events-none">
+              <span className="text-gray-500 text-sm">
+                Updating charts…
+              </span>
+            </div>
+          )}
+
+          {charts.length === 0 && !refreshing && (
+            <div className="col-span-full text-center text-gray-400">
+              Click <strong>Refresh</strong> to load QuickBooks data
+            </div>
+          )}
+
           {charts.map(chart => (
             <div
               key={chart.id}
@@ -160,13 +159,18 @@ export default function DashboardView() {
           ))}
         </div>
 
-        {/* Drilldown Modal */}
+        {/* Drilldown */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           rows={modalRows}
           selectedFields={modalFields}
         />
+
+        {/* Error */}
+        {error && (
+          <p className="mt-4 text-red-600 text-center">{error}</p>
+        )}
       </div>
     </Layout>
   );
