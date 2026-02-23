@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
@@ -40,56 +40,6 @@ function SlicerPanel({ fields, filters, onChange, onClear }) {
 }
 
 // ----------------------------
-// AGGREGATION UTILS
-// ----------------------------
-function aggregateData(rows, xField, yField, aggregation) {
-  if (!aggregation || aggregation === "none") return rows;
-
-  const map = {};
-  for (const row of rows) {
-    const x = row[xField];
-    const rawY = row[yField];
-    if (x == null) continue;
-
-    if (!map[x]) map[x] = { x, values: [] };
-
-    if (aggregation === "count") {
-      map[x].values.push(1);
-      continue;
-    }
-
-    const y = Number(rawY);
-    if (!isNaN(y)) map[x].values.push(y);
-  }
-
-  return Object.values(map).map(({ x, values }) => {
-    let y = 0;
-    switch (aggregation) {
-      case "sum": y = values.reduce((a, b) => a + b, 0); break;
-      case "avg": y = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; break;
-      case "count": y = values.length; break;
-    }
-    return { [xField]: x, [yField]: y };
-  });
-}
-
-// ----------------------------
-// FILTER + LOGIC APPLY
-// ----------------------------
-function applyFilters(rows, filters) {
-  let data = [...rows];
-  Object.entries(filters).forEach(([field, rule]) => {
-    if (!field || !rule?.value) return;
-    data = data.filter(row => {
-      const val = row[field];
-      if (val == null) return false;
-      return String(val).toLowerCase().includes(String(rule.value).toLowerCase());
-    });
-  });
-  return data;
-}
-
-// ----------------------------
 // DASHBOARD VIEW
 // ----------------------------
 export default function DashboardView() {
@@ -101,15 +51,15 @@ export default function DashboardView() {
   const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [refreshKey, setRefreshKey] = useState(0);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
   const [dashboardFilters, setDashboardFilters] = useState({});
 
   // ----------------------------
-  // FETCH DASHBOARD
+  // FETCH DASHBOARD & CHART DATA
   // ----------------------------
   useEffect(() => {
     if (!id) return;
@@ -117,10 +67,11 @@ export default function DashboardView() {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
+
         const db = await apiClient(`/api/dashboards/${id}/`);
         setDashboard(db);
 
-        // map charts and include saved rows if available
+        // Map saved charts with their actual data rows
         const mappedCharts = (db.dashboard_charts || []).map(dc => {
           const c = dc.chart_detail;
           return {
@@ -133,13 +84,14 @@ export default function DashboardView() {
             filters: c.filters || {},
             logicRules: c.logic_rules || [],
             selectedFields: c.selected_fields || null,
-            aggregation: c.aggregation || "none",
-            chartData: dc.rows || [], // saved rows for chart
+            // THIS IS THE CRITICAL PART: pass saved chart rows as excelData
+            excelData: c.saved_rows || [],
           };
         });
 
         setCharts(mappedCharts);
-      } catch {
+      } catch (err) {
+        console.error("Dashboard load error:", err);
         setError("Dashboard not found or access denied.");
       } finally {
         setLoading(false);
@@ -188,30 +140,17 @@ export default function DashboardView() {
   // ----------------------------
   const handleExportPDF = async () => {
     if (!dashboardRef.current) return;
+
     const canvas = await html2canvas(dashboardRef.current, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
+
     const pdf = new jsPDF("p", "mm", "a4");
     const width = pdf.internal.pageSize.getWidth();
     const height = (canvas.height * width) / canvas.width;
+
     pdf.addImage(imgData, "PNG", 0, 0, width, height);
     pdf.save(`${dashboard.name}.pdf`);
   };
-
-  // ----------------------------
-  // APPLY FILTERS + AGGREGATION TO CHARTS
-  // ----------------------------
-  const displayedCharts = useMemo(() => {
-    return charts.map(c => {
-      let data = c.chartData || [];
-      // Apply slicer + chart-level filters
-      data = applyFilters(data, { ...c.filters, ...dashboardFilters });
-      // Apply aggregation if needed
-      const aggregatedData = c.type !== "table" && c.xField && c.yField
-        ? aggregateData(data, c.xField, c.yField, c.aggregation)
-        : data;
-      return { ...c, chartData: aggregatedData };
-    });
-  }, [charts, dashboardFilters, refreshKey]);
 
   if (loading) return <p className="p-6">Loading dashboard…</p>;
   if (error) return <p className="p-6 text-red-600">{error}</p>;
@@ -228,6 +167,7 @@ export default function DashboardView() {
             <button onClick={() => router.push("/dashboards")} className="text-sm text-gray-600 hover:underline">← Back</button>
             <h2 className="text-2xl font-bold">{dashboard.name}</h2>
           </div>
+
           <div className="flex gap-2">
             <button onClick={() => setRefreshKey(k => k + 1)} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Refresh</button>
             <button onClick={handleExportPDF} className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Export PDF</button>
@@ -244,19 +184,17 @@ export default function DashboardView() {
 
         {/* Charts */}
         <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {displayedCharts.map(c => (
+          {charts.map(c => (
             <div key={`${c.key}-${refreshKey}`} className="bg-white p-4 rounded shadow">
               <h3 className="font-semibold mb-2">{c.title}</h3>
               <ChartRenderer
-                chartId={c.key}
                 type={c.type}
                 xField={c.xField}
                 yField={c.yField}
                 stackedFields={c.stackedFields}
                 selectedFields={c.selectedFields}
-                filters={{}}
-                excelData={c.chartData}   // ✅ send actual rows
-                aggregation={c.aggregation || "none"}
+                filters={{ ...c.filters, ...dashboardFilters }}
+                excelData={c.excelData} // <-- pass saved rows
                 onPointClick={handleChartClick}
               />
             </div>
