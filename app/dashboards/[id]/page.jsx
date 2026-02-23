@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import ChartDetailsModal from "@/app/components/ChartDetailsModal";
+import DashboardSlicers from "@/app/components/DashboardSlicers";
 import { apiClient } from "@/lib/apiClient";
 
 export default function DashboardView() {
@@ -17,70 +18,149 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // 🔹 Dashboard-level slicers
+  const [slicers, setSlicers] = useState({
+    date_field: "",
+    from: "",
+    to: "",
+  });
+
+  // 🔹 Drilldown modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
   // ----------------------------
-  // LOAD QB DASHBOARD (LIVE)
+  // LOAD DASHBOARD (QB LIVE)
   // ----------------------------
-  useEffect(() => {
+  const loadDashboard = async () => {
     if (!id) return;
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await apiClient(`/api/dashboards/${id}/run/`);
+    try {
+      setLoading(true);
+      setError("");
 
-        setDashboard({ id: res.id, name: res.name });
-        setCharts(res.charts);
-      } catch (e) {
-        console.error(e);
-        setError("Unable to load QuickBooks dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
+      const query = new URLSearchParams(
+        Object.entries(slicers).filter(([, v]) => v)
+      ).toString();
 
-    load();
-  }, [id]);
+      const res = await apiClient(
+        `/api/dashboards/${id}/run/${query ? `?${query}` : ""}`
+      );
 
-  const onChartClick = ({ row }) => {
+      setDashboard({ id: res.id, name: res.name });
+      setCharts(res.charts || []);
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+      setError("Failed to load QuickBooks dashboard.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load + slicer changes
+  useEffect(() => {
+    loadDashboard();
+  }, [id, slicers]);
+
+  // ----------------------------
+  // SLICER HANDLERS
+  // ----------------------------
+  const updateSlicer = (key, value) =>
+    setSlicers(prev => ({ ...prev, [key]: value }));
+
+  const clearSlicers = () =>
+    setSlicers({
+      date_field: "",
+      from: "",
+      to: "",
+    });
+
+  // ----------------------------
+  // CHART CLICK (DRILLDOWN)
+  // ----------------------------
+  const handleChartClick = ({ row }) => {
     if (!row) return;
     setModalRows([row]);
     setModalFields(Object.keys(row));
     setModalOpen(true);
   };
 
-  if (loading) return <p className="p-6">Loading QuickBooks data…</p>;
-  if (error) return <p className="p-6 text-red-600">{error}</p>;
+  // ----------------------------
+  // RENDER STATES
+  // ----------------------------
+  if (loading) {
+    return <p className="p-6">Loading QuickBooks dashboard…</p>;
+  }
 
+  if (error) {
+    return <p className="p-6 text-red-600">{error}</p>;
+  }
+
+  if (!dashboard) {
+    return <p className="p-6">Dashboard not found.</p>;
+  }
+
+  // ----------------------------
+  // RENDER
+  // ----------------------------
   return (
     <Layout>
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.push("/dashboards")}>← Back</button>
-          <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboards")}
+              className="text-sm text-gray-600 hover:underline"
+            >
+              ← Back
+            </button>
+            <h2 className="text-2xl font-bold">{dashboard.name}</h2>
+          </div>
+
+          <button
+            onClick={loadDashboard}
+            className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+          >
+            Refresh
+          </button>
         </div>
 
-        <div ref={dashboardRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {charts.map(c => (
-            <div key={c.id} className="bg-white p-4 rounded shadow">
-              <h3 className="font-semibold mb-2">{c.name}</h3>
+        {/* Dashboard Slicers */}
+        <DashboardSlicers
+          slicers={slicers}
+          onChange={updateSlicer}
+          onClear={clearSlicers}
+        />
+
+        {/* Charts */}
+        <div
+          ref={dashboardRef}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          {charts.map(chart => (
+            <div
+              key={chart.id}
+              className="bg-white p-4 rounded shadow"
+            >
+              <h3 className="font-semibold mb-2">{chart.name}</h3>
+
               <ChartRenderer
-                type={c.type}
-                xField={c.xField}
-                yField={c.yField}
-                stackedFields={c.stackedFields}
-                filters={c.filters}
-                selectedFields={c.selectedFields}
-                excelData={c.data}
-                onPointClick={onChartClick}
+                type={chart.type}
+                xField={chart.xField}
+                yField={chart.yField}
+                stackedFields={chart.stackedFields}
+                filters={chart.filters}
+                selectedFields={chart.selectedFields}
+                excelData={chart.data}
+                onPointClick={handleChartClick}
               />
             </div>
           ))}
         </div>
 
+        {/* Drilldown Modal */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
