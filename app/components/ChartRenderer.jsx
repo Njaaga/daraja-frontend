@@ -66,7 +66,7 @@ export default function ChartRenderer({
 
     const load = async () => {
       try {
-        const res = await apiClient(`/api/datasets/${datasetId}/run/`, {
+        const res = await apiClient(`/api/charts/${chartId}/run/`, {
           method: "POST",
         });
 
