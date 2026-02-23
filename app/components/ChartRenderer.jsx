@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { apiClient } from "@/lib/apiClient";
 import { deepFlatten } from "@/lib/utils";
 
 import LineChart from "@/app/charts/LineChart";
@@ -12,83 +11,34 @@ import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
-/* -------------------- Helpers -------------------- */
-
 function getValue(row, field) {
   if (!field) return undefined;
-
   if (row?.[field] !== undefined) return row[field];
-
-  if (field.includes(".")) {
-    return field.split(".").reduce((acc, key) => acc?.[key], row);
-  }
-
+  if (field.includes(".")) return field.split(".").reduce((acc, key) => acc?.[key], row);
   return undefined;
 }
 
-function unwrapResponse(res) {
-  // Handles ALL possible backend response shapes safely
-  if (Array.isArray(res)) return res;
-
-  if (Array.isArray(res?.data)) return res.data;
-
-  if (Array.isArray(res?.data?.data)) return res.data.data;
-
-  if (Array.isArray(res?.results)) return res.results;
-
-  return [];
-}
-
-/* -------------------- Component -------------------- */
-
+/* -------------------- ChartRenderer -------------------- */
 export default function ChartRenderer({
-  datasetId,
   type,
   xField,
   yField,
   stackedFields = [],
   filters = {},
-  excelData = null,
+  excelData = [],
   selectedFields = null,
   onPointClick,
   fullscreen = false,
 }) {
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  /* -------- Load Data -------- */
+  // -------------------- Use excelData directly --------------------
   useEffect(() => {
-    if (!datasetId) {
-      setRows(Array.isArray(excelData) ? excelData : []);
-      setLoading(false);
-      return;
-    }
+    if (Array.isArray(excelData)) setRows(excelData);
+    else setRows([]);
+  }, [excelData]);
 
-    const load = async () => {
-      try {
-        const res = await apiClient(`/api/charts/${chartId}/run/`, {
-          method: "POST",
-        });
-
-        console.log("FULL API RESPONSE:", res);
-
-        const payload = unwrapResponse(res);
-
-        console.log("UNWRAPPED PAYLOAD:", payload);
-
-        setRows(payload);
-      } catch (err) {
-        console.error("Dataset load failed:", err);
-        setRows([]);
-      }
-
-      setLoading(false);
-    };
-
-    load();
-  }, [datasetId, excelData]);
-
-  /* -------- Filtering -------- */
+  // -------------------- Filtering --------------------
   const filteredData = useMemo(() => {
     if (!rows?.length) return [];
 
@@ -96,7 +46,6 @@ export default function ChartRenderer({
 
     Object.entries(filters || {}).forEach(([field, rule]) => {
       if (!rule?.value) return;
-
       output = output.filter(r =>
         String(getValue(r, field))
           .toLowerCase()
@@ -117,7 +66,7 @@ export default function ChartRenderer({
     return output;
   }, [rows, filters, selectedFields]);
 
-  /* -------- Chart Data -------- */
+  // -------------------- Prepare chart data --------------------
   const chartData = useMemo(() => {
     if (!filteredData.length) return [];
 
@@ -126,104 +75,56 @@ export default function ChartRenderer({
       return filteredData.reduce(
         (sum, r) =>
           sum +
-          Number(
-            getValue(r, yField) ??
-              r?.value ??
-              r?.y ??
-              0
-          ),
+          Number(getValue(r, yField) ?? r?.value ?? r?.y ?? 0),
         0
       );
     }
 
-    // Stacked
+    // Stacked bar
     if (type === "stacked_bar") {
       return filteredData.map(r => {
-        const obj = {
-          x: getValue(r, xField) ?? r?.x,
-        };
-
+        const obj = { x: getValue(r, xField) ?? r?.x };
         const keys = stackedFields.length
           ? stackedFields
           : Object.keys(r).filter(k => k !== xField && k !== "x");
-
-        keys.forEach(k => {
-          obj[k] = Number(r[k] ?? 0);
-        });
-
+        keys.forEach(k => { obj[k] = Number(r[k] ?? 0); });
         obj.__row = r;
         return obj;
       });
     }
 
-    // Standard XY charts
+    // Standard XY
     return filteredData.map(r => ({
       x: getValue(r, xField) ?? r?.x,
-      y: Number(
-        yField
-          ? getValue(r, yField)
-          : r?.y ?? r?.value ?? 1
-      ),
+      y: Number(yField ? getValue(r, yField) : r?.y ?? r?.value ?? 1),
       __row: r,
     }));
   }, [filteredData, type, xField, yField, stackedFields]);
 
-  /* -------- Click Handler -------- */
+  // -------------------- Point click --------------------
   const handlePointClick = payload => {
     if (!onPointClick) return;
-
     const originalRow = payload?.__row || payload;
-
-    onPointClick({
-      row: deepFlatten(originalRow),
-    });
+    onPointClick({ row: deepFlatten(originalRow) });
   };
 
-  /* -------- Render -------- */
-  if (loading) return <div>Loading dataset…</div>;
-
+  // -------------------- Render --------------------
   if (!rows.length) return <div>No data returned</div>;
-
   if (!filteredData.length) return <div>No matching data</div>;
 
-  const wrapperClass = fullscreen
-    ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
-    : "";
+  const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
 
   return (
     <div className={wrapperClass}>
-      {type === "line" && (
-        <LineChart data={chartData} onPointClick={handlePointClick} />
-      )}
-
-      {type === "bar" && (
-        <BarChart data={chartData} onBarClick={handlePointClick} />
-      )}
-
-      {type === "pie" && (
-        <PieChart data={chartData} onSliceClick={handlePointClick} />
-      )}
-
-      {type === "area" && (
-        <AreaChart data={chartData} onPointClick={handlePointClick} />
-      )}
-
-      {type === "scatter" && (
-        <ScatterChart data={chartData} onPointClick={handlePointClick} />
-      )}
-
+      {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
+      {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
+      {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
+      {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
+      {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
       {type === "stacked_bar" && (
-        <StackedBarChart
-          data={chartData}
-          xKey="x"
-          yKeys={stackedFields}
-          onBarClick={handlePointClick}
-        />
+        <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />
       )}
-
-      {type === "kpi" && (
-        <KPI value={chartData} label={yField || "Value"} />
-      )}
+      {type === "kpi" && <KPI value={chartData} label={yField || "Value"} />}
     </div>
   );
 }
