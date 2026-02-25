@@ -9,37 +9,27 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
 
   const [sources, setSources] = useState([]);
-  const [selectedSource, setSelectedSource] = useState(null);
-
-  const [qbEntities, setQbEntities] = useState([]);
-  const [entitiesLoading, setEntitiesLoading] = useState(false);
-
+  const [entities, setEntities] = useState([]);
   const [fieldsOptions, setFieldsOptions] = useState([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
-
-  const [form, setForm] = useState(
-    initialData || {
-      name: "",
-      api_source: "",
-      endpoint: "",
-      query_params: {},
-      entity: "",
-      fields: [],
-      filters: {
-        date_field: "",
-        from: "",
-        to: "",
-        equals: {},
-      },
-    }
-  );
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [preview, setPreview] = useState(null);
 
-  // ------------------ Load API Sources ------------------
+  const [form, setForm] = useState(
+    initialData || {
+      name: "",
+      api_source: "",
+      entity: "",
+      fields: [],
+      filters: { date_field: "", from: "", to: "", equals: {} },
+      endpoint: "",
+      query_params: {},
+    }
+  );
+
+  // Fetch API sources
   useEffect(() => {
     const fetchSources = async () => {
       try {
@@ -52,43 +42,37 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     fetchSources();
   }, []);
 
-  // ------------------ Update selectedSource ------------------
-  useEffect(() => {
-    const source = sources.find(
-      (s) => s.id.toString() === form.api_source?.toString()
-    );
-    setSelectedSource(source || null);
-  }, [form.api_source, sources]);
+  const selectedSource = sources.find(
+    (s) => s.id.toString() === form.api_source?.toString()
+  );
 
-  // ------------------ Fetch QuickBooks Entities ------------------
+  // Fetch entities when source changes
   useEffect(() => {
     const fetchEntities = async () => {
-      if (!selectedSource || selectedSource.provider?.toLowerCase() !== "quickbooks") {
-        setQbEntities([]);
+      if (!selectedSource) return;
+      if (selectedSource.provider?.toLowerCase() !== "quickbooks") {
+        setEntities([]);
         return;
       }
 
-      setEntitiesLoading(true);
       try {
-        const res = await apiClient(`/api/api-sources/${selectedSource.id}/entities/`);
-        if (Array.isArray(res)) setQbEntities(res);
-        else setQbEntities([]);
-      } catch (err) {
-        console.error(err);
-        setQbEntities([]);
+        const res = await apiClient(
+          `/api/api-sources/${selectedSource.id}/entities/`
+        );
+        setEntities(Array.isArray(res) ? res : []);
+      } catch {
         setError("Failed to fetch QuickBooks entities.");
-      } finally {
-        setEntitiesLoading(false);
       }
     };
     fetchEntities();
+    setForm({ ...form, entity: "", fields: [] }); // reset entity/fields
+    setFieldsOptions([]);
   }, [selectedSource]);
 
-  // ------------------ Fetch QuickBooks Fields ------------------
+  // Fetch fields when entity changes
   useEffect(() => {
     const fetchFields = async () => {
-      if (!selectedSource || selectedSource.provider?.toLowerCase() !== "quickbooks") return;
-      if (!form.entity) return;
+      if (!selectedSource || !form.entity) return;
 
       setFieldsLoading(true);
       setFieldsOptions([]);
@@ -96,31 +80,19 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
         const res = await apiClient(
           `/api/api-sources/${selectedSource.id}/entities/${form.entity}/fields/`
         );
-        if (res?.fields && Array.isArray(res.fields)) {
-          setFieldsOptions(res.fields);
-        } else {
-          setFieldsOptions([]);
-        }
+        setFieldsOptions(res.fields || []);
       } catch {
-        setError("Failed to fetch QuickBooks entity fields.");
+        setError("Failed to fetch QB entity fields.");
       } finally {
         setFieldsLoading(false);
       }
     };
     fetchFields();
+    setForm({ ...form, fields: [] }); // reset selected fields
   }, [selectedSource, form.entity]);
 
-  // ------------------ Handlers ------------------
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const addQueryParam = () => {
-    setForm({
-      ...form,
-      query_params: { ...form.query_params, [""]: "" },
-    });
-  };
+  // Handle form changes
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleFieldToggle = (field) => {
     const updatedFields = form.fields.includes(field)
@@ -130,23 +102,17 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
   };
 
   const handleFilterChange = (key, value) => {
-    setForm({
-      ...form,
-      filters: { ...form.filters, [key]: value },
-    });
+    setForm({ ...form, filters: { ...form.filters, [key]: value } });
   };
 
   const handleEqualsFilterChange = (key, value) => {
     setForm({
       ...form,
-      filters: {
-        ...form.filters,
-        equals: { ...form.filters.equals, [key]: value },
-      },
+      filters: { ...form.filters, equals: { ...form.filters.equals, [key]: value } },
     });
   };
 
-  // ------------------ Save Dataset ------------------
+  // Save dataset
   const saveDataset = async () => {
     setLoading(true);
     setError(null);
@@ -167,9 +133,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       }
 
       setSuccessMsg("Dataset saved successfully!");
-      setTimeout(() => {
-        router.push("/datasets");
-      }, 800);
+      setTimeout(() => router.push("/datasets"), 800);
     } catch {
       setError("Error saving dataset.");
     } finally {
@@ -177,50 +141,34 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     }
   };
 
-  // ------------------ Preview Dataset ------------------
   const runPreview = async () => {
     setPreview(null);
     setError(null);
 
-    if (!form.id) {
-      setError("Please save the dataset before previewing.");
-      return;
-    }
+    if (!form.id) return setError("Please save the dataset before previewing.");
 
     try {
       const res = await apiClient(`/api/datasets/${form.id}/run/`, {
         method: "POST",
         body: JSON.stringify({}),
       });
-
-      if (!res || res.detail) {
-        setError(res?.detail || "Failed to preview dataset.");
-        return;
-      }
-
+      if (!res || res.detail) return setError(res?.detail || "Failed to preview dataset.");
       setPreview(res);
     } catch {
       setError("Error running preview.");
     }
   };
 
-  // ------------------ Render ------------------
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => router.push("/datasets")}
-          className="text-sm text-gray-600 hover:underline"
-        >
+        <button onClick={() => router.push("/datasets")} className="text-sm text-gray-600 hover:underline">
           ← Back to datasets
         </button>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="text-xl font-semibold mb-4">
-          {isEdit ? "Edit Dataset" : "Create Dataset"}
-        </h2>
-
+        <h2 className="text-xl font-semibold mb-4">{isEdit ? "Edit Dataset" : "Create Dataset"}</h2>
         {error && <div className="mb-4 text-red-600">{error}</div>}
         {successMsg && <div className="mb-4 text-green-600">{successMsg}</div>}
 
@@ -233,7 +181,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             className="border p-3 rounded-lg"
           />
 
-          {/* API Source */}
           <select
             name="api_source"
             value={form.api_source}
@@ -242,16 +189,13 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
           >
             <option value="">Select API Source</option>
             {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
+              <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
 
           {/* QuickBooks Section */}
           {selectedSource?.provider?.toLowerCase() === "quickbooks" && (
             <>
-              {/* Entity */}
               <select
                 name="entity"
                 value={form.entity}
@@ -259,15 +203,9 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                 className="border p-3 rounded-lg"
               >
                 <option value="">Select Entity</option>
-                {entitiesLoading ? (
-                  <option disabled>Loading...</option>
-                ) : (
-                  qbEntities.map((e) => (
-                    <option key={e.value} value={e.value}>
-                      {e.label}
-                    </option>
-                  ))
-                )}
+                {entities.map((e) => (
+                  <option key={e.value} value={e.value}>{e.label}</option>
+                ))}
               </select>
 
               {/* Fields Picker */}
@@ -290,36 +228,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                   <p className="text-gray-400">No fields available.</p>
                 )}
               </div>
-
-              {/* Filters */}
-              <div className="space-y-2 border p-3 rounded-lg">
-                <p className="font-medium">Filters</p>
-                <input
-                  type="text"
-                  placeholder="Date field"
-                  value={form.filters.date_field}
-                  onChange={(e) =>
-                    handleFilterChange("date_field", e.target.value)
-                  }
-                  className="border p-2 rounded w-full"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    placeholder="From"
-                    value={form.filters.from}
-                    onChange={(e) => handleFilterChange("from", e.target.value)}
-                    className="border p-2 rounded w-1/2"
-                  />
-                  <input
-                    type="date"
-                    placeholder="To"
-                    value={form.filters.to}
-                    onChange={(e) => handleFilterChange("to", e.target.value)}
-                    className="border p-2 rounded w-1/2"
-                  />
-                </div>
-              </div>
             </>
           )}
 
@@ -333,56 +241,9 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                 onChange={handleChange}
                 className="border p-3 rounded-lg"
               />
-
-              {/* Query Params */}
-              <div>
-                <div className="flex justify-between mb-2">
-                  <label className="font-medium">Query Parameters</label>
-                  <button
-                    onClick={addQueryParam}
-                    className="text-sm bg-gray-200 px-2 py-1 rounded"
-                    type="button"
-                  >
-                    + Add
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {Object.entries(form.query_params).map(([k, v], idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input
-                        placeholder="key"
-                        value={k}
-                        onChange={(e) => {
-                          const newParams = { ...form.query_params };
-                          delete newParams[k];
-                          newParams[e.target.value] = v;
-                          setForm({ ...form, query_params: newParams });
-                        }}
-                        className="border p-2 rounded w-1/2"
-                      />
-                      <input
-                        placeholder="value"
-                        value={v}
-                        onChange={(e) => {
-                          setForm({
-                            ...form,
-                            query_params: {
-                              ...form.query_params,
-                              [k]: e.target.value,
-                            },
-                          });
-                        }}
-                        className="border p-2 rounded w-1/2"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
             </>
           )}
 
-          {/* Actions */}
           <div className="flex gap-4 mt-4">
             <button
               onClick={runPreview}
@@ -394,9 +255,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             <button
               onClick={saveDataset}
               className={`py-2 rounded-lg text-white flex-1 ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
               }`}
               disabled={loading}
             >
@@ -405,11 +264,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
           </div>
         </div>
 
-        {preview && (
-          <div className="mt-6">
-            <DatasetRunner data={preview} />
-          </div>
-        )}
+        {preview && <div className="mt-6"><DatasetRunner data={preview} /></div>}
       </div>
     </div>
   );
