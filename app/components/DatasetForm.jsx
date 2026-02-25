@@ -9,7 +9,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
 
   const [sources, setSources] = useState([]);
-  const [entities, setEntities] = useState([]);
+  const [entities, setEntities] = useState([]); // <-- backend entities
   const [fieldsOptions, setFieldsOptions] = useState([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
 
@@ -17,6 +17,8 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     initialData || {
       name: "",
       api_source: "",
+      endpoint: "",
+      query_params: {},
       entity: "",
       fields: [],
       filters: {
@@ -25,8 +27,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
         to: "",
         equals: {},
       },
-      endpoint: "",
-      query_params: {},
     }
   );
 
@@ -35,12 +35,12 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
   const [successMsg, setSuccessMsg] = useState(null);
   const [preview, setPreview] = useState(null);
 
-  // ---------------- Load API sources ----------------
+  // Load API sources
   useEffect(() => {
     const fetchSources = async () => {
       try {
-        const res = await apiClient("/api/api-sources/");
-        if (Array.isArray(res)) setSources(res);
+        const data = await apiClient("/api/api-sources/");
+        if (Array.isArray(data)) setSources(data);
       } catch {
         setError("Failed to load API sources.");
       }
@@ -48,76 +48,64 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     fetchSources();
   }, []);
 
-  // ---------------- Selected source ----------------
+  // Find selected source
   const selectedSource = sources.find(
-    (s) => String(s.id) === String(form.api_source)
+    (s) => s.id.toString() === form.api_source?.toString()
   );
 
-  // ---------------- Fetch QuickBooks entities ----------------
+  // Fetch QuickBooks entities when API source changes
   useEffect(() => {
-    if (!selectedSource) {
-      setEntities([]);
-      return;
-    }
-
-    if (!selectedSource.provider?.toLowerCase().includes("quickbooks")) {
-      setEntities([]);
-      return;
-    }
+    if (!selectedSource) return;
+    if (selectedSource.provider?.toLowerCase() !== "quickbooks") return;
 
     const fetchEntities = async () => {
       try {
         const res = await apiClient(
           `/api/api-sources/${selectedSource.id}/entities/`
         );
-        if (Array.isArray(res)) setEntities(res);
-        else setEntities([]);
-      } catch (err) {
-        console.error("Failed to fetch entities:", err);
-        setEntities([]);
+        if (Array.isArray(res)) {
+          setEntities(res); // res is already { value, label }
+        } else {
+          setEntities([]);
+        }
+      } catch {
+        setError("Failed to load QuickBooks entities.");
       }
     };
-
     fetchEntities();
   }, [selectedSource]);
 
-  // ---------------- Fetch fields when entity changes ----------------
+  // Fetch QuickBooks fields when entity changes
   useEffect(() => {
-    if (
-      !selectedSource ||
-      !selectedSource.provider?.toLowerCase().includes("quickbooks") ||
-      !form.entity
-    ) {
-      setFieldsOptions([]);
-      return;
-    }
-
     const fetchFields = async () => {
+      if (!selectedSource) return;
+      if (selectedSource.provider?.toLowerCase() !== "quickbooks") return;
+      if (!form.entity) return;
+
       setFieldsLoading(true);
       setFieldsOptions([]);
       try {
         const res = await apiClient(
           `/api/api-sources/${selectedSource.id}/entities/${form.entity}/fields/`
         );
+
         if (res?.fields && Array.isArray(res.fields)) {
           setFieldsOptions(res.fields);
         } else {
           setFieldsOptions([]);
         }
-      } catch (err) {
-        console.error("Failed to fetch fields:", err);
-        setFieldsOptions([]);
+      } catch {
+        setError("Failed to fetch QuickBooks entity fields.");
       } finally {
         setFieldsLoading(false);
       }
     };
-
     fetchFields();
   }, [selectedSource, form.entity]);
 
-  // ---------------- Handlers ----------------
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleFieldToggle = (field) => {
     const updatedFields = form.fields.includes(field)
@@ -126,20 +114,23 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     setForm({ ...form, fields: updatedFields });
   };
 
-  const handleFilterChange = (key, value) =>
-    setForm({ ...form, filters: { ...form.filters, [key]: value } });
-
-  const handleEqualsFilterChange = (key, value) =>
+  const handleFilterChange = (key, value) => {
     setForm({
       ...form,
-      filters: { ...form.filters, equals: { ...form.filters.equals, [key]: value } },
+      filters: { ...form.filters, [key]: value },
     });
-
-  const addQueryParam = () => {
-    setForm({ ...form, query_params: { ...form.query_params, [""]: "" } });
   };
 
-  // ---------------- Save dataset ----------------
+  const handleEqualsFilterChange = (key, value) => {
+    setForm({
+      ...form,
+      filters: {
+        ...form.filters,
+        equals: { ...form.filters.equals, [key]: value },
+      },
+    });
+  };
+
   const saveDataset = async () => {
     setLoading(true);
     setError(null);
@@ -160,7 +151,9 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       }
 
       setSuccessMsg("Dataset saved successfully!");
-      setTimeout(() => router.push("/datasets"), 800);
+      setTimeout(() => {
+        router.push("/datasets");
+      }, 800);
     } catch {
       setError("Error saving dataset.");
     } finally {
@@ -168,7 +161,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     }
   };
 
-  // ---------------- Preview dataset ----------------
   const runPreview = async () => {
     setPreview(null);
     setError(null);
@@ -195,7 +187,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     }
   };
 
-  // ---------------- Render ----------------
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-4">
@@ -216,7 +207,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
         {successMsg && <div className="mb-4 text-green-600">{successMsg}</div>}
 
         <div className="grid gap-4">
-          {/* Dataset Name */}
           <input
             name="name"
             placeholder="Dataset name"
@@ -225,7 +215,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             className="border p-3 rounded-lg"
           />
 
-          {/* API Source */}
           <select
             name="api_source"
             value={form.api_source}
@@ -240,10 +229,8 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             ))}
           </select>
 
-          {/* QuickBooks Section */}
-          {selectedSource?.provider?.toLowerCase().includes("quickbooks") && (
+          {selectedSource?.provider?.toLowerCase() === "quickbooks" && (
             <>
-              {/* Entity */}
               <select
                 name="entity"
                 value={form.entity}
@@ -258,7 +245,6 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                 ))}
               </select>
 
-              {/* Fields */}
               <div className="space-y-1 border p-3 rounded-lg">
                 <p className="font-medium mb-2">Fields</p>
                 {fieldsLoading ? (
@@ -278,99 +264,19 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                   <p className="text-gray-400">No fields available.</p>
                 )}
               </div>
-
-              {/* Filters */}
-              <div className="space-y-2 border p-3 rounded-lg">
-                <p className="font-medium">Filters</p>
-                <input
-                  type="text"
-                  placeholder="Date field"
-                  value={form.filters.date_field}
-                  onChange={(e) =>
-                    handleFilterChange("date_field", e.target.value)
-                  }
-                  className="border p-2 rounded w-full"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="date"
-                    placeholder="From"
-                    value={form.filters.from}
-                    onChange={(e) =>
-                      handleFilterChange("from", e.target.value)
-                    }
-                    className="border p-2 rounded w-1/2"
-                  />
-                  <input
-                    type="date"
-                    placeholder="To"
-                    value={form.filters.to}
-                    onChange={(e) => handleFilterChange("to", e.target.value)}
-                    className="border p-2 rounded w-1/2"
-                  />
-                </div>
-              </div>
             </>
           )}
 
-          {/* REST API Section */}
-          {selectedSource &&
-            !selectedSource.provider?.toLowerCase().includes("quickbooks") && (
-              <>
-                <input
-                  name="endpoint"
-                  placeholder="/users or /sales/daily"
-                  value={form.endpoint}
-                  onChange={handleChange}
-                  className="border p-3 rounded-lg"
-                />
+          {selectedSource?.provider?.toLowerCase() !== "quickbooks" && (
+            <input
+              name="endpoint"
+              placeholder="/users or /sales/daily"
+              value={form.endpoint}
+              onChange={handleChange}
+              className="border p-3 rounded-lg"
+            />
+          )}
 
-                {/* Query Params */}
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="font-medium">Query Parameters</label>
-                    <button
-                      onClick={addQueryParam}
-                      className="text-sm bg-gray-200 px-2 py-1 rounded"
-                      type="button"
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {Object.entries(form.query_params).map(([k, v], idx) => (
-                      <div key={idx} className="flex gap-2">
-                        <input
-                          placeholder="key"
-                          value={k}
-                          onChange={(e) => {
-                            const newParams = { ...form.query_params };
-                            delete newParams[k];
-                            newParams[e.target.value] = v;
-                            setForm({ ...form, query_params: newParams });
-                          }}
-                          className="border p-2 rounded w-1/2"
-                        />
-                        <input
-                          placeholder="value"
-                          value={v}
-                          onChange={(e) =>
-                            setForm({
-                              ...form,
-                              query_params: { ...form.query_params, [k]: e.target.value },
-                            })
-                          }
-                          className="border p-2 rounded w-1/2"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
-          {/* Actions */}
           <div className="flex gap-4 mt-4">
             <button
               onClick={runPreview}
@@ -378,14 +284,15 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             >
               Preview Data
             </button>
+
             <button
               onClick={saveDataset}
-              disabled={loading}
               className={`py-2 rounded-lg text-white flex-1 ${
                 loading
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
               }`}
+              disabled={loading}
             >
               {loading ? "Saving..." : "Save Dataset"}
             </button>
