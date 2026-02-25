@@ -9,12 +9,13 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
 
   const [sources, setSources] = useState([]);
+  const [selectedSource, setSelectedSource] = useState(null);
+
+  const [qbEntities, setQbEntities] = useState([]);
+  const [entitiesLoading, setEntitiesLoading] = useState(false);
+
   const [fieldsOptions, setFieldsOptions] = useState([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState(
     initialData || {
@@ -24,79 +25,94 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       query_params: {},
       entity: "",
       fields: [],
-      filters: { date_field: "", from: "", to: "", equals: {} },
+      filters: {
+        date_field: "",
+        from: "",
+        to: "",
+        equals: {},
+      },
     }
   );
 
-  // ---------------- Load API sources ----------------
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [preview, setPreview] = useState(null);
+
+  // ------------------ Load API Sources ------------------
   useEffect(() => {
     const fetchSources = async () => {
       try {
         const data = await apiClient("/api/api-sources/");
         if (Array.isArray(data)) setSources(data);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setError("Failed to load API sources.");
       }
     };
     fetchSources();
   }, []);
 
-  const selectedSource = sources.find(
-    (s) => s.id.toString() === form.api_source?.toString()
-  );
+  // ------------------ Update selectedSource ------------------
+  useEffect(() => {
+    const source = sources.find(
+      (s) => s.id.toString() === form.api_source?.toString()
+    );
+    setSelectedSource(source || null);
+  }, [form.api_source, sources]);
 
-  // ---------------- Fetch QuickBooks fields dynamically ----------------
+  // ------------------ Fetch QuickBooks Entities ------------------
+  useEffect(() => {
+    const fetchEntities = async () => {
+      if (!selectedSource || selectedSource.provider?.toLowerCase() !== "quickbooks") {
+        setQbEntities([]);
+        return;
+      }
+
+      setEntitiesLoading(true);
+      try {
+        const res = await apiClient(`/api/api-sources/${selectedSource.id}/entities/`);
+        if (Array.isArray(res)) setQbEntities(res);
+        else setQbEntities([]);
+      } catch (err) {
+        console.error(err);
+        setQbEntities([]);
+        setError("Failed to fetch QuickBooks entities.");
+      } finally {
+        setEntitiesLoading(false);
+      }
+    };
+    fetchEntities();
+  }, [selectedSource]);
+
+  // ------------------ Fetch QuickBooks Fields ------------------
   useEffect(() => {
     const fetchFields = async () => {
-      if (!selectedSource || !form.entity) return;
-      if (selectedSource.provider?.toLowerCase() !== "quickbooks") return;
+      if (!selectedSource || selectedSource.provider?.toLowerCase() !== "quickbooks") return;
+      if (!form.entity) return;
 
       setFieldsLoading(true);
       setFieldsOptions([]);
-      setError(null);
-
       try {
         const res = await apiClient(
-          `/api/api-sources/${selectedSource.id}/entities/${form.entity.toLowerCase()}/fields/`
+          `/api/api-sources/${selectedSource.id}/entities/${form.entity}/fields/`
         );
-
         if (res?.fields && Array.isArray(res.fields)) {
           setFieldsOptions(res.fields);
         } else {
           setFieldsOptions([]);
         }
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch QB entity fields");
+      } catch {
+        setError("Failed to fetch QuickBooks entity fields.");
       } finally {
         setFieldsLoading(false);
       }
     };
-
     fetchFields();
   }, [selectedSource, form.entity]);
 
-  // ---------------- Handlers ----------------
-  const handleChange = (e) =>
+  // ------------------ Handlers ------------------
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleFieldToggle = (field) => {
-    const updatedFields = form.fields.includes(field)
-      ? form.fields.filter((f) => f !== field)
-      : [...form.fields, field];
-    setForm({ ...form, fields: updatedFields });
-  };
-
-  const handleFilterChange = (key, value) => {
-    setForm({ ...form, filters: { ...form.filters, [key]: value } });
-  };
-
-  const handleEqualsFilterChange = (key, value) => {
-    setForm({
-      ...form,
-      filters: { ...form.filters, equals: { ...form.filters.equals, [key]: value } },
-    });
   };
 
   const addQueryParam = () => {
@@ -106,7 +122,31 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
     });
   };
 
-  // ---------------- Save Dataset ----------------
+  const handleFieldToggle = (field) => {
+    const updatedFields = form.fields.includes(field)
+      ? form.fields.filter((f) => f !== field)
+      : [...form.fields, field];
+    setForm({ ...form, fields: updatedFields });
+  };
+
+  const handleFilterChange = (key, value) => {
+    setForm({
+      ...form,
+      filters: { ...form.filters, [key]: value },
+    });
+  };
+
+  const handleEqualsFilterChange = (key, value) => {
+    setForm({
+      ...form,
+      filters: {
+        ...form.filters,
+        equals: { ...form.filters.equals, [key]: value },
+      },
+    });
+  };
+
+  // ------------------ Save Dataset ------------------
   const saveDataset = async () => {
     setLoading(true);
     setError(null);
@@ -127,16 +167,17 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       }
 
       setSuccessMsg("Dataset saved successfully!");
-      setTimeout(() => router.push("/datasets"), 800);
-    } catch (err) {
-      console.error(err);
+      setTimeout(() => {
+        router.push("/datasets");
+      }, 800);
+    } catch {
       setError("Error saving dataset.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- Preview Dataset ----------------
+  // ------------------ Preview Dataset ------------------
   const runPreview = async () => {
     setPreview(null);
     setError(null);
@@ -158,15 +199,14 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
       }
 
       setPreview(res);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError("Error running preview.");
     }
   };
 
+  // ------------------ Render ------------------
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => router.push("/datasets")}
@@ -193,6 +233,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             className="border p-3 rounded-lg"
           />
 
+          {/* API Source */}
           <select
             name="api_source"
             value={form.api_source}
@@ -210,6 +251,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
           {/* QuickBooks Section */}
           {selectedSource?.provider?.toLowerCase() === "quickbooks" && (
             <>
+              {/* Entity */}
               <select
                 name="entity"
                 value={form.entity}
@@ -217,11 +259,15 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                 className="border p-3 rounded-lg"
               >
                 <option value="">Select Entity</option>
-                {selectedSource?.entities?.map((e) => (
-                  <option key={e.value} value={e.value}>
-                    {e.label}
-                  </option>
-                ))}
+                {entitiesLoading ? (
+                  <option disabled>Loading...</option>
+                ) : (
+                  qbEntities.map((e) => (
+                    <option key={e.value} value={e.value}>
+                      {e.label}
+                    </option>
+                  ))
+                )}
               </select>
 
               {/* Fields Picker */}
@@ -241,9 +287,7 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                     </label>
                   ))
                 ) : (
-                  <p className="text-gray-400">
-                    No fields available for this entity.
-                  </p>
+                  <p className="text-gray-400">No fields available.</p>
                 )}
               </div>
 
@@ -323,7 +367,10 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
                         onChange={(e) => {
                           setForm({
                             ...form,
-                            query_params: { ...form.query_params, [k]: e.target.value },
+                            query_params: {
+                              ...form.query_params,
+                              [k]: e.target.value,
+                            },
                           });
                         }}
                         className="border p-2 rounded w-1/2"
@@ -343,12 +390,15 @@ export default function DatasetForm({ initialData = null, isEdit = false }) {
             >
               Preview Data
             </button>
+
             <button
               onClick={saveDataset}
-              disabled={loading}
               className={`py-2 rounded-lg text-white flex-1 ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
               }`}
+              disabled={loading}
             >
               {loading ? "Saving..." : "Save Dataset"}
             </button>
