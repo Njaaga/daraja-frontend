@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/apiClient";
 import DatasetRunner from "./DatasetRunner";
 
-const QUICKBOOKS_ENTITIES = [
-  { value: "Invoice", label: "Invoices" },
-  { value: "Customer", label: "Customers" },
-  { value: "Account", label: "Chart of Accounts" },
-  { value: "Payment", label: "Payments" },
-];
+GET /api/api-sources/{id}/entities/
 
 export default function DatasetForm({ initialData = null, isEdit = false }) {
   const router = useRouter();
