@@ -12,56 +12,37 @@ import KPI from "@/app/charts/KPI";
 export default function ChartRenderer({ response, chartType }) {
   if (!response) return <div>No data</div>;
 
-  // -----------------------------
-  // KPI
-  // -----------------------------
+  // ---------------- KPI ----------------
   if (response.type === "kpi") {
     return <KPI value={response.value || 0} label={response.field || "Value"} />;
   }
 
-  // -----------------------------
-  // RAW DATA NORMALIZATION
-  // -----------------------------
-  let rawData = [];
+  // ---------------- NORMALIZE DATA ----------------
+  let chartData = [];
 
   if (response.type === "chart" && Array.isArray(response.data)) {
-    rawData = response.data.map(d => ({
-      x: d.label,
-      y: Number(d.value || 0),
+    chartData = response.data.map(d => ({
+      x: d.label ?? d.x,
+      y: Number(d.value ?? d.y ?? 0),
     }));
   } else if (response.type === "table" && Array.isArray(response.data)) {
-    rawData = response.data;
-  } else if (Array.isArray(response)) {
-    rawData = response;
-  }
+    // Pick first numeric column as y, first string column as x
+    const firstRow = response.data[0];
+    if (!firstRow) return <div>No data returned</div>;
+    const keys = Object.keys(firstRow);
+    const yKey = keys.find(k => typeof firstRow[k] === "number");
+    const xKey = keys.find(k => typeof firstRow[k] === "string") || keys[0];
+    if (!yKey) return <div>No numeric data for chart</div>;
 
-  if (!rawData.length) return <div>No data returned</div>;
-
-  // -----------------------------
-  // AUTO DETECT X & Y FIELDS
-  // -----------------------------
-  const chartData = useMemo(() => {
-    // Already normalized
-    if (rawData[0]?.x !== undefined && rawData[0]?.y !== undefined) return rawData;
-
-    const keys = Object.keys(rawData[0]);
-
-    const numericKey = keys.find(k => rawData.some(r => typeof r[k] === "number"));
-    const stringKey = keys.find(k => rawData.some(r => typeof r[k] === "string"));
-
-    if (!numericKey) return [];
-
-    return rawData.map(row => ({
-      x: stringKey ? row[stringKey] : "Value",
-      y: Number(row[numericKey] || 0),
+    chartData = response.data.map(r => ({
+      x: r[xKey],
+      y: Number(r[yKey] ?? 0),
     }));
-  }, [rawData]);
+  }
 
   if (!chartData.length) return <div>No chartable data</div>;
 
-  // -----------------------------
-  // RENDER CHART
-  // -----------------------------
+  // ---------------- RENDER ----------------
   switch (chartType) {
     case "line":
       return <LineChart data={chartData} />;
