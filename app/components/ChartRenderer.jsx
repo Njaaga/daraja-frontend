@@ -13,14 +13,14 @@ export default function ChartRenderer({ response, chartType }) {
   if (!response) return <div>No data</div>;
 
   // -----------------------------
-  // HANDLE KPI
+  // KPI
   // -----------------------------
   if (response.type === "kpi") {
     return <KPI value={response.value || 0} label={response.field || "Value"} />;
   }
 
   // -----------------------------
-  // NORMALIZE DATA
+  // RAW DATA NORMALIZATION
   // -----------------------------
   let rawData = [];
 
@@ -29,51 +29,35 @@ export default function ChartRenderer({ response, chartType }) {
       x: d.label,
       y: Number(d.value || 0),
     }));
-  }
-
-  else if (response.type === "table" && Array.isArray(response.data)) {
+  } else if (response.type === "table" && Array.isArray(response.data)) {
     rawData = response.data;
-  }
-
-  else if (Array.isArray(response)) {
+  } else if (Array.isArray(response)) {
     rawData = response;
   }
 
-  if (!rawData.length) {
-    return <div>No data returned</div>;
-  }
+  if (!rawData.length) return <div>No data returned</div>;
 
   // -----------------------------
-  // AUTO DETECT X & Y
+  // AUTO DETECT X & Y FIELDS
   // -----------------------------
-  let chartData = [];
+  const chartData = useMemo(() => {
+    // Already normalized
+    if (rawData[0]?.x !== undefined && rawData[0]?.y !== undefined) return rawData;
 
-  if (rawData[0]?.x !== undefined && rawData[0]?.y !== undefined) {
-    chartData = rawData;
-  } else {
     const keys = Object.keys(rawData[0]);
 
-    const numericKey = keys.find(k =>
-      rawData.some(r => typeof r[k] === "number")
-    );
+    const numericKey = keys.find(k => rawData.some(r => typeof r[k] === "number"));
+    const stringKey = keys.find(k => rawData.some(r => typeof r[k] === "string"));
 
-    const stringKey = keys.find(k =>
-      rawData.some(r => typeof r[k] === "string")
-    );
+    if (!numericKey) return [];
 
-    if (!numericKey) {
-      return <div>No numeric fields found for chart</div>;
-    }
-
-    chartData = rawData.map(row => ({
+    return rawData.map(row => ({
       x: stringKey ? row[stringKey] : "Value",
       y: Number(row[numericKey] || 0),
     }));
-  }
+  }, [rawData]);
 
-  if (!chartData.length) {
-    return <div>No chartable data</div>;
-  }
+  if (!chartData.length) return <div>No chartable data</div>;
 
   // -----------------------------
   // RENDER CHART
