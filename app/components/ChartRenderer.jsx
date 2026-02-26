@@ -1,130 +1,54 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { deepFlatten } from "@/lib/utils";
-
+import React, { useMemo } from "react";
 import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
-import StackedBarChart from "@/app/charts/StackedBarChart";
 import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
+import StackedBarChart from "@/app/charts/StackedBarChart";
 import KPI from "@/app/charts/KPI";
 
-function getValue(row, field) {
-  if (!field) return undefined;
-  if (row?.[field] !== undefined) return row[field];
-  if (field.includes(".")) return field.split(".").reduce((acc, key) => acc?.[key], row);
-  return undefined;
-}
+/* ---------------- ChartRenderer ---------------- */
+export default function ChartRenderer({ response, chartType }) {
+  if (!response) return <div>No data</div>;
 
-/* -------------------- ChartRenderer -------------------- */
-export default function ChartRenderer({
-  type,
-  xField,
-  yField,
-  stackedFields = [],
-  filters = {},
-  excelData = [],
-  selectedFields = null,
-  onPointClick,
-  fullscreen = false,
-}) {
-  const [rows, setRows] = useState([]);
+  // ---------------- KPI ----------------
+  if (response.type === "kpi") {
+    return <KPI value={response.value} label={response.field} />;
+  }
 
-  // -------------------- Use excelData directly --------------------
-  useEffect(() => {
-    if (Array.isArray(excelData)) setRows(excelData);
-    else setRows([]);
-  }, [excelData]);
+  // ---------------- TABLE ----------------
+  if (response.type === "table") {
+    return <div>Table returned {response.count} rows</div>;
+  }
 
-  // -------------------- Filtering --------------------
-  const filteredData = useMemo(() => {
-    if (!rows?.length) return [];
+  // ---------------- CHART ----------------
+  if (response.type !== "chart") {
+    return <div>Unsupported response</div>;
+  }
 
-    let output = [...rows];
+  const data = response.data.map(d => ({
+    x: d.label,
+    y: d.value,
+  }));
 
-    Object.entries(filters || {}).forEach(([field, rule]) => {
-      if (!rule?.value) return;
-      output = output.filter(r =>
-        String(getValue(r, field))
-          .toLowerCase()
-          .includes(String(rule.value).toLowerCase())
-      );
-    });
+  if (!data.length) return <div>No chart data</div>;
 
-    if (selectedFields?.length) {
-      output = output.map(r => {
-        const obj = {};
-        selectedFields.forEach(f => {
-          obj[f] = getValue(r, f);
-        });
-        return obj;
-      });
-    }
-
-    return output;
-  }, [rows, filters, selectedFields]);
-
-  // -------------------- Prepare chart data --------------------
-  const chartData = useMemo(() => {
-    if (!filteredData.length) return [];
-
-    // KPI
-    if (type === "kpi") {
-      return filteredData.reduce(
-        (sum, r) =>
-          sum +
-          Number(getValue(r, yField) ?? r?.value ?? r?.y ?? 0),
-        0
-      );
-    }
-
-    // Stacked bar
-    if (type === "stacked_bar") {
-      return filteredData.map(r => {
-        const obj = { x: getValue(r, xField) ?? r?.x };
-        const keys = stackedFields.length
-          ? stackedFields
-          : Object.keys(r).filter(k => k !== xField && k !== "x");
-        keys.forEach(k => { obj[k] = Number(r[k] ?? 0); });
-        obj.__row = r;
-        return obj;
-      });
-    }
-
-    // Standard XY
-    return filteredData.map(r => ({
-      x: getValue(r, xField) ?? r?.x,
-      y: Number(yField ? getValue(r, yField) : r?.y ?? r?.value ?? 1),
-      __row: r,
-    }));
-  }, [filteredData, type, xField, yField, stackedFields]);
-
-  // -------------------- Point click --------------------
-  const handlePointClick = payload => {
-    if (!onPointClick) return;
-    const originalRow = payload?.__row || payload;
-    onPointClick({ row: deepFlatten(originalRow) });
-  };
-
-  // -------------------- Render --------------------
-  if (!rows.length) return <div>No data returned</div>;
-  if (!filteredData.length) return <div>No matching data</div>;
-
-  const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
-
-  return (
-    <div className={wrapperClass}>
-      {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
-      {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
-      {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "stacked_bar" && (
-        <StackedBarChart data={chartData} xKey="x" yKeys={stackedFields} onBarClick={handlePointClick} />
-      )}
-      {type === "kpi" && <KPI value={chartData} label={yField || "Value"} />}
-    </div>
-  );
+  switch (chartType) {
+    case "line":
+      return <LineChart data={data} />;
+    case "bar":
+      return <BarChart data={data} />;
+    case "pie":
+      return <PieChart data={data} />;
+    case "area":
+      return <AreaChart data={data} />;
+    case "scatter":
+      return <ScatterChart data={data} />;
+    case "stacked_bar":
+      return <StackedBarChart data={data} xKey="x" yKeys={["y"]} />;
+    default:
+      return <div>Unsupported chart type</div>;
+  }
 }
