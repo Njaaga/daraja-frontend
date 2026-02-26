@@ -9,46 +9,89 @@ import ScatterChart from "@/app/charts/ScatterChart";
 import StackedBarChart from "@/app/charts/StackedBarChart";
 import KPI from "@/app/charts/KPI";
 
-/* ---------------- ChartRenderer ---------------- */
 export default function ChartRenderer({ response, chartType }) {
   if (!response) return <div>No data</div>;
 
-  // ---------------- KPI ----------------
+  // -----------------------------
+  // HANDLE KPI
+  // -----------------------------
   if (response.type === "kpi") {
-    return <KPI value={response.value} label={response.field} />;
+    return <KPI value={response.value || 0} label={response.field || "Value"} />;
   }
 
-  // ---------------- TABLE ----------------
-  if (response.type === "table") {
-    return <div>Table returned {response.count} rows</div>;
+  // -----------------------------
+  // NORMALIZE DATA
+  // -----------------------------
+  let rawData = [];
+
+  if (response.type === "chart" && Array.isArray(response.data)) {
+    rawData = response.data.map(d => ({
+      x: d.label,
+      y: Number(d.value || 0),
+    }));
   }
 
-  // ---------------- CHART ----------------
-  if (response.type !== "chart") {
-    return <div>Unsupported response</div>;
+  else if (response.type === "table" && Array.isArray(response.data)) {
+    rawData = response.data;
   }
 
-  const data = response.data.map(d => ({
-    x: d.label,
-    y: d.value,
-  }));
+  else if (Array.isArray(response)) {
+    rawData = response;
+  }
 
-  if (!data.length) return <div>No chart data</div>;
+  if (!rawData.length) {
+    return <div>No data returned</div>;
+  }
 
+  // -----------------------------
+  // AUTO DETECT X & Y
+  // -----------------------------
+  let chartData = [];
+
+  if (rawData[0]?.x !== undefined && rawData[0]?.y !== undefined) {
+    chartData = rawData;
+  } else {
+    const keys = Object.keys(rawData[0]);
+
+    const numericKey = keys.find(k =>
+      rawData.some(r => typeof r[k] === "number")
+    );
+
+    const stringKey = keys.find(k =>
+      rawData.some(r => typeof r[k] === "string")
+    );
+
+    if (!numericKey) {
+      return <div>No numeric fields found for chart</div>;
+    }
+
+    chartData = rawData.map(row => ({
+      x: stringKey ? row[stringKey] : "Value",
+      y: Number(row[numericKey] || 0),
+    }));
+  }
+
+  if (!chartData.length) {
+    return <div>No chartable data</div>;
+  }
+
+  // -----------------------------
+  // RENDER CHART
+  // -----------------------------
   switch (chartType) {
     case "line":
-      return <LineChart data={data} />;
+      return <LineChart data={chartData} />;
     case "bar":
-      return <BarChart data={data} />;
+      return <BarChart data={chartData} />;
     case "pie":
-      return <PieChart data={data} />;
+      return <PieChart data={chartData} />;
     case "area":
-      return <AreaChart data={data} />;
+      return <AreaChart data={chartData} />;
     case "scatter":
-      return <ScatterChart data={data} />;
+      return <ScatterChart data={chartData} />;
     case "stacked_bar":
-      return <StackedBarChart data={data} xKey="x" yKeys={["y"]} />;
+      return <StackedBarChart data={chartData} xKey="x" yKeys={["y"]} />;
     default:
-      return <div>Unsupported chart type</div>;
+      return <BarChart data={chartData} />;
   }
 }
