@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { deepFlatten } from "@/lib/utils";
+
 import LineChart from "@/app/charts/LineChart";
 import BarChart from "@/app/charts/BarChart";
 import PieChart from "@/app/charts/PieChart";
@@ -11,7 +12,8 @@ import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 
-// --------------------- HELPERS ---------------------
+/* --------------------- HELPERS --------------------- */
+
 function evaluateRule(row, rule) {
   const { field, operator, value } = rule;
   const rowValue = row[field];
@@ -37,7 +39,8 @@ function getValueByPath(obj, path) {
   return path?.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
-// --------------------- CHART RENDERER ---------------------
+/* --------------------- CHART RENDERER --------------------- */
+
 export default function ChartRenderer({
   datasetId,
   type,
@@ -50,11 +53,15 @@ export default function ChartRenderer({
   selectedFields = null,
   onPointClick,
   fullscreen = false,
+
+  // ✅ DB-driven axis labels
+  xAxisLabel,
+  yAxisLabel,
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ---------- Load Data ----------
+  /* ---------- Load Data ---------- */
   useEffect(() => {
     if (!datasetId) {
       setData(excelData || []);
@@ -64,7 +71,9 @@ export default function ChartRenderer({
 
     const load = async () => {
       try {
-        const res = await apiClient(`/api/datasets/${datasetId}/run/`, { method: "POST" });
+        const res = await apiClient(`/api/datasets/${datasetId}/run/`, {
+          method: "POST",
+        });
         setData(Array.isArray(res) ? res : res?.data || res?.results || []);
       } catch {
         setData([]);
@@ -75,11 +84,13 @@ export default function ChartRenderer({
     load();
   }, [datasetId, excelData]);
 
-  // ---------- Apply Logic + Filters ----------
+  /* ---------- Apply Logic + Filters ---------- */
   const filteredData = useMemo(() => {
     let output = [...data];
 
-    if (logicRules.length) output = applyLogic(output, logicRules);
+    if (logicRules.length) {
+      output = applyLogic(output, logicRules);
+    }
 
     Object.entries(filters).forEach(([field, rule]) => {
       if (!rule) return;
@@ -87,7 +98,9 @@ export default function ChartRenderer({
 
       if (rule.type === "text" && val) {
         output = output.filter(r =>
-          String(getValueByPath(r, field)).toLowerCase().includes(String(val).toLowerCase())
+          String(getValueByPath(r, field))
+            .toLowerCase()
+            .includes(String(val).toLowerCase())
         );
       }
 
@@ -103,7 +116,7 @@ export default function ChartRenderer({
     if (selectedFields?.length) {
       output = output.map(row => {
         const pruned = {};
-        selectedFields.forEach(f => pruned[f] = getValueByPath(row, f));
+        selectedFields.forEach(f => (pruned[f] = getValueByPath(row, f)));
         return pruned;
       });
     }
@@ -111,7 +124,7 @@ export default function ChartRenderer({
     return output;
   }, [data, filters, logicRules, selectedFields]);
 
-  // ---------- Prepare Chart Data ----------
+  /* ---------- Prepare Chart Data ---------- */
   const chartData = useMemo(() => {
     if (type === "kpi") {
       return filteredData.reduce((sum, r) => sum + Number(r[yField] || 0), 0);
@@ -123,7 +136,8 @@ export default function ChartRenderer({
         const fields = stackedFields.length
           ? stackedFields
           : Object.keys(row).filter(k => k !== xField);
-        fields.forEach(f => obj[f] = Number(row[f] || 0));
+
+        fields.forEach(f => (obj[f] = Number(row[f] || 0)));
         obj.__row = row;
         return obj;
       });
@@ -140,29 +154,45 @@ export default function ChartRenderer({
     return filteredData;
   }, [filteredData, type, xField, yField, stackedFields]);
 
-  // ---------- Click Handler ----------
-  const handlePointClick = (payload) => {
+  /* ---------- Click Handler ---------- */
+  const handlePointClick = payload => {
     if (!onPointClick || !payload) return;
 
     const originalRow = payload.__row || payload;
-
-    // Deep flatten nested objects
     const flattenedRow = deepFlatten(originalRow);
 
     onPointClick({ row: flattenedRow });
   };
 
-  // ---------- Render ----------
+  /* ---------- Shared Props ---------- */
+  const commonProps = {
+    data: chartData,
+    xLabel: xAxisLabel || xField,
+    yLabel: yAxisLabel || yField,
+  };
+
+  /* ---------- Render ---------- */
   if (loading) return <div>Loading dataset…</div>;
   if (!filteredData.length) return <div>No matching data</div>;
 
-  const wrapperClass = fullscreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : "";
+  const wrapperClass = fullscreen
+    ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
+    : "";
 
   return (
     <div className={wrapperClass}>
-      {type === "line" && <LineChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "bar" && <BarChart data={chartData} onBarClick={handlePointClick} />}
-      {type === "pie" && <PieChart data={chartData} onSliceClick={handlePointClick} />}
+      {type === "line" && (
+        <LineChart {...commonProps} onPointClick={handlePointClick} />
+      )}
+
+      {type === "bar" && (
+        <BarChart {...commonProps} onBarClick={handlePointClick} />
+      )}
+
+      {type === "pie" && (
+        <PieChart data={chartData} onSliceClick={handlePointClick} />
+      )}
+
       {type === "stacked_bar" && (
         <StackedBarChart
           data={chartData}
@@ -171,9 +201,18 @@ export default function ChartRenderer({
           onBarClick={handlePointClick}
         />
       )}
-      {type === "area" && <AreaChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "scatter" && <ScatterChart data={chartData} onPointClick={handlePointClick} />}
-      {type === "kpi" && <KPI value={chartData} label={yField} />}
+
+      {type === "area" && (
+        <AreaChart {...commonProps} onPointClick={handlePointClick} />
+      )}
+
+      {type === "scatter" && (
+        <ScatterChart {...commonProps} onPointClick={handlePointClick} />
+      )}
+
+      {type === "kpi" && (
+        <KPI value={chartData} label={yAxisLabel || yField} />
+      )}
     </div>
   );
 }
