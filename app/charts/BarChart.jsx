@@ -3,7 +3,7 @@
 import "@/lib/chartjs";
 import { Bar } from "react-chartjs-2";
 
-export default function BarChart({ data, onBarClick }) {
+export default function BarChart({ data, xLabel, yLabel, onBarClick }) {
   if (!data || !data.length) return <p>No data</p>;
 
   const labels = data.map(d => d.x);
@@ -20,9 +20,34 @@ export default function BarChart({ data, onBarClick }) {
     ],
   };
 
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        title: {
+          display: !!xLabel,
+          text: xLabel,
+        },
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: !!yLabel,
+          text: yLabel,
+        },
+      },
+    },
+    onClick: (evt, elements) => {
+      if (!elements.length || !onBarClick) return;
+      const index = elements[0].index;
+      onBarClick(data[index]);
+    },
+  };
+
   return (
     <div className="w-full h-[350px]">
-      <Bar data={chartData} />
+      <Bar data={chartData} options={options} />
     </div>
   );
 }
