@@ -38,6 +38,19 @@ export default function DashboardView() {
   const [modalFields, setModalFields] = useState([]);
 
   // ----------------------------
+  // BUILD GRID LAYOUT FROM BACKEND (PER-CHART)
+  // ----------------------------
+  const buildLayoutFromCharts = (charts) => {
+    return charts.map((chart) => ({
+      i: chart.id.toString(), // REQUIRED by react-grid-layout
+      x: chart.layout?.x ?? 0,
+      y: chart.layout?.y ?? 0,
+      w: chart.layout?.w ?? 6,
+      h: chart.layout?.h ?? 3,
+    }));
+  };
+
+  // ----------------------------
   // LOAD DASHBOARD
   // ----------------------------
   const loadDashboard = async () => {
@@ -47,18 +60,9 @@ export default function DashboardView() {
       setDashboard({ id: res.id, name: res.name });
       setCharts(res.charts || []);
 
-      if (res.layout && res.layout.length > 0) {
-        setLayout(res.layout);
-      } else {
-        const generated = (res.charts || []).map((chart, index) => ({
-          i: chart.id.toString(),
-          x: (index % 2) * 6,
-          y: Math.floor(index / 2) * 4,
-          w: 6,
-          h: 4,
-        }));
-        setLayout(generated);
-      }
+      // 👇 build layout from chart.layout
+      const builtLayout = buildLayoutFromCharts(res.charts || []);
+      setLayout(builtLayout);
     } catch (err) {
       console.error(err);
       setError("Failed to load dashboard.");
@@ -70,7 +74,7 @@ export default function DashboardView() {
   }, [id]);
 
   // ----------------------------
-  // REFRESH DATA (NO LAYOUT RESET)
+  // REFRESH DATA (KEEP LAYOUT)
   // ----------------------------
   const refreshDashboard = async () => {
     if (!id || refreshing) return;
@@ -87,8 +91,10 @@ export default function DashboardView() {
         `/api/dashboards/${id}/run/${query ? `?${query}` : ""}`
       );
 
-      setDashboard(prev => prev || { id: res.id, name: res.name });
+      setDashboard((prev) => prev || { id: res.id, name: res.name });
       setCharts(res.charts || []);
+
+      // ⚠️ DO NOT overwrite layout here (user may be editing)
     } catch (err) {
       console.error(err);
       setError("Failed to refresh data.");
@@ -115,7 +121,7 @@ export default function DashboardView() {
   // SLICERS
   // ----------------------------
   const updateSlicer = (key, value) =>
-    setSlicers(prev => ({ ...prev, [key]: value }));
+    setSlicers((prev) => ({ ...prev, [key]: value }));
 
   const clearSlicers = () =>
     setSlicers({ date_field: "", from: "", to: "" });
@@ -209,17 +215,17 @@ export default function DashboardView() {
             draggableHandle=".drag-handle"
             onLayoutChange={(newLayout) => setLayout(newLayout)}
           >
-            {charts.map(chart => (
+            {charts.map((chart) => (
               <div
                 key={chart.id.toString()}
                 className="bg-white p-4 rounded shadow h-full flex flex-col"
               >
-                {/* DRAG HANDLE ONLY */}
+                {/* DRAG HANDLE */}
                 <div className="drag-handle cursor-move font-semibold mb-2">
                   {chart.name}
                 </div>
 
-                {/* CHART AREA */}
+                {/* CHART */}
                 <div className="flex-1 min-h-0">
                   <ChartRenderer
                     type={chart.type}
