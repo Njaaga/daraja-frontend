@@ -106,16 +106,19 @@ export default function DashboardView() {
   // ----------------------------
   // SAVE LAYOUT
   // ----------------------------
-  const saveLayout = async () => {
-    try {
-      await apiClient(`/api/dashboards/${id}/layout/`, {
-        method: "POST",
-        data: layout,
-      });
-    } catch (err) {
-      console.error("Failed to save layout", err);
-    }
-  };
+const saveLayout = async () => {
+  try {
+    await apiClient(`/api/dashboards/${id}/layout/`, {
+      method: "POST",
+      body: JSON.stringify(layout),   // ✅ send raw array
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (err) {
+    console.error("Failed to save layout", err);
+  }
+};
 
   // ----------------------------
   // SLICERS
