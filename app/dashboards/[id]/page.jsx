@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Layout from "@/app/components/Layout";
 import ChartRenderer from "@/app/components/ChartRenderer";
 import ChartDetailsModal from "@/app/components/ChartDetailsModal";
 import DashboardSlicers from "@/app/components/DashboardSlicers";
 import { apiClient } from "@/lib/apiClient";
+
+import GridLayout, { WidthProvider } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+
+const ResponsiveGridLayout = WidthProvider(GridLayout);
 
 export default function DashboardView() {
   const { id } = useParams();
@@ -15,23 +21,57 @@ export default function DashboardView() {
 
   const [dashboard, setDashboard] = useState(null);
   const [charts, setCharts] = useState([]);
+  const [layout, setLayout] = useState([]);
+  const [editMode, setEditMode] = useState(false);
+
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // Dashboard slicers (NO auto fetch)
   const [slicers, setSlicers] = useState({
     date_field: "",
     from: "",
     to: "",
   });
 
-  // Drilldown modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modalRows, setModalRows] = useState([]);
   const [modalFields, setModalFields] = useState([]);
 
   // ----------------------------
-  // IN-PLACE DASHBOARD REFRESH
+  // LOAD DASHBOARD
+  // ----------------------------
+  const loadDashboard = async () => {
+    try {
+      const res = await apiClient(`/api/dashboards/${id}/run/`);
+
+      setDashboard({ id: res.id, name: res.name });
+      setCharts(res.charts || []);
+
+      if (res.layout && res.layout.length > 0) {
+        setLayout(res.layout);
+      } else {
+        // fallback layout
+        const generated = (res.charts || []).map((chart, index) => ({
+          i: chart.id.toString(),
+          x: (index % 2) * 6,
+          y: Math.floor(index / 2) * 4,
+          w: 6,
+          h: 4,
+        }));
+        setLayout(generated);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load dashboard.");
+    }
+  };
+
+  useEffect(() => {
+    if (id) loadDashboard();
+  }, [id]);
+
+  // ----------------------------
+  // REFRESH DATA (NO LAYOUT RESET)
   // ----------------------------
   const refreshDashboard = async () => {
     if (!id || refreshing) return;
@@ -48,29 +88,38 @@ export default function DashboardView() {
         `/api/dashboards/${id}/run/${query ? `?${query}` : ""}`
       );
 
-      // 🔹 Replace data ONLY
       setDashboard(prev => prev || { id: res.id, name: res.name });
       setCharts(res.charts || []);
     } catch (err) {
       console.error(err);
-      setError("Failed to refresh QuickBooks data.");
+      setError("Failed to refresh data.");
     } finally {
       setRefreshing(false);
     }
   };
 
   // ----------------------------
-  // SLICER HANDLERS
+  // SAVE LAYOUT
+  // ----------------------------
+  const saveLayout = async () => {
+    try {
+      await apiClient(`/api/dashboards/${id}/layout/`, {
+        method: "POST",
+        data: layout,
+      });
+    } catch (err) {
+      console.error("Failed to save layout", err);
+    }
+  };
+
+  // ----------------------------
+  // SLICERS
   // ----------------------------
   const updateSlicer = (key, value) =>
     setSlicers(prev => ({ ...prev, [key]: value }));
 
   const clearSlicers = () =>
-    setSlicers({
-      date_field: "",
-      from: "",
-      to: "",
-    });
+    setSlicers({ date_field: "", from: "", to: "" });
 
   // ----------------------------
   // CHART CLICK
@@ -88,7 +137,7 @@ export default function DashboardView() {
   return (
     <Layout>
       <div className="p-6">
-        {/* Header never disappears */}
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button
@@ -102,28 +151,40 @@ export default function DashboardView() {
             </h2>
           </div>
 
-          <button
-            onClick={refreshDashboard}
-            disabled={refreshing}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
-          >
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className="px-3 py-2 bg-gray-200 rounded"
+            >
+              {editMode ? "Exit Edit" : "Edit Layout"}
+            </button>
+
+            <button
+              onClick={saveLayout}
+              className="px-3 py-2 bg-green-600 text-white rounded"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={refreshDashboard}
+              disabled={refreshing}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </div>
 
-        {/* Slicers */}
+        {/* SLICERS */}
         <DashboardSlicers
           slicers={slicers}
           onChange={updateSlicer}
           onClear={clearSlicers}
         />
 
-        {/* Charts container NEVER unmounts */}
-        <div
-          ref={dashboardRef}
-          className="relative grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"
-        >
-          {/* Subtle overlay */}
+        {/* GRID */}
+        <div ref={dashboardRef} className="mt-6 relative">
           {refreshing && (
             <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center pointer-events-none">
               <span className="text-gray-500 text-sm">
@@ -133,33 +194,47 @@ export default function DashboardView() {
           )}
 
           {charts.length === 0 && !refreshing && (
-            <div className="col-span-full text-center text-gray-400">
-              Click <strong>Refresh</strong> to load QuickBooks data
+            <div className="text-center text-gray-400">
+              Click <strong>Refresh</strong> to load data
             </div>
           )}
 
-          {charts.map(chart => (
-            <div
-              key={chart.id}
-              className="bg-white p-4 rounded shadow"
-            >
-              <h3 className="font-semibold mb-2">{chart.name}</h3>
+          <ResponsiveGridLayout
+            className="layout"
+            layout={layout}
+            cols={12}
+            rowHeight={100}
+            isDraggable={editMode}
+            isResizable={editMode}
+            onLayoutChange={(newLayout) => setLayout(newLayout)}
+          >
+            {charts.map(chart => (
+              <div
+                key={chart.id.toString()}
+                className="bg-white p-4 rounded shadow h-full"
+              >
+                <div className="drag-handle cursor-move font-semibold mb-2">
+                  {chart.name}
+                </div>
 
-              <ChartRenderer
-                type={chart.type}
-                xField={chart.xField}
-                yField={chart.yField}
-                stackedFields={chart.stackedFields}
-                filters={chart.filters}
-                selectedFields={chart.selectedFields}
-                excelData={chart.data}
-                onPointClick={handleChartClick}
-              />
-            </div>
-          ))}
+                <div style={{ height: "100%" }}>
+                  <ChartRenderer
+                    type={chart.type}
+                    xField={chart.xField}
+                    yField={chart.yField}
+                    stackedFields={chart.stackedFields}
+                    filters={chart.filters}
+                    selectedFields={chart.selectedFields}
+                    excelData={chart.data}
+                    onPointClick={handleChartClick}
+                  />
+                </div>
+              </div>
+            ))}
+          </ResponsiveGridLayout>
         </div>
 
-        {/* Drilldown */}
+        {/* MODAL */}
         <ChartDetailsModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
@@ -167,7 +242,7 @@ export default function DashboardView() {
           selectedFields={modalFields}
         />
 
-        {/* Error */}
+        {/* ERROR */}
         {error && (
           <p className="mt-4 text-red-600 text-center">{error}</p>
         )}
