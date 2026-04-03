@@ -50,7 +50,6 @@ export default function DashboardView() {
       if (res.layout && res.layout.length > 0) {
         setLayout(res.layout);
       } else {
-        // fallback layout
         const generated = (res.charts || []).map((chart, index) => ({
           i: chart.id.toString(),
           x: (index % 2) * 6,
@@ -136,7 +135,7 @@ export default function DashboardView() {
   // ----------------------------
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-6 w-full">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
@@ -184,7 +183,7 @@ export default function DashboardView() {
         />
 
         {/* GRID */}
-        <div ref={dashboardRef} className="mt-6 relative">
+        <div ref={dashboardRef} className="mt-6 relative w-full">
           {refreshing && (
             <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center pointer-events-none">
               <span className="text-gray-500 text-sm">
@@ -204,20 +203,24 @@ export default function DashboardView() {
             layout={layout}
             cols={12}
             rowHeight={100}
+            width={1200}
             isDraggable={editMode}
             isResizable={editMode}
+            draggableHandle=".drag-handle"
             onLayoutChange={(newLayout) => setLayout(newLayout)}
           >
             {charts.map(chart => (
               <div
                 key={chart.id.toString()}
-                className="bg-white p-4 rounded shadow h-full"
+                className="bg-white p-4 rounded shadow h-full flex flex-col"
               >
+                {/* DRAG HANDLE ONLY */}
                 <div className="drag-handle cursor-move font-semibold mb-2">
                   {chart.name}
                 </div>
 
-                <div style={{ height: "100%" }}>
+                {/* CHART AREA */}
+                <div className="flex-1 min-h-0">
                   <ChartRenderer
                     type={chart.type}
                     xField={chart.xField}
