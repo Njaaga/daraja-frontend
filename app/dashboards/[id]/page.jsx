@@ -38,11 +38,11 @@ export default function DashboardView() {
   const [modalFields, setModalFields] = useState([]);
 
   // ----------------------------
-  // BUILD GRID LAYOUT FROM BACKEND (PER-CHART)
+  // BUILD GRID LAYOUT (FIXED)
   // ----------------------------
   const buildLayoutFromCharts = (charts) => {
     return charts.map((chart) => ({
-      i: chart.id.toString(), // REQUIRED by react-grid-layout
+      i: chart.dashboardChartId.toString(), // ✅ FIXED
       x: chart.layout?.x ?? 0,
       y: chart.layout?.y ?? 0,
       w: chart.layout?.w ?? 6,
@@ -60,7 +60,6 @@ export default function DashboardView() {
       setDashboard({ id: res.id, name: res.name });
       setCharts(res.charts || []);
 
-      // 👇 build layout from chart.layout
       const builtLayout = buildLayoutFromCharts(res.charts || []);
       setLayout(builtLayout);
     } catch (err) {
@@ -93,8 +92,6 @@ export default function DashboardView() {
 
       setDashboard((prev) => prev || { id: res.id, name: res.name });
       setCharts(res.charts || []);
-
-      // ⚠️ DO NOT overwrite layout here (user may be editing)
     } catch (err) {
       console.error(err);
       setError("Failed to refresh data.");
@@ -104,26 +101,33 @@ export default function DashboardView() {
   };
 
   // ----------------------------
-  // SAVE LAYOUT
+  // SAVE LAYOUT (FIXED)
   // ----------------------------
-const saveLayout = async () => {
-  try {
-    console.log("Saving layout:", layout); // debug
-    
-    await fetch(`/api/dashboards/${id}/layout/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(layout), // send raw array
-    });
+  const saveLayout = async () => {
+    try {
+      console.log("Saving layout:", layout);
 
-    alert("Layout saved successfully!");
-  } catch (err) {
-    console.error("Failed to save layout", err);
-    alert("Failed to save layout");
-  }
-};
+      const res = await fetch(`/api/dashboards/${id}/layout/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(layout),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save");
+      }
+
+      alert("Layout saved successfully!");
+
+      // ✅ reload to confirm persistence
+      await loadDashboard();
+    } catch (err) {
+      console.error("Failed to save layout", err);
+      alert("Failed to save layout");
+    }
+  };
 
   // ----------------------------
   // SLICERS
@@ -225,7 +229,7 @@ const saveLayout = async () => {
           >
             {charts.map((chart) => (
               <div
-                key={chart.id.toString()}
+                key={chart.dashboardChartId.toString()} // ✅ FIXED
                 className="bg-white p-4 rounded shadow h-full flex flex-col"
               >
                 {/* DRAG HANDLE */}
