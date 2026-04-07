@@ -103,31 +103,30 @@ export default function DashboardView() {
   // ----------------------------
   // SAVE LAYOUT (FIXED)
   // ----------------------------
-  const saveLayout = async () => {
-    try {
-      console.log("Saving layout:", layout);
+const saveLayout = async () => {
+  try {
+    const res = await fetch(`/api/dashboards/${id}/layout/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(layout),
+    });
 
-      const res = await fetch(`/api/dashboards/${id}/layout/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(layout),
-      });
+    const data = await res.json(); // 👈 IMPORTANT
 
-      if (!res.ok) {
-        throw new Error("Failed to save");
-      }
-
-      alert("Layout saved successfully!");
-
-      // ✅ reload to confirm persistence
-      await loadDashboard();
-    } catch (err) {
-      console.error("Failed to save layout", err);
-      alert("Failed to save layout");
+    if (!res.ok) {
+      console.error("BACKEND ERROR:", data);
+      throw new Error(JSON.stringify(data));
     }
-  };
+
+    console.log("Saved:", data);
+    alert("Layout saved successfully!");
+  } catch (err) {
+    console.error("Failed to save layout", err);
+    alert("Save failed - check console");
+  }
+};
 
   // ----------------------------
   // SLICERS
