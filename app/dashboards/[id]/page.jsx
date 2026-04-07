@@ -105,26 +105,16 @@ export default function DashboardView() {
   // ----------------------------
 const saveLayout = async () => {
   try {
-    const res = await fetch(`/api/dashboards/${id}/layout/`, {
+    const res = await apiClient(`/api/dashboards/${id}/layout/`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(layout),
+      data: layout, // apiClient likely handles base URL + JSON
     });
 
-    const data = await res.json(); // 👈 IMPORTANT
-
-    if (!res.ok) {
-      console.error("BACKEND ERROR:", data);
-      throw new Error(JSON.stringify(data));
-    }
-
-    console.log("Saved:", data);
+    console.log("Saved:", res);
     alert("Layout saved successfully!");
   } catch (err) {
     console.error("Failed to save layout", err);
-    alert("Save failed - check console");
+    alert("Failed to save layout");
   }
 };
 
