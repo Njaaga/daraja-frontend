@@ -1017,7 +1017,8 @@ const addChart = async () => {
       await apiClient(`/api/dashboards/${id}/add_chart/`, {
         method: "POST",
         body: JSON.stringify({
-          chart_id: chartRes.id,
+          chart_config: newChart, // instead of chart_id
+          is_excel: true,
           layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
           order: charts.length,
         }),
