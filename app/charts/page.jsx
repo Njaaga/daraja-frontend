@@ -910,8 +910,7 @@ const [excelFile, setExcelFile] = useState(null);
 const [csvFile, setCSVFile] = useState(null);
 const [excelDatasetId, setExcelDatasetId] = useState(null);
 
-/* ---------- add chart (HYBRID SAFE VERSION) ---------- */
-/* ---------- add chart (HYBRID SAFE VERSION) ---------- */
+/* ---------- add chart (SAFE LARGE-FILE VERSION) ---------- */
 const addChart = async () => {
   try {
     // 1️⃣ Validate inputs
@@ -937,24 +936,20 @@ const addChart = async () => {
     } else if (hasExcel) {
       isExcelChart = true;
 
-      // ✅ Step 2a: upload Excel or CSV as dataset
-      const fileToUpload = excelFile || csvFile;
-      if (!fileToUpload) {
-        alert("No file selected for upload");
-        return;
-      }
+      // ✅ Step 2a: Upload Excel/CSV as dataset first
+      const fileToUpload = excelFile; // make sure excelFile is the File object from input
+      if (!fileToUpload) throw new Error("Excel file not found.");
 
       const formData = new FormData();
       formData.append("file", fileToUpload);
-      formData.append("name", chartTitle || "Excel/CSV Dataset");
+      formData.append("name", chartTitle || "Excel Dataset");
 
       const uploadRes = await apiClient("/api/datasets/upload_excel_dataset/", {
         method: "POST",
         body: formData,
       });
 
-      if (!uploadRes?.id) throw new Error("Failed to upload Excel/CSV dataset");
-
+      if (!uploadRes?.id) throw new Error("Failed to upload Excel dataset.");
       datasetId = uploadRes.id;
     }
 
@@ -970,7 +965,7 @@ const addChart = async () => {
       id = dashRes.id;
     }
 
-    // 4️⃣ Sanitize joins for API datasets
+    // 4️⃣ Sanitize joins (only for API datasets)
     const sanitizedJoins = !isExcelChart
       ? joins
           .filter(
@@ -998,16 +993,16 @@ const addChart = async () => {
           .map(([fieldName]) => fieldName)
       );
 
-    // 6️⃣ Build payload for adding chart
-    const payload = {
+    // 6️⃣ Build payload for chart creation
+    const chartPayload = {
       name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
       chart_type: chartType,
       x_field: chartX,
       y_field: chartY,
       aggregation: chartAgg || null,
       dataset: datasetId,
-      joins: sanitizedJoins,
       filters,
+      joins: sanitizedJoins,
       calculated_fields: calculatedFields,
       logic_rules: logicSaved || [],
       logic_expression: logicExpr || null,
@@ -1019,18 +1014,16 @@ const addChart = async () => {
 
     const chartRes = await apiClient(`/api/dashboards/${id}/add_chart/`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(chartPayload),
     });
 
-    if (!chartRes?.id && !chartRes?.chart?.id) {
-      throw new Error("Failed to add chart to dashboard");
-    }
+    if (!chartRes) throw new Error("Failed to add chart to dashboard.");
 
     // 7️⃣ Update local state
     const newChart = {
       i: (chartRes?.chart?.id || Date.now()).toString(),
-      chartId: chartRes?.chart?.id || chartRes?.id || null,
-      name: payload.name,
+      chartId: chartRes?.chart?.id || null,
+      name: chartPayload.name,
       type: chartType,
       xField: chartX,
       yField: chartY,
@@ -1041,18 +1034,17 @@ const addChart = async () => {
       calculated_fields: calculatedFields,
       logic_rules: logicSaved || [],
       logic_expression: logicExpr || null,
-      excelData: isExcelChart ? [...preview] : null, // for local preview
+      excelData: isExcelChart ? [...preview] : null, // snapshot preview for Excel
     };
 
     setCharts(prev => [...prev, newChart]);
     setChartTitle("");
-    alert("Chart added!");
+    alert("Chart added successfully!");
   } catch (err) {
     console.error("addChart error:", err);
-    alert(err.message || "Chart creation failed");
+    alert(err.message || "Chart creation failed.");
   }
 };
-
 
 
 const getSelectableFields = (datasetId) => {
