@@ -907,7 +907,7 @@ setPreview(rows || []);
 
 const isExcelChart = !!excelData && selectedDatasets.length === 0;
 
-
+const [excelDatasetId, setExcelDatasetId] = useState(null);
 
 /* ---------- add chart (POST to backend) ---------- */
 const addChart = async () => {
