@@ -911,10 +911,9 @@ const [csvFile, setCSVFile] = useState(null);
 const [excelDatasetId, setExcelDatasetId] = useState(null);
 
 /* ---------- add chart (SAFE LARGE-FILE VERSION) ---------- */
-/* ---------- add chart (HYBRID OPTIMIZED VERSION) ---------- */
+/* ---------- add chart (HYBRID SAFE + ATTACH TO DASHBOARD) ---------- */
 const addChart = async () => {
   try {
-    // 1️⃣ Validate inputs
     const hasExcel = excelData && excelData.length > 0;
     const hasDataset = selectedDatasets.length > 0;
 
@@ -927,17 +926,10 @@ const addChart = async () => {
       return;
     }
 
-    // 2️⃣ Determine data source
-    let datasetId = null;
-    let isExcelChart = false;
+    let datasetId = hasDataset ? selectedDatasets[0].id : null;
+    let isExcelChart = hasExcel && !hasDataset;
 
-    if (hasDataset) {
-      datasetId = selectedDatasets[0].id;
-    } else if (hasExcel) {
-      isExcelChart = true;
-    }
-
-    // 3️⃣ Create dashboard if needed
+    // Create dashboard if needed
     let id = dashboardId;
     if (!id) {
       const res = await apiClient("/api/dashboards/", {
@@ -949,7 +941,7 @@ const addChart = async () => {
       id = res.id;
     }
 
-    // 4️⃣ Sanitize joins (only for API datasets)
+    // Sanitize joins
     const sanitizedJoins = !isExcelChart
       ? joins
           .filter(
@@ -969,7 +961,7 @@ const addChart = async () => {
           }))
       : [];
 
-    // 5️⃣ Flatten selected fields
+    // Flatten selected fields
     const selectedFieldsArray = Object.values(selectedFields)
       .flatMap(fieldsObj =>
         Object.entries(fieldsObj)
@@ -977,35 +969,47 @@ const addChart = async () => {
           .map(([fieldName]) => fieldName)
       );
 
-    // 6️⃣ Create API chart (skip for Excel charts)
-    let chartRes = null;
-    if (!isExcelChart) {
-      const payload = {
-        name:
-          chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
-        chart_type: chartType,
-        x_field: chartX,
-        y_field: chartY,
-        aggregation: chartAgg || null,
-        dataset: datasetId,
-        joins: sanitizedJoins,
-        filters,
-        calculated_fields: calculatedFields,
-        logic_expression: logicExpr || null,
-        logic_rules: logicSaved || [],
-        selected_fields: selectedFieldsArray.length
-          ? selectedFieldsArray
-          : null,
-      };
+    // Build chart config
+    const chartConfig = {
+      name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+      type: chartType,
+      xField: chartX,
+      yField: chartY,
+      aggregation: chartAgg || null,
+      dataset_id: datasetId,
+      filters,
+      joins: sanitizedJoins,
+      calculated_fields: calculatedFields,
+      logic_rules: logicSaved || [],
+      logic_expression: logicExpr || null,
+      selected_fields: selectedFieldsArray.length ? selectedFieldsArray : null,
+    };
 
-      chartRes = await apiClient("/api/charts/", {
+    let chartId = null;
+
+    if (isExcelChart) {
+      // ✅ Attach Excel chart to dashboard
+      const res = await apiClient(`/api/dashboards/${id}/add_chart/`, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          chart_config: chartConfig,
+          dataset_id: datasetId,
+          is_excel: true,
+          layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
+          order: charts.length,
+        }),
       });
+      chartId = res?.chart?.id;
+    } else {
+      // API chart: create then attach
+      const chartRes = await apiClient("/api/charts/", {
+        method: "POST",
+        body: JSON.stringify(chartConfig),
+      });
+      if (!chartRes?.id) throw new Error("Chart creation failed");
 
-      if (!chartRes?.id) throw new Error("Chart creation failed (no id returned)");
+      chartId = chartRes.id;
 
-      // Attach to dashboard
       await apiClient(`/api/dashboards/${id}/add_chart/`, {
         method: "POST",
         body: JSON.stringify({
@@ -1016,12 +1020,11 @@ const addChart = async () => {
       });
     }
 
-    // 7️⃣ Build unified local chart object
+    // Update local state
     const newChart = {
-      i: (chartRes?.id || Date.now()).toString(),
-      chartId: chartRes?.id || null,
-      name:
-        chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+      i: (chartId || Date.now()).toString(),
+      chartId,
+      name: chartConfig.name,
       type: chartType,
       xField: chartX,
       yField: chartY,
@@ -1032,28 +1035,18 @@ const addChart = async () => {
       calculated_fields: calculatedFields,
       logic_rules: logicSaved || [],
       logic_expression: logicExpr || null,
-
-      // ✅ Excel snapshot (for client-side charts)
       excelData: isExcelChart ? [...excelData] : null,
-      preview: isExcelChart ? [...preview.slice(0, 10)] : null, // optional live preview
+      preview: isExcelChart ? [...preview.slice(0, 10)] : null,
       isExcelChart,
     };
 
-    // 8️⃣ Update state safely
     setCharts(prev => [...prev, newChart]);
     setLayout(prev => [
       ...prev,
-      {
-        i: newChart.i,
-        x: 0,
-        y: charts.length * 3,
-        w: 6,
-        h: 3,
-      },
+      { i: newChart.i, x: 0, y: charts.length * 3, w: 6, h: 3 },
     ]);
-
     setChartTitle("");
-    alert("Chart added!");
+    alert("Chart added to dashboard!");
   } catch (err) {
     console.error("addChart error:", err);
     alert(err.message || "Chart creation failed");
