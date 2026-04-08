@@ -906,7 +906,8 @@ setPreview(rows || []);
 
 
 const isExcelChart = !!excelData && selectedDatasets.length === 0;
-
+const [excelFile, setExcelFile] = useState(null);
+const [csvFile, setCSVFile] = useState(null);
 const [excelDatasetId, setExcelDatasetId] = useState(null);
 
 /* ---------- add chart (HYBRID SAFE VERSION) ---------- */
@@ -1172,8 +1173,26 @@ const getAggregatedData = (data, xField, yField, agg) => {
 
               <div>
                 <label className="block mb-1 font-medium">Upload Excel / CSV</label>
-                <input type="file" accept=".xlsx,.xls" onChange={handleExcelUpload} className="mb-2" />
-                <input type="file" accept=".csv" onChange={handleCSVUpload} className="mb-2" />
+                <label className="block mb-1 font-medium">Upload Excel / CSV</label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={e => {
+                    setExcelFile(e.target.files[0]);
+                    handleExcelUpload(e); // optional: still build preview
+                  }}
+                  className="mb-2"
+                />
+                
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={e => {
+                    setCSVFile(e.target.files[0]);
+                    handleCSVUpload(e); // optional: still build preview
+                  }}
+                  className="mb-2"
+                />
                 <div className="mb-2">
                   <label className="block mb-1 font-medium">Google Sheets CSV URL</label>
                   <textarea placeholder="Paste Google Sheets CSV export URL (public)" id="gs-url" className="border p-2 rounded w-full mb-1" />
