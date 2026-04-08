@@ -910,9 +910,9 @@ const isExcelChart = !!excelData && selectedDatasets.length === 0;
 const [excelDatasetId, setExcelDatasetId] = useState(null);
 
 /* ---------- add chart (HYBRID SAFE VERSION) ---------- */
+/* ---------- add chart (EXCEL SAFE) ---------- */
 const addChart = async () => {
   try {
-    // 1️⃣ Validate inputs
     const hasExcel = excelData && excelData.length > 0;
     const hasDataset = selectedDatasets.length > 0;
 
@@ -926,135 +926,83 @@ const addChart = async () => {
       return;
     }
 
-    // 2️⃣ Determine data source
-    let datasetId = hasDataset ? selectedDatasets[0].id : null;
-    const isExcelChart = !hasDataset && hasExcel;
+    let datasetId = null;
+    let isExcelChart = false;
 
-    // 3️⃣ Create dashboard if needed
+    if (hasDataset) {
+      datasetId = selectedDatasets[0].id;
+    } else if (hasExcel) {
+      isExcelChart = true;
+
+      // ✅ Step 1: upload Excel as dataset
+      const res = await apiClient("/api/datasets/upload_excel_dataset/", {
+        method: "POST",
+        body: (() => {
+          const form = new FormData();
+          form.append("file", excelFile); // original File object
+          form.append("name", chartTitle || "Excel Dataset");
+          return form;
+        })(),
+      });
+
+      if (!res?.id) throw new Error("Failed to upload Excel dataset");
+
+      datasetId = res.id;
+    }
+
+    // ✅ Step 2: create dashboard if needed
     let id = dashboardId;
     if (!id) {
       const res = await apiClient("/api/dashboards/", {
         method: "POST",
-        body: JSON.stringify({
-          name: dashboardName || "New Dashboard",
-        }),
+        body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
       });
-
       if (!res?.id) throw new Error("Failed to create dashboard");
-
       setDashboardId(res.id);
       id = res.id;
     }
 
-    // 4️⃣ Sanitize joins (API datasets only)
-    const sanitizedJoins = !isExcelChart
-      ? joins
-          .filter(
-            j =>
-              j.leftDataset &&
-              j.rightDataset &&
-              j.leftField &&
-              j.rightField &&
-              j.type
-          )
-          .map(j => ({
-            left_dataset: Number(j.leftDataset) || j.leftDataset,
-            right_dataset: Number(j.rightDataset) || j.rightDataset,
-            left_field: j.leftField.trim(),
-            right_field: j.rightField.trim(),
-            type: j.type.trim(),
-          }))
-      : [];
+    // 3️⃣ Create chart object
+    const payload = {
+      name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+      type: chartType,
+      xField: chartX,
+      yField: chartY,
+      aggregation: chartAgg || null,
+      dataset_id: datasetId,
+      filters,
+      joins,
+      calculated_fields: calculatedFields,
+      logic_rules: logicSaved || [],
+      logic_expression: logicExpr || null,
+      is_excel: isExcelChart,
+      layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
+      order: charts.length,
+    };
 
-    // 5️⃣ Flatten selected fields
-    const selectedFieldsArray = Object.values(selectedFields)
-      .flatMap(fieldsObj =>
-        Object.entries(fieldsObj)
-          .filter(([_, checked]) => checked)
-          .map(([fieldName]) => fieldName)
-      );
+    const chartRes = await apiClient(`/api/dashboards/${id}/add_chart/`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-    // 6️⃣ Build chart payload (ONLY for API datasets)
-    let chartRes = null;
-    if (!isExcelChart) {
-      const payload = {
-        name:
-          chartTitle ||
-          `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
-        chart_type: chartType,
-        x_field: chartX,
-        y_field: chartY,
-        aggregation: chartAgg || null,
-        dataset: datasetId,
-        joins: sanitizedJoins,
-        filters,
-        calculated_fields: calculatedFields,
-        logic_expression: logicExpr || null,
-        logic_rules: logicSaved || [],
-        selected_fields: selectedFieldsArray.length
-          ? selectedFieldsArray
-          : null,
-      };
-
-      chartRes = await apiClient("/api/charts/", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      if (!chartRes?.id) {
-        throw new Error("Chart creation failed (no id returned)");
-      }
-    }
-
-    // 7️⃣ Build local chart (works for BOTH Excel + API)
+    // 4️⃣ Update local state
     const newChart = {
       i: (chartRes?.id || Date.now()).toString(),
-      chartId: chartRes?.id || null,
-      name:
-        chartTitle ||
-        `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+      chartId: chartRes?.chart?.id || null,
+      name: payload.name,
       type: chartType,
       xField: chartX,
       yField: chartY,
       aggregation: chartAgg,
-      datasetIds: datasetId ? [datasetId] : [],
+      datasetIds: [datasetId],
       filters,
-      joins: sanitizedJoins,
+      joins,
       calculated_fields: calculatedFields,
       logic_rules: logicSaved || [],
       logic_expression: logicExpr || null,
-
-      // ✅ Snapshot data for Excel charts
-      excelData: isExcelChart ? [...preview] : null,
     };
 
-    // 8️⃣ Attach to dashboard (works for both API and Excel charts)
-    await apiClient(`/api/dashboards/${id}/add_chart/`, {
-      method: "POST",
-      body: JSON.stringify({
-        chart_id: chartRes?.id || null,
-        chart_config: isExcelChart ? newChart : null,
-        layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
-        order: charts.length,
-      }),
-    });
-
-    // 9️⃣ Update state safely (no stale bugs)
-    setCharts(prevCharts => {
-      const updatedCharts = [...prevCharts, newChart];
-      setLayout(prevLayout => [
-        ...prevLayout,
-        {
-          i: newChart.i,
-          x: 0,
-          y: updatedCharts.length * 3,
-          w: 6,
-          h: 3,
-        },
-      ]);
-      return updatedCharts;
-    });
-
+    setCharts(prev => [...prev, newChart]);
     setChartTitle("");
     alert("Chart added!");
   } catch (err) {
