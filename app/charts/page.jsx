@@ -928,42 +928,25 @@ const addChart = async () => {
     }
 
     // 2️⃣ Determine data source
-    let datasetId = null;
-    let isExcelChart = false;
-
-    if (hasDataset) {
-      datasetId = selectedDatasets[0].id;
-    } else if (hasExcel) {
-      isExcelChart = true;
-    }
+    let datasetId = hasDataset ? selectedDatasets[0].id : null;
+    const isExcelChart = !hasDataset && hasExcel;
 
     // 3️⃣ Create dashboard if needed
-    let id = dashboardId;
-    if (!id) {
+    let dashboardIdLocal = dashboardId;
+    if (!dashboardIdLocal) {
       const res = await apiClient("/api/dashboards/", {
         method: "POST",
-        body: JSON.stringify({
-          name: dashboardName || "New Dashboard",
-        }),
+        body: JSON.stringify({ name: dashboardName || "New Dashboard" }),
       });
-
       if (!res?.id) throw new Error("Failed to create dashboard");
-
       setDashboardId(res.id);
-      id = res.id;
+      dashboardIdLocal = res.id;
     }
 
     // 4️⃣ Sanitize joins (API datasets only)
     const sanitizedJoins = !isExcelChart
       ? joins
-          .filter(
-            j =>
-              j.leftDataset &&
-              j.rightDataset &&
-              j.leftField &&
-              j.rightField &&
-              j.type
-          )
+          .filter(j => j.leftDataset && j.rightDataset && j.leftField && j.rightField && j.type)
           .map(j => ({
             left_dataset: Number(j.leftDataset) || j.leftDataset,
             right_dataset: Number(j.rightDataset) || j.rightDataset,
@@ -981,14 +964,11 @@ const addChart = async () => {
           .map(([fieldName]) => fieldName)
       );
 
-    // 6️⃣ Build payload (ONLY for API datasets)
+    // 6️⃣ Build chart payload (API chart only)
     let chartRes = null;
-
     if (!isExcelChart) {
       const payload = {
-        name:
-          chartTitle ||
-          `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+        name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
         chart_type: chartType,
         x_field: chartX,
         y_field: chartY,
@@ -999,9 +979,7 @@ const addChart = async () => {
         calculated_fields: calculatedFields,
         logic_expression: logicExpr || null,
         logic_rules: logicSaved || [],
-        selected_fields: selectedFieldsArray.length
-          ? selectedFieldsArray
-          : null,
+        selected_fields: selectedFieldsArray.length ? selectedFieldsArray : null,
       };
 
       chartRes = await apiClient("/api/charts/", {
@@ -1009,29 +987,14 @@ const addChart = async () => {
         body: JSON.stringify(payload),
       });
 
-      if (!chartRes?.id) {
-        throw new Error("Chart creation failed (no id returned)");
-      }
-
-      // Attach to dashboard
-      await apiClient(`/api/dashboards/${id}/add_chart/`, {
-        method: "POST",
-        body: JSON.stringify({
-          chart_config: newChart, // instead of chart_id
-          is_excel: true,
-          layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
-          order: charts.length,
-        }),
-      });
+      if (!chartRes?.id) throw new Error("Chart creation failed (no id returned)");
     }
 
-    // 7️⃣ Build local chart (works for BOTH Excel + API)
+    // 7️⃣ Build local chart object (works for BOTH Excel + API)
     const newChart = {
       i: (chartRes?.id || Date.now()).toString(),
       chartId: chartRes?.id || null,
-      name:
-        chartTitle ||
-        `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+      name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
       type: chartType,
       xField: chartX,
       yField: chartY,
@@ -1042,26 +1005,27 @@ const addChart = async () => {
       calculated_fields: calculatedFields,
       logic_rules: logicSaved || [],
       logic_expression: logicExpr || null,
-
-      // ✅ CRITICAL: snapshot data for Excel charts
       excelData: isExcelChart ? [...preview] : null,
     };
 
-    // 8️⃣ Update state safely (no stale bugs)
+    // 8️⃣ Attach to dashboard (POST regardless of chart type)
+    await apiClient(`/api/dashboards/${dashboardIdLocal}/add_chart/`, {
+      method: "POST",
+      body: JSON.stringify({
+        chart_id: chartRes?.id || null,
+        chart_config: isExcelChart ? newChart : null,
+        layout: { x: 0, y: charts.length * 3, w: 6, h: 3 },
+        order: charts.length,
+      }),
+    });
+
+    // 9️⃣ Update local state
     setCharts(prevCharts => {
       const updatedCharts = [...prevCharts, newChart];
-
       setLayout(prevLayout => [
         ...prevLayout,
-        {
-          i: newChart.i,
-          x: 0,
-          y: updatedCharts.length * 3,
-          w: 6,
-          h: 3,
-        },
+        { i: newChart.i, x: 0, y: updatedCharts.length * 3, w: 6, h: 3 },
       ]);
-
       return updatedCharts;
     });
 
