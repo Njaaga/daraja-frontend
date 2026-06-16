@@ -1,32 +1,64 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import KpiCard from "@/components/KpiCard";
+import { apiClient } from "@/lib/apiClient"; // adjust path
 
 export default function ExecutivePage() {
   const [kpis, setKpis] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/kpis/")
-      .then((res) => res.json())
-      .then((data) => setKpis(data));
+    async function loadKPIs() {
+      try {
+        const data = await apiClient("/api/kpis/");
+
+        console.log("KPIs:", data);
+
+        setKpis(Array.isArray(data) ? data : data.results || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadKPIs();
   }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">
+      <h1 className="mb-6 text-3xl font-bold">
         Executive Dashboard
       </h1>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
-          <KpiCard
+          <div
             key={kpi.id}
-            title={kpi.name}
-            value={kpi.current_value}
-            target={kpi.target_value}
-            unit={kpi.unit}
-          />
+            className="rounded-xl border p-6"
+          >
+            <h3>{kpi.name}</h3>
+
+            <div>
+              Target: {kpi.target_value}
+            </div>
+
+            <div>
+              Warning: {kpi.warning_threshold}
+            </div>
+
+            <div>
+              Critical: {kpi.critical_threshold}
+            </div>
+
+            <div>
+              {kpi.active ? "Active" : "Inactive"}
+            </div>
+          </div>
         ))}
       </div>
     </div>
