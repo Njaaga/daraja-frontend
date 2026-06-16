@@ -13,7 +13,10 @@ export default function ExecutivePage() {
 
   async function loadDashboard() {
     try {
-      const data = await apiClient("/api/kpis/");
+      import { getExecutiveDashboard }
+      from "@/services/executiveService";
+      
+      const data = await getExecutiveDashboard();
 
       const transformed = data.map((kpi) => ({
         id: kpi.id,
