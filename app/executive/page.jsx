@@ -13,7 +13,7 @@ export default function ExecutivePage() {
 
   async function loadExecutiveData() {
     try {
-      const data = await apiClient("/api/kpis/executive/");
+      const data = await apiClient("/api/kpis/");
 
       setKpis(Array.isArray(data) ? data : []);
     } catch (error) {
