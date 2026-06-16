@@ -29,38 +29,45 @@ export default function ExecutivePage() {
     return <div>Loading...</div>;
   }
 
-  return (
-    <div className="p-6">
-      <h1 className="mb-6 text-3xl font-bold">
-        Executive Dashboard
-      </h1>
+return (
+  <div className="p-6">
+    <h1 className="mb-6 text-3xl font-bold">
+      Executive Dashboard
+    </h1>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.id}
-            className="rounded-xl border p-6"
-          >
-            <h3>{kpi.name}</h3>
-
-            <div>
-              Target: {kpi.target_value}
-            </div>
-
-            <div>
-              Warning: {kpi.warning_threshold}
-            </div>
-
-            <div>
-              Critical: {kpi.critical_threshold}
-            </div>
-
-            <div>
-              {kpi.active ? "Active" : "Inactive"}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="mb-4">
+      KPI Count: {kpis.length}
     </div>
-  );
-}
+
+    <pre className="bg-gray-100 p-4 rounded">
+      {JSON.stringify(kpis, null, 2)}
+    </pre>
+
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {kpis.map((kpi) => (
+        <div
+          key={kpi.id}
+          className="rounded-xl border p-6"
+        >
+          <h3>{kpi.name}</h3>
+
+          <div>
+            Target: {kpi.target_value}
+          </div>
+
+          <div>
+            Warning: {kpi.warning_threshold}
+          </div>
+
+          <div>
+            Critical: {kpi.critical_threshold}
+          </div>
+
+          <div>
+            {kpi.active ? "Active" : "Inactive"}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
