@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { getExecutiveDashboard } from "@/app/services/executiveService";
 
 export default function ExecutivePage() {
   const [kpis, setKpis] = useState([]);
@@ -13,8 +14,7 @@ export default function ExecutivePage() {
 
   async function loadDashboard() {
     try {
-      import { getExecutiveDashboard }
-      from "@/services/executiveService";
+
       
       const data = await getExecutiveDashboard();
 
