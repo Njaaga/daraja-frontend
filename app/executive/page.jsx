@@ -10,18 +10,20 @@ export default function ExecutivePage() {
 useEffect(() => {
   async function loadKPIs() {
     try {
-      console.log("Starting KPI load");
-
-      const tenant = localStorage.getItem("tenant_slug");
-      console.log("Tenant from localStorage:", tenant);
-
       const data = await apiClient("/api/kpis/");
 
-      console.log("RAW API RESPONSE:", data);
+      alert(JSON.stringify(data));
 
-      setKpis(Array.isArray(data) ? data : data.results || []);
+      setKpis(
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data.results)
+          ? data.results
+          : []
+      );
     } catch (error) {
-      console.error("KPI LOAD ERROR:", error);
+      alert(error.toString());
+      console.error(error);
     } finally {
       setLoading(false);
     }
