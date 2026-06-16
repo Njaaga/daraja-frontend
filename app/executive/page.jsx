@@ -18,7 +18,7 @@ export default function ExecutivePage() {
       const transformed = data.map((kpi) => ({
         id: kpi.id,
         name: kpi.name,
-        current: kpi.target_value * 0.05, // temporary demo value
+        current: kpi.target_value * 0.25, // temporary demo value
         target: kpi.target_value,
         warning: kpi.warning_threshold,
         critical: kpi.critical_threshold,
