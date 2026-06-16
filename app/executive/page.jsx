@@ -15,7 +15,17 @@ export default function ExecutivePage() {
     try {
       const data = await apiClient("/api/kpis/");
 
-      setKpis(Array.isArray(data) ? data : []);
+      const transformed = data.map((kpi) => ({
+        id: kpi.id,
+        name: kpi.name,
+        current: kpi.target_value * 0.85, // temporary demo value
+        target: kpi.target_value,
+        warning: kpi.warning_threshold,
+        critical: kpi.critical_threshold,
+        status: "healthy",
+      }));
+
+setKpis(transformed);
     } catch (error) {
       console.error(error);
     } finally {
