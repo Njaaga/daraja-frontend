@@ -174,7 +174,13 @@ export default function ExecutivePage() {
 
       <div className="grid gap-6 lg:grid-cols-2 mb-10">
 
-        <ChartPlaceholder title="Revenue Trend" />
+        <div className="bg-white rounded-2xl p-6 shadow">
+          <h3 className="text-xl font-bold mb-4">
+            Revenue Trend
+          </h3>
+        
+          <RevenueTrend />
+        </div>
 
         <ChartPlaceholder title="Profit Trend" />
 
