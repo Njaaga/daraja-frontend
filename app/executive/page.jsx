@@ -7,24 +7,28 @@ export default function ExecutivePage() {
   const [kpis, setKpis] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadKPIs() {
-      try {
-        const data = await apiClient("/api/kpis/");
+useEffect(() => {
+  async function loadKPIs() {
+    try {
+      console.log("Starting KPI load");
 
-        console.log("RAW API RESPONSE:", data);
-        console.log("TENANT:", localStorage.getItem("tenant_slug"));
+      const tenant = localStorage.getItem("tenant_slug");
+      console.log("Tenant from localStorage:", tenant);
 
-        setKpis(Array.isArray(data) ? data : data.results || []);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+      const data = await apiClient("/api/kpis/");
+
+      console.log("RAW API RESPONSE:", data);
+
+      setKpis(Array.isArray(data) ? data : data.results || []);
+    } catch (error) {
+      console.error("KPI LOAD ERROR:", error);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    loadKPIs();
-  }, []);
+  loadKPIs();
+}, []);
 
   if (loading) {
     return <div>Loading...</div>;
