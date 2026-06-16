@@ -12,7 +12,8 @@ export default function ExecutivePage() {
       try {
         const data = await apiClient("/api/kpis/");
 
-        console.log("KPIs:", data);
+        console.log("RAW API RESPONSE:", data);
+        console.log("TENANT:", localStorage.getItem("tenant_slug"));
 
         setKpis(Array.isArray(data) ? data : data.results || []);
       } catch (error) {
