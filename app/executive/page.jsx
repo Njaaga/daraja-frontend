@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { getExecutiveDashboard } from "@/app/services/executiveService";
+import RevenueTrend from "@/app/components/charts/RevenueTrend";
 
 export default function ExecutivePage() {
   const [kpis, setKpis] = useState([]);
