@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import WidgetRenderer from "@/components/dashboard/widgets/WidgetRenderer";
+import WidgetRenderer from "@/app/components/dashboard/widgets/WidgetRenderer";
 
 export default function ExecutivePage() {
   const [widgets, setWidgets] = useState([]);
