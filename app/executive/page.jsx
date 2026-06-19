@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import WidgetRenderer from "@/app/components/dashboard/widgets/WidgetRenderer";
+import { getMetricTrend } from "@/app/services/metricService";
 
 export default function ExecutivePage() {
   const [widgets, setWidgets] = useState([]);
@@ -13,7 +14,13 @@ export default function ExecutivePage() {
 
   async function loadDashboard() {
     try {
-      // Temporary test data
+      let revenueTrend = [];
+
+      try {
+        revenueTrend = await getMetricTrend(1); // Revenue Metric ID
+      } catch (err) {
+        console.error("Trend load failed", err);
+      }
 
       const dashboardWidgets = [
         {
@@ -24,6 +31,7 @@ export default function ExecutivePage() {
           target: "$150,000",
           status: "healthy",
         },
+
         {
           id: 2,
           type: "kpi",
@@ -32,19 +40,29 @@ export default function ExecutivePage() {
           target: "$60,000",
           status: "warning",
         },
+
         {
           id: 3,
           type: "gauge",
           title: "Revenue Goal",
           percent: 78,
         },
+
         {
           id: 4,
+          type: "trend",
+          title: "Revenue Trend",
+          data: revenueTrend,
+        },
+
+        {
+          id: 5,
           type: "insight",
           text: "Revenue increased 12% compared to last month.",
         },
+
         {
-          id: 5,
+          id: 6,
           type: "insight",
           text: "Customer acquisition accelerated by 8%.",
         },
