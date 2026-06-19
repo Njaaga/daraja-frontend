@@ -3,7 +3,7 @@
 import RevenueTrend from "@/app/components/charts/RevenueTrend";
 
 export default function WidgetRenderer({ widget }) {
-  switch (widget.type) {
+  switch (widget.chart_type) {
 
     case "kpi":
       return (
