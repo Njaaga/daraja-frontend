@@ -17,7 +17,7 @@ export default function ExecutivePage() {
       let revenueTrend = [];
 
       try {
-        revenueTrend = await getMetricTrend(1); // Revenue Metric ID
+        revenueTrend = await getMetricTrend(5); // Revenue Metric ID
       } catch (err) {
         console.error("Trend load failed", err);
       }
