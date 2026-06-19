@@ -1,22 +1,37 @@
 "use client"
+import RevenueTrend from "@/app/components/charts/RevenueTrend";
 import KPICard from "./KPICard";
 import GaugeCard from "./GaugeCard";
 import AIInsightCard from "./AIInsightCard";
 
 export default function WidgetRenderer({ widget }) {
   switch (widget.type) {
+  
     case "kpi":
-      return <KPICard widget={widget} />;
-
+      return <KPIWidget widget={widget} />;
+  
     case "gauge":
-      return <GaugeCard widget={widget} />;
-
+      return <GaugeWidget widget={widget} />;
+  
     case "insight":
-      return <AIInsightCard widget={widget} />;
-
+      return <InsightWidget widget={widget} />;
+  
+    case "trend":
+      return (
+        <div className="bg-white rounded-2xl p-6 shadow">
+          <h3 className="font-bold text-lg mb-4">
+            {widget.title}
+          </h3>
+  
+          <RevenueTrend
+            data={widget.data || []}
+          />
+        </div>
+      );
+  
     default:
       return (
-        <div className="rounded-xl border p-4">
+        <div>
           Unknown widget type: {widget.type}
         </div>
       );
