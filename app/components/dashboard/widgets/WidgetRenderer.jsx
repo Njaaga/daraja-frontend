@@ -1,37 +1,67 @@
-"use client"
+"use client";
+
 import RevenueTrend from "@/app/components/charts/RevenueTrend";
-import KPICard from "./KPICard";
-import GaugeCard from "./GaugeCard";
-import AIInsightCard from "./AIInsightCard";
 
 export default function WidgetRenderer({ widget }) {
   switch (widget.type) {
-  
+
     case "kpi":
-      return <KPIWidget widget={widget} />;
-  
+      return (
+        <div className="bg-white rounded-2xl p-6 shadow">
+          <h3 className="font-semibold">
+            {widget.title}
+          </h3>
+
+          <div className="text-4xl font-bold mt-4">
+            {widget.value}
+          </div>
+
+          <div className="text-gray-500 mt-2">
+            Target: {widget.target}
+          </div>
+        </div>
+      );
+
     case "gauge":
-      return <GaugeWidget widget={widget} />;
-  
+      return (
+        <div className="bg-white rounded-2xl p-6 shadow">
+          <h3 className="font-semibold mb-4">
+            {widget.title}
+          </h3>
+
+          <div className="text-5xl font-bold">
+            {widget.percent}%
+          </div>
+        </div>
+      );
+
     case "insight":
-      return <InsightWidget widget={widget} />;
-  
+      return (
+        <div className="bg-white rounded-2xl p-6 shadow">
+          <h3 className="font-semibold mb-4">
+            AI Insight
+          </h3>
+
+          <p>{widget.text}</p>
+        </div>
+      );
+
     case "trend":
       return (
         <div className="bg-white rounded-2xl p-6 shadow">
-          <h3 className="font-bold text-lg mb-4">
+          <h3 className="font-semibold mb-4">
             {widget.title}
           </h3>
-  
+
           <RevenueTrend
             data={widget.data || []}
           />
         </div>
       );
-  
+
     default:
       return (
-        <div>
+        <div className="bg-red-100 p-4 rounded">
           Unknown widget type: {widget.type}
         </div>
       );
