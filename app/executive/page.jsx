@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import WidgetRenderer from "@/app/components/dashboard/widgets/WidgetRenderer";
-import { getMetricTrend } from "@/app/services/metricService";
+import { getMetricTrend } from "@/app/services/trendService";
 
 export default function ExecutivePage() {
   const [widgets, setWidgets] = useState([]);
