@@ -1733,11 +1733,6 @@ const getAggregatedData = (data, xField, yField, agg) => {
               <option value="count">COUNT</option>
             </select>
           )}
-        <option value="none">No Aggregate</option>
-        <option value="sum">SUM</option>
-        <option value="avg">AVG</option>
-        <option value="count">COUNT</option>
-      </select>
 
 {!isMetricWidget && (
   <select
@@ -1758,11 +1753,7 @@ const getAggregatedData = (data, xField, yField, agg) => {
     ))}
   </select>
 )}
-        <option value="">X Field</option>
-        {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
-          <option key={f} value={f}>{f}</option>
-        ))}
-      </select>
+
 
 {!isMetricWidget && (
   <select
@@ -1783,11 +1774,7 @@ const getAggregatedData = (data, xField, yField, agg) => {
     ))}
   </select>
 )}
-        <option value="">Y Field</option>
-        {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
-          <option key={f} value={f}>{f}</option>
-        ))}
-      </select>
+
 
       <button
         onClick={addChart}
