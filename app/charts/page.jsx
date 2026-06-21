@@ -1724,58 +1724,55 @@ console.log("isMetricWidget =", isMetricWidget);
       </div>
     )}
 
-          {!isMetricWidget && (
-            <select
-              value={chartAgg}
-              onChange={(e) => setChartAgg(e.target.value)}
-              className="border p-2 rounded col-span-1"
-            >
-              <option value="none">No Aggregate</option>
-              <option value="sum">SUM</option>
-              <option value="avg">AVG</option>
-              <option value="count">COUNT</option>
-            </select>
-          )}
-
 {!isMetricWidget && (
-  <select
-    value={chartX}
-    onChange={(e) => setChartX(e.target.value)}
-    className="border p-2 rounded col-span-1"
-  >
-    <option value="">X Field</option>
+  <>
+    <select
+      value={chartAgg}
+      onChange={(e) => setChartAgg(e.target.value)}
+      className="border p-2 rounded col-span-1"
+    >
+      <option value="none">No Aggregate</option>
+      <option value="sum">SUM</option>
+      <option value="avg">AVG</option>
+      <option value="count">COUNT</option>
+    </select>
 
-    {getSelectableFields(
-      selectedDatasets.length
-        ? selectedDatasets[0].id
-        : "excel"
-    ).map((f) => (
-      <option key={f} value={f}>
-        {f}
-      </option>
-    ))}
-  </select>
-)}
+    <select
+      value={chartX}
+      onChange={(e) => setChartX(e.target.value)}
+      className="border p-2 rounded col-span-1"
+    >
+      <option value="">X Field</option>
 
+      {getSelectableFields(
+        selectedDatasets.length
+          ? selectedDatasets[0].id
+          : "excel"
+      ).map((f) => (
+        <option key={f} value={f}>
+          {f}
+        </option>
+      ))}
+    </select>
 
-{!isMetricWidget && (
-  <select
-    value={chartY}
-    onChange={(e) => setChartY(e.target.value)}
-    className="border p-2 rounded col-span-1"
-  >
-    <option value="">Y Field</option>
+    <select
+      value={chartY}
+      onChange={(e) => setChartY(e.target.value)}
+      className="border p-2 rounded col-span-1"
+    >
+      <option value="">Y Field</option>
 
-    {getSelectableFields(
-      selectedDatasets.length
-        ? selectedDatasets[0].id
-        : "excel"
-    ).map((f) => (
-      <option key={f} value={f}>
-        {f}
-      </option>
-    ))}
-  </select>
+      {getSelectableFields(
+        selectedDatasets.length
+          ? selectedDatasets[0].id
+          : "excel"
+      ).map((f) => (
+        <option key={f} value={f}>
+          {f}
+        </option>
+      ))}
+    </select>
+  </>
 )}
 
 
