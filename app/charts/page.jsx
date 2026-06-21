@@ -474,26 +474,12 @@ const getPrunedPreview = () => {
 
   // datasets
   const [datasets, setDatasets] = useState([]);
-  const [metrics, setMetrics] = useState([]);
-  const [selectedMetric, setSelectedMetric] = useState("");
   const [selectedDatasets, setSelectedDatasets] = useState([]); // dataset objects
   const [datasetRows, setDatasetRows] = useState({}); // id => rows[]
   const [datasetFields, setDatasetFields] = useState({}); // id => [fields]
 
 
   const [selectedFields, setSelectedFields] = useState({});
-
-  const metricWidgetTypes = [
-    "kpi",
-    "trend",
-    "gauge",
-    "forecast",
-    "alert",
-    "insight",
-  ];
-  
-  const isMetricWidget =
-    metricWidgetTypes.includes(chartType);
 
     // ------------------------
   // Initialize selectedFields
@@ -583,56 +569,22 @@ const getPrunedPreview = () => {
   // local refs
   const sampleLimit = 5000; // preview safety
 
-/* ---------- load datasets + metrics ---------- */
-useEffect(() => {
-  async function load() {
-    setLoadingDatasets(true);
-
-    try {
-      const datasetRes = await apiClient("/api/datasets/");
-
-      const datasetList = Array.isArray(datasetRes)
-        ? datasetRes
-        : datasetRes?.data
-        ? datasetRes.data
-        : [];
-
-      setDatasets(datasetList || []);
-
-    } catch (err) {
-      console.error(
-        "Failed to load datasets:",
-        err
-      );
-      setDatasets([]);
+  /* ---------- load datasets list ---------- */
+  useEffect(() => {
+    async function load() {
+      setLoadingDatasets(true);
+      try {
+        const res = await apiClient("/api/datasets/");
+        const list = Array.isArray(res) ? res : res?.data ? res.data : [];
+        setDatasets(list || []);
+      } catch (err) {
+        console.error("Failed to load datasets:", err);
+        setDatasets([]);
+      }
+      setLoadingDatasets(false);
     }
-
-    try {
-      const metricRes = await apiClient(
-        "/api/metrics/"
-      );
-
-      const metricList = Array.isArray(metricRes)
-        ? metricRes
-        : metricRes?.data
-        ? metricRes.data
-        : [];
-
-      setMetrics(metricList || []);
-
-    } catch (err) {
-      console.error(
-        "Failed to load metrics:",
-        err
-      );
-      setMetrics([]);
-    }
-
-    setLoadingDatasets(false);
-  }
-
-  load();
-}, []);
+    load();
+  }, []);
 
   /* ---------- fetch dataset rows helper (server-run) ---------- */
   const fetchDataset = async (dataset) => {
@@ -1185,8 +1137,7 @@ const getAggregatedData = (data, xField, yField, agg) => {
   return aggregateData(data, xField, yField, agg);
 };
 
-console.log("chartType =", chartType);
-console.log("isMetricWidget =", isMetricWidget);
+
 
   /* ---------- UI ---------- */
   return (
@@ -1643,9 +1594,7 @@ console.log("isMetricWidget =", isMetricWidget);
 {step === STEPS.CHARTS && (
   <div className="mb-4 bg-white p-4 rounded shadow">
     <div className="flex items-center gap-2 mb-2">
-      <h3 className="font-semibold text-red-600">
-  CREATE CHARTS TEST 123
-</h3>
+      <h3 className="font-semibold">Create charts</h3>
       <InfoTooltip
         align="right"
         text="Visualize your data using bar, line, pie, or table charts."
@@ -1667,114 +1616,48 @@ console.log("isMetricWidget =", isMetricWidget);
         onChange={(e) => setChartType(e.target.value)}
         className="border p-2 rounded col-span-1"
       >
-        <optgroup label="Executive Widgets">
-          <option value="kpi">KPI</option>
-          <option value="trend">Trend</option>
-          <option value="gauge">Gauge</option>
-          <option value="forecast">Forecast</option>
-          <option value="alert">Alert</option>
-          <option value="insight">Insight</option>
-        </optgroup>
-      
-        <optgroup label="Charts">
-          <option value="bar">Bar</option>
-          <option value="stacked_bar">Stacked Bar</option>
-          <option value="line">Line</option>
-          <option value="area">Area</option>
-          <option value="pie">Pie</option>
-          <option value="scatter">Scatter</option>
-          <option value="table">Table</option>
-        </optgroup>
+        <option value="bar">Bar</option>
+        <option value="stacked_bar">Stacked Bar</option>
+        <option value="line">Line</option>
+        <option value="area">Area</option>
+        <option value="pie">Pie</option>
+        <option value="scatter">Scatter</option>
+        <option value="table">Table</option>
+        <option value="kpi">KPI</option>
       </select>
-      {[
-      "kpi",
-      "trend",
-      "gauge",
-      "forecast",
-      "alert",
-      "insight",
-    ].includes(chartType) && (
-      <div className="mt-4">
-    
-        <label className="block mb-2 font-medium">
-          Metric
-        </label>
-    
-        <select
-          value={selectedMetric}
-          onChange={(e) =>
-            setSelectedMetric(e.target.value)
-          }
-          className="border p-2 rounded w-full"
-        >
-          <option value="">
-            Select Metric
-          </option>
-    
-          {metrics.map((metric) => (
-            <option
-              key={metric.id}
-              value={metric.id}
-            >
-              {metric.name}
-            </option>
-          ))}
-        </select>
-    
-      </div>
-    )}
 
-{!isMetricWidget && (
-  <>
-    <select
-      value={chartAgg}
-      onChange={(e) => setChartAgg(e.target.value)}
-      className="border p-2 rounded col-span-1"
-    >
-      <option value="none">No Aggregate</option>
-      <option value="sum">SUM</option>
-      <option value="avg">AVG</option>
-      <option value="count">COUNT</option>
-    </select>
+      <select
+        value={chartAgg}
+        onChange={(e) => setChartAgg(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
+        <option value="none">No Aggregate</option>
+        <option value="sum">SUM</option>
+        <option value="avg">AVG</option>
+        <option value="count">COUNT</option>
+      </select>
 
-    <select
-      value={chartX}
-      onChange={(e) => setChartX(e.target.value)}
-      className="border p-2 rounded col-span-1"
-    >
-      <option value="">X Field</option>
+      <select
+        value={chartX}
+        onChange={(e) => setChartX(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
+        <option value="">X Field</option>
+        {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
 
-      {getSelectableFields(
-        selectedDatasets.length
-          ? selectedDatasets[0].id
-          : "excel"
-      ).map((f) => (
-        <option key={f} value={f}>
-          {f}
-        </option>
-      ))}
-    </select>
-
-    <select
-      value={chartY}
-      onChange={(e) => setChartY(e.target.value)}
-      className="border p-2 rounded col-span-1"
-    >
-      <option value="">Y Field</option>
-
-      {getSelectableFields(
-        selectedDatasets.length
-          ? selectedDatasets[0].id
-          : "excel"
-      ).map((f) => (
-        <option key={f} value={f}>
-          {f}
-        </option>
-      ))}
-    </select>
-  </>
-)}
-
+      <select
+        value={chartY}
+        onChange={(e) => setChartY(e.target.value)}
+        className="border p-2 rounded col-span-1"
+      >
+        <option value="">Y Field</option>
+        {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
+          <option key={f} value={f}>{f}</option>
+        ))}
+      </select>
 
       <button
         onClick={addChart}
