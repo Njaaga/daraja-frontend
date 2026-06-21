@@ -1137,7 +1137,20 @@ const getAggregatedData = (data, xField, yField, agg) => {
   return aggregateData(data, xField, yField, agg);
 };
 
+const metricWidgetTypes = [
+  "kpi",
+  "trend",
+  "gauge",
+  "forecast",
+  "alert",
+  "insight",
+];
 
+const isMetricWidget =
+  metricWidgetTypes.includes(chartType);
+
+console.log("chartType =", chartType);
+console.log("isMetricWidget =", isMetricWidget);
 
   /* ---------- UI ---------- */
   return (
