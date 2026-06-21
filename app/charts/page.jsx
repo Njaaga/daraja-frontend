@@ -1611,20 +1611,71 @@ const getAggregatedData = (data, xField, yField, agg) => {
         className="border p-2 rounded col-span-3"
       />
 
-      <select
-        value={chartType}
-        onChange={(e) => setChartType(e.target.value)}
-        className="border p-2 rounded col-span-1"
-      >
-        <option value="bar">Bar</option>
-        <option value="stacked_bar">Stacked Bar</option>
-        <option value="line">Line</option>
-        <option value="area">Area</option>
-        <option value="pie">Pie</option>
-        <option value="scatter">Scatter</option>
-        <option value="table">Table</option>
-        <option value="kpi">KPI</option>
-      </select>
+    <select
+      value={chartType}
+      onChange={(e) => setChartType(e.target.value)}
+      className="border p-2 rounded col-span-1"
+    >
+      <optgroup label="Executive Widgets">
+    
+        <option value="kpi">
+          KPI
+        </option>
+    
+        <option value="trend">
+          Trend
+        </option>
+    
+        <option value="gauge">
+          Gauge
+        </option>
+    
+        <option value="forecast">
+          Forecast
+        </option>
+    
+        <option value="alert">
+          Alert
+        </option>
+    
+        <option value="insight">
+          Insight
+        </option>
+    
+      </optgroup>
+    
+      <optgroup label="Charts">
+    
+        <option value="bar">
+          Bar
+        </option>
+    
+        <option value="stacked_bar">
+          Stacked Bar
+        </option>
+    
+        <option value="line">
+          Line
+        </option>
+    
+        <option value="area">
+          Area
+        </option>
+    
+        <option value="pie">
+          Pie
+        </option>
+    
+        <option value="scatter">
+          Scatter
+        </option>
+    
+        <option value="table">
+          Table
+        </option>
+    
+      </optgroup>
+    </select>
 
       <select
         value={chartAgg}
