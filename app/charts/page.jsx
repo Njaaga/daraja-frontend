@@ -1643,7 +1643,9 @@ console.log("isMetricWidget =", isMetricWidget);
 {step === STEPS.CHARTS && (
   <div className="mb-4 bg-white p-4 rounded shadow">
     <div className="flex items-center gap-2 mb-2">
-      <h3 className="font-semibold">Create charts</h3>
+      <h3 className="font-semibold text-red-600">
+  CREATE CHARTS TEST 123
+</h3>
       <InfoTooltip
         align="right"
         text="Visualize your data using bar, line, pie, or table charts."
