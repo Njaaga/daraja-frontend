@@ -474,6 +474,8 @@ const getPrunedPreview = () => {
 
   // datasets
   const [datasets, setDatasets] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [selectedMetric, setSelectedMetric] = useState("");
   const [selectedDatasets, setSelectedDatasets] = useState([]); // dataset objects
   const [datasetRows, setDatasetRows] = useState({}); // id => rows[]
   const [datasetFields, setDatasetFields] = useState({}); // id => [fields]
@@ -569,22 +571,56 @@ const getPrunedPreview = () => {
   // local refs
   const sampleLimit = 5000; // preview safety
 
-  /* ---------- load datasets list ---------- */
-  useEffect(() => {
-    async function load() {
-      setLoadingDatasets(true);
-      try {
-        const res = await apiClient("/api/datasets/");
-        const list = Array.isArray(res) ? res : res?.data ? res.data : [];
-        setDatasets(list || []);
-      } catch (err) {
-        console.error("Failed to load datasets:", err);
-        setDatasets([]);
-      }
-      setLoadingDatasets(false);
+/* ---------- load datasets + metrics ---------- */
+useEffect(() => {
+  async function load() {
+    setLoadingDatasets(true);
+
+    try {
+      const datasetRes = await apiClient("/api/datasets/");
+
+      const datasetList = Array.isArray(datasetRes)
+        ? datasetRes
+        : datasetRes?.data
+        ? datasetRes.data
+        : [];
+
+      setDatasets(datasetList || []);
+
+    } catch (err) {
+      console.error(
+        "Failed to load datasets:",
+        err
+      );
+      setDatasets([]);
     }
-    load();
-  }, []);
+
+    try {
+      const metricRes = await apiClient(
+        "/api/metrics/"
+      );
+
+      const metricList = Array.isArray(metricRes)
+        ? metricRes
+        : metricRes?.data
+        ? metricRes.data
+        : [];
+
+      setMetrics(metricList || []);
+
+    } catch (err) {
+      console.error(
+        "Failed to load metrics:",
+        err
+      );
+      setMetrics([]);
+    }
+
+    setLoadingDatasets(false);
+  }
+
+  load();
+}, []);
 
   /* ---------- fetch dataset rows helper (server-run) ---------- */
   const fetchDataset = async (dataset) => {
