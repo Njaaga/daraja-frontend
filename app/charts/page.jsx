@@ -1185,7 +1185,8 @@ const getAggregatedData = (data, xField, yField, agg) => {
   return aggregateData(data, xField, yField, agg);
 };
 
-
+console.log("chartType =", chartType);
+console.log("isMetricWidget =", isMetricWidget);
 
   /* ---------- UI ---------- */
   return (
