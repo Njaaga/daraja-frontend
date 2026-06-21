@@ -483,6 +483,18 @@ const getPrunedPreview = () => {
 
   const [selectedFields, setSelectedFields] = useState({});
 
+  const metricWidgetTypes = [
+    "kpi",
+    "trend",
+    "gauge",
+    "forecast",
+    "alert",
+    "insight",
+  ];
+  
+  const isMetricWidget =
+    metricWidgetTypes.includes(chartType);
+
     // ------------------------
   // Initialize selectedFields
   // ------------------------
@@ -1709,33 +1721,68 @@ const getAggregatedData = (data, xField, yField, agg) => {
       </div>
     )}
 
-      <select
-        value={chartAgg}
-        onChange={(e) => setChartAgg(e.target.value)}
-        className="border p-2 rounded col-span-1"
-      >
+          {!isMetricWidget && (
+            <select
+              value={chartAgg}
+              onChange={(e) => setChartAgg(e.target.value)}
+              className="border p-2 rounded col-span-1"
+            >
+              <option value="none">No Aggregate</option>
+              <option value="sum">SUM</option>
+              <option value="avg">AVG</option>
+              <option value="count">COUNT</option>
+            </select>
+          )}
         <option value="none">No Aggregate</option>
         <option value="sum">SUM</option>
         <option value="avg">AVG</option>
         <option value="count">COUNT</option>
       </select>
 
-      <select
-        value={chartX}
-        onChange={(e) => setChartX(e.target.value)}
-        className="border p-2 rounded col-span-1"
-      >
+{!isMetricWidget && (
+  <select
+    value={chartX}
+    onChange={(e) => setChartX(e.target.value)}
+    className="border p-2 rounded col-span-1"
+  >
+    <option value="">X Field</option>
+
+    {getSelectableFields(
+      selectedDatasets.length
+        ? selectedDatasets[0].id
+        : "excel"
+    ).map((f) => (
+      <option key={f} value={f}>
+        {f}
+      </option>
+    ))}
+  </select>
+)}
         <option value="">X Field</option>
         {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
           <option key={f} value={f}>{f}</option>
         ))}
       </select>
 
-      <select
-        value={chartY}
-        onChange={(e) => setChartY(e.target.value)}
-        className="border p-2 rounded col-span-1"
-      >
+{!isMetricWidget && (
+  <select
+    value={chartY}
+    onChange={(e) => setChartY(e.target.value)}
+    className="border p-2 rounded col-span-1"
+  >
+    <option value="">Y Field</option>
+
+    {getSelectableFields(
+      selectedDatasets.length
+        ? selectedDatasets[0].id
+        : "excel"
+    ).map((f) => (
+      <option key={f} value={f}>
+        {f}
+      </option>
+    ))}
+  </select>
+)}
         <option value="">Y Field</option>
         {getSelectableFields(selectedDatasets.length ? selectedDatasets[0].id : "excel").map((f) => (
           <option key={f} value={f}>{f}</option>
