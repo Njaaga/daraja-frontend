@@ -1624,11 +1624,21 @@ console.log("isMetricWidget =", isMetricWidget);
         className="border p-2 rounded col-span-3"
       />
 
-      <select
-        value={chartType}
-        onChange={(e) => setChartType(e.target.value)}
-        className="border p-2 rounded col-span-1"
-      >
+    <select
+      value={chartType}
+      onChange={(e) => setChartType(e.target.value)}
+      className="border p-2 rounded col-span-1"
+    >
+      <optgroup label="Executive Widgets">
+        <option value="kpi">KPI</option>
+        <option value="trend">Trend</option>
+        <option value="gauge">Gauge</option>
+        <option value="forecast">Forecast</option>
+        <option value="alert">Alert</option>
+        <option value="insight">Insight</option>
+      </optgroup>
+    
+      <optgroup label="Charts">
         <option value="bar">Bar</option>
         <option value="stacked_bar">Stacked Bar</option>
         <option value="line">Line</option>
@@ -1636,20 +1646,46 @@ console.log("isMetricWidget =", isMetricWidget);
         <option value="pie">Pie</option>
         <option value="scatter">Scatter</option>
         <option value="table">Table</option>
-        <option value="kpi">KPI</option>
-      </select>
+      </optgroup>
+    </select>
 
-      <select
-        value={chartAgg}
-        onChange={(e) => setChartAgg(e.target.value)}
-        className="border p-2 rounded col-span-1"
+      {isMetricWidget && (
+  <select
+    value={selectedMetric}
+    onChange={(e) =>
+      setSelectedMetric(e.target.value)
+    }
+    className="border p-2 rounded col-span-2"
+  >
+    <option value="">
+      Select Metric
+    </option>
+
+    {metrics.map((metric) => (
+      <option
+        key={metric.id}
+        value={metric.id}
       >
-        <option value="none">No Aggregate</option>
-        <option value="sum">SUM</option>
-        <option value="avg">AVG</option>
-        <option value="count">COUNT</option>
-      </select>
+        {metric.name}
+      </option>
+    ))}
+  </select>
+)}
 
+{!isMetricWidget && (
+  <select
+    value={chartAgg}
+    onChange={(e) => setChartAgg(e.target.value)}
+    className="border p-2 rounded col-span-1"
+  >
+    <option value="none">No Aggregate</option>
+    <option value="sum">SUM</option>
+    <option value="avg">AVG</option>
+    <option value="count">COUNT</option>
+  </select>
+)}
+
+      {!isMetricWidget && (
       <select
         value={chartX}
         onChange={(e) => setChartX(e.target.value)}
@@ -1660,7 +1696,9 @@ console.log("isMetricWidget =", isMetricWidget);
           <option key={f} value={f}>{f}</option>
         ))}
       </select>
+      )}
 
+      {!isMetricWidget && (
       <select
         value={chartY}
         onChange={(e) => setChartY(e.target.value)}
@@ -1671,6 +1709,7 @@ console.log("isMetricWidget =", isMetricWidget);
           <option key={f} value={f}>{f}</option>
         ))}
       </select>
+    )}
 
       <button
         onClick={addChart}
