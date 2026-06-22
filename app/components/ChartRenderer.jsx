@@ -193,7 +193,7 @@ export default function ChartRenderer({
       <Trend
         currentValue={100}
         previousValue={80}
-        label={metrics?.name || "Trend"}
+        label={selectedMetric?.name || "Trend"}
       />
     )}
 
