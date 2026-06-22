@@ -12,6 +12,7 @@ import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 import Trend from "@/app/charts/Trend";
+import Gauge from "@/app/charts/Gauge";
 
 /* --------------------- HELPERS --------------------- */
 
@@ -191,6 +192,14 @@ export default function ChartRenderer({
           currentValue={100}
           previousValue={80}
           label="Profit"
+        />
+      )}
+
+      {type === "gauge" && (
+        <Gauge
+          value={75}
+          max={100}
+          label="Gauge"
         />
       )}
 
