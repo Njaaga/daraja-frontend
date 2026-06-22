@@ -45,6 +45,7 @@ function getValueByPath(obj, path) {
 /* --------------------- CHART RENDERER --------------------- */
 
 export default function ChartRenderer({
+  metricId,
   datasetId,
   type,
   xField,
