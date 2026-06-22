@@ -559,6 +559,9 @@ const getPrunedPreview = () => {
   const [chartAgg, setChartAgg] = useState("none");
   const [chartTitle, setChartTitle] = useState("");
 
+  const [selectedMetric, setSelectedMetric] = useState("");
+  const [metrics, setMetrics] = useState([]);
+
   // preview
   const [preview, setPreview] = useState([]);
 
@@ -585,6 +588,29 @@ const getPrunedPreview = () => {
     }
     load();
   }, []);
+
+/* ---------- load metrics ---------- */
+useEffect(() => {
+  async function loadMetrics() {
+    try {
+      const res = await apiClient("/api/metrics/");
+
+      const list = Array.isArray(res)
+        ? res
+        : res?.data
+        ? res.data
+        : [];
+
+      setMetrics(list);
+    } catch (err) {
+      console.error("Failed to load metrics:", err);
+      setMetrics([]);
+    }
+  }
+
+  loadMetrics();
+}, []);
+
 
   /* ---------- fetch dataset rows helper (server-run) ---------- */
   const fetchDataset = async (dataset) => {
