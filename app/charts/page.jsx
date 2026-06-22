@@ -947,10 +947,27 @@ const addChart = async () => {
       alert("No data to chart. Select dataset(s) or upload Excel/CSV.");
       return;
     }
-    if (!chartX || !chartY) {
-      alert("Select X and Y fields");
-      return;
-    }
+const metricWidgetTypes = [
+  "kpi",
+  "trend",
+  "gauge",
+  "forecast",
+  "alert",
+  "insight",
+];
+
+const isMetricWidget =
+  metricWidgetTypes.includes(chartType);
+
+if (isMetricWidget && !selectedMetric) {
+  alert("Select a metric");
+  return;
+}
+
+if (!isMetricWidget && (!chartX || !chartY)) {
+  alert("Select X and Y fields");
+  return;
+}
 
     const datasetId = hasDataset ? selectedDatasets[0].id : null;
     const isExcelChart = hasExcel && !hasDataset;
