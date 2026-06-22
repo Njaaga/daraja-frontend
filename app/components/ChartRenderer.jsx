@@ -64,6 +64,8 @@ export default function ChartRenderer({
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [metric, setMetric] = useState(null);
+  const [snapshots, setSnapshots] = useState([]);
 
   /* ---------- Load Data ---------- */
   useEffect(() => {
@@ -176,15 +178,28 @@ export default function ChartRenderer({
   };
 
   /* ---------- Render ---------- */
-  if (loading) return <div>Loading dataset…</div>;
-  if (!filteredData.length) return <div>No matching data</div>;
+if (loading) {
+  return <div>Loading...</div>;
+}
+
+const metricWidgets = [
+  "trend",
+  "gauge",
+  "alert",
+  "forecast",
+  "insight",
+];
+
+if (
+  !metricWidgets.includes(type) &&
+  !filteredData.length
+) {
+  return <div>No matching data</div>;
+}
 
   const wrapperClass = fullscreen
     ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
     : "";
-
-const [metric, setMetric] = useState(null);
-const [snapshots, setSnapshots] = useState([]);
 
 useEffect(() => {
   if (!metricId) return;
