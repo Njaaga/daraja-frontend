@@ -1819,6 +1819,10 @@ console.log("isMetricWidget =", isMetricWidget);
               {c.type === "table" ? (
                 <TableRenderer dataset={chartData} />
               ) : (
+
+              <pre className="text-xs">
+                {JSON.stringify(c, null, 2)}
+              </pre>
                 <ChartRenderer
                   type={c.type}
                   datasetId={undefined}
