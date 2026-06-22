@@ -13,6 +13,7 @@ import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
 import Trend from "@/app/charts/Trend";
 import Gauge from "@/app/charts/Gauge";
+import Alert from "@/app/charts/Alert";
 
 /* --------------------- HELPERS --------------------- */
 
@@ -201,6 +202,10 @@ export default function ChartRenderer({
           max={100}
           label="Gauge"
         />
+      )}
+
+      {type === "alert" && (
+        <Alert message="Threshold exceeded" />
       )}
 
       {type === "bar" && (
