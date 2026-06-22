@@ -185,6 +185,13 @@ export default function ChartRenderer({
         <LineChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
+      {type === "trend" && (
+      <LineChart
+        {...commonProps}
+        onPointClick={handlePointClick}
+      />
+    )}
+
       {type === "bar" && (
         <BarChart {...commonProps} onBarClick={handlePointClick} />
       )}
