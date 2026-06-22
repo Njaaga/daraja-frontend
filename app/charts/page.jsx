@@ -1817,9 +1817,6 @@ console.log("isMetricWidget =", isMetricWidget);
               </div>
 
               <>
-                <pre className="text-xs bg-gray-100 p-2 mb-2 overflow-auto">
-                  {JSON.stringify(c, null, 2)}
-                </pre>
               
                 {c.type === "table" ? (
                   <TableRenderer dataset={chartData} />
