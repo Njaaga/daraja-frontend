@@ -79,7 +79,7 @@ useEffect(() => {
       setMetric(metricData);
 
       const snapshotData = await apiClient(
-        `/api/metrics/${metricId}/snapshots/`
+        `/api/metrics/${metricId}/trend/`
       );
 
       setSnapshots(snapshotData || []);
