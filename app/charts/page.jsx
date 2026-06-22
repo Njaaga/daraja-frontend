@@ -1017,19 +1017,34 @@ const addChart = async () => {
 
     // 5️⃣ Build chart config for backend (strip frontend-only fields)
     const backendChartConfig = {
-      name: chartTitle || `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+      name:
+        chartTitle ||
+        `${chartType.toUpperCase()} Chart ${charts.length + 1}`,
+    
       chart_type: chartType,
-      x_field: chartX,
-      y_field: chartY,
+    
       aggregation: chartAgg || null,
+    
       dataset: datasetId,
+    
       filters,
       joins: sanitizedJoins,
       calculated_fields: calculatedFields,
       logic_rules: logicSaved || [],
       logic_expression: logicExpr || null,
-      selected_fields: selectedFieldsArray.length ? selectedFieldsArray : null,
+    
+      selected_fields:
+        selectedFieldsArray.length
+          ? selectedFieldsArray
+          : null,
     };
+
+    if (isMetricWidget) {
+      backendChartConfig.metric = selectedMetric;
+    } else {
+      backendChartConfig.x_field = chartX;
+      backendChartConfig.y_field = chartY;
+    }
 
     let chartId = null;
 
@@ -1073,8 +1088,6 @@ const addChart = async () => {
       chartId,
       name: backendChartConfig.name,
       type: chartType,
-      xField: chartX,
-      yField: chartY,
       aggregation: chartAgg,
       datasetIds: datasetId ? [datasetId] : [],
       filters,
@@ -1086,6 +1099,13 @@ const addChart = async () => {
       preview: isExcelChart ? [...preview.slice(0, 10)] : null,
       isExcelChart,
     };
+
+    if (!isMetricWidget) {
+      newChart.xField = chartX;
+      newChart.yField = chartY;
+    } else {
+      newChart.metricId = selectedMetric;
+    }
 
     setCharts(prev => [...prev, newChart]);
     setLayout(prev => [
