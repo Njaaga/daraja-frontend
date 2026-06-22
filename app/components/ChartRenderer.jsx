@@ -14,6 +14,7 @@ import KPI from "@/app/charts/KPI";
 import Trend from "@/app/charts/Trend";
 import Gauge from "@/app/charts/Gauge";
 import Alert from "@/app/charts/Alert";
+import TrendChart from "@/app/charts/TrendChart";
 
 /* --------------------- HELPERS --------------------- */
 
@@ -243,11 +244,11 @@ const previousValue =
         <LineChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
-    {type === "trend" && metric && (
-      <Trend
-        currentValue={currentValue}
-        previousValue={previousValue}
-        label={metric.name}
+    {type === "trend" && (
+      <TrendChart
+        data={snapshots}
+        xKey="recorded_at"
+        yKey="value"
       />
     )}
 
