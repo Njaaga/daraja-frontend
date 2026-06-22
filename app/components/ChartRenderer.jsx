@@ -183,17 +183,54 @@ export default function ChartRenderer({
     ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
     : "";
 
+const [metric, setMetric] = useState(null);
+const [snapshots, setSnapshots] = useState([]);
+
+useEffect(() => {
+  if (!metricId) return;
+
+  const loadMetric = async () => {
+    try {
+      const metricData = await apiClient(
+        `/api/metrics/${metricId}/`
+      );
+
+      setMetric(metricData);
+
+      const snapshotData = await apiClient(
+        `/api/metrics/${metricId}/snapshots/`
+      );
+
+      setSnapshots(snapshotData || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadMetric();
+}, [metricId]);
+
+const currentValue =
+  snapshots.length > 0
+    ? Number(snapshots[0].value)
+    : 0;
+
+const previousValue =
+  snapshots.length > 1
+    ? Number(snapshots[1].value)
+    : currentValue;
+
   return (
     <div className={wrapperClass}>
       {type === "line" && (
         <LineChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
-    {type === "trend" && (
+    {type === "trend" && metric && (
       <Trend
-        currentValue={100}
-        previousValue={80}
-        label="Trend"
+        currentValue={currentValue}
+        previousValue={previousValue}
+        label={metric.name}
       />
     )}
 
