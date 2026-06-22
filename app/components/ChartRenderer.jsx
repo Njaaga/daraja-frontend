@@ -246,9 +246,10 @@ const previousValue =
 
     {type === "trend" && (
       <TrendChart
-        data={snapshots}
-        xKey="recorded_at"
-        yKey="value"
+          currentValue={currentValue}
+          previousValue={previousValue}
+          label={metric.name}
+          trendData={snapshots}
       />
     )}
 
