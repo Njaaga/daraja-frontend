@@ -244,7 +244,7 @@ const previousValue =
         <LineChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
-    {type === "trend" && (
+    {type === "trend" && metric && (
       <TrendChart
           currentValue={currentValue}
           previousValue={previousValue}
