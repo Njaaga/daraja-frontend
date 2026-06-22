@@ -11,6 +11,7 @@ import StackedBarChart from "@/app/charts/StackedBarChart";
 import AreaChart from "@/app/charts/AreaChart";
 import ScatterChart from "@/app/charts/ScatterChart";
 import KPI from "@/app/charts/KPI";
+import Trend from "@/app/charts/Trend";
 
 /* --------------------- HELPERS --------------------- */
 
@@ -186,11 +187,12 @@ export default function ChartRenderer({
       )}
 
       {type === "trend" && (
-      <LineChart
-        {...commonProps}
-        onPointClick={handlePointClick}
-      />
-    )}
+        <Trend
+          currentValue={100}
+          previousValue={80}
+          label="Profit"
+        />
+      )}
 
       {type === "bar" && (
         <BarChart {...commonProps} onBarClick={handlePointClick} />
