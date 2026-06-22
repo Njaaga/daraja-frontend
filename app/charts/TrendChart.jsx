@@ -1,31 +1,45 @@
-"use client";
-
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
-  XAxis,
-  YAxis,
-  Tooltip,
+  ResponsiveContainer
 } from "recharts";
 
-export default function TrendChart({
-  data,
-  xKey = "date",
-  yKey = "value",
+export default function Trend({
+  label,
+  currentValue,
+  previousValue,
+  trendData = []
 }) {
+  const percent =
+    previousValue === 0
+      ? 0
+      : ((currentValue - previousValue) /
+          previousValue) *
+        100;
+
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <LineChart data={data}>
-        <XAxis dataKey={xKey} />
-        <YAxis />
-        <Tooltip />
-        <Line
-          type="monotone"
-          dataKey={yKey}
-          stroke="#2563eb"
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="bg-white p-4 rounded shadow">
+      <h4>{label}</h4>
+
+      <div className="text-3xl font-bold">
+        {currentValue}
+      </div>
+
+      <div className="text-green-600">
+        {percent.toFixed(1)}%
+      </div>
+
+      <div className="h-20 mt-3">
+        <ResponsiveContainer>
+          <LineChart data={trendData}>
+            <Line
+              type="monotone"
+              dataKey="value"
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
