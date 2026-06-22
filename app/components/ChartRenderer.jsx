@@ -189,13 +189,13 @@ export default function ChartRenderer({
         <LineChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
-      {type === "trend" && (
-        <Trend
-          currentValue={100}
-          previousValue={80}
-          label="Profit"
-        />
-      )}
+    {type === "trend" && (
+      <Trend
+        currentValue={100}
+        previousValue={80}
+        label={metric?.name || "Trend"}
+      />
+    )}
 
       {type === "gauge" && (
         <Gauge
