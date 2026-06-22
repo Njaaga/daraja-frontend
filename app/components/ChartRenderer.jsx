@@ -217,9 +217,12 @@ export default function ChartRenderer({
         <ScatterChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
-      {type === "kpi" && (
-        <KPI value={chartData} label={yAxisLabel || yField} />
-      )}
+    {(type === "kpi" || type === "trend") && (
+      <KPI
+        value={chartData}
+        label={yAxisLabel || yField}
+      />
+    )}
     </div>
   );
 }
