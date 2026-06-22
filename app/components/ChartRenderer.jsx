@@ -189,11 +189,12 @@ export default function ChartRenderer({
         <LineChart {...commonProps} onPointClick={handlePointClick} />
       )}
 
+      const [metrics, setMetrics]
     {type === "trend" && (
       <Trend
         currentValue={100}
         previousValue={80}
-        label={selectedMetric?.name || "Trend"}
+        label={metrics?.name || "Trend"}
       />
     )}
 
