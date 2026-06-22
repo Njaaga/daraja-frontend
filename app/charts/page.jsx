@@ -1816,24 +1816,30 @@ console.log("isMetricWidget =", isMetricWidget);
                 </button>
               </div>
 
-              {c.type === "table" ? (
-                <TableRenderer dataset={chartData} />
-              ) : (
-                <ChartRenderer
-                  type={c.type}
-                  datasetId={undefined}
-                  excelData={aggregatedData}
-                  xField={c.xField}
-                  yField={c.yField}
-                  aggregation={c.aggregation}
-                  onPointClick={(pt) => {
-                    if (pt && pt.x !== undefined) {
-                      setQuery(String(pt.x));
-                      setStep(STEPS.FILTERS);
-                    }
-                  }}
-                />
-              )}
+              <>
+                <pre className="text-xs bg-gray-100 p-2 mb-2 overflow-auto">
+                  {JSON.stringify(c, null, 2)}
+                </pre>
+              
+                {c.type === "table" ? (
+                  <TableRenderer dataset={chartData} />
+                ) : (
+                  <ChartRenderer
+                    type={c.type}
+                    datasetId={undefined}
+                    excelData={aggregatedData}
+                    xField={c.xField}
+                    yField={c.yField}
+                    aggregation={c.aggregation}
+                    onPointClick={(pt) => {
+                      if (pt && pt.x !== undefined) {
+                        setQuery(String(pt.x));
+                        setStep(STEPS.FILTERS);
+                      }
+                    }}
+                  />
+                )}
+              </>
             </div>
           );
         })}
