@@ -67,6 +67,30 @@ export default function ChartRenderer({
   const [metric, setMetric] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
 
+useEffect(() => {
+  if (!metricId) return;
+
+  const loadMetric = async () => {
+    try {
+      const metricData = await apiClient(
+        `/api/metrics/${metricId}/`
+      );
+
+      setMetric(metricData);
+
+      const snapshotData = await apiClient(
+        `/api/metrics/${metricId}/snapshots/`
+      );
+
+      setSnapshots(snapshotData || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadMetric();
+}, [metricId]);
+
   /* ---------- Load Data ---------- */
   useEffect(() => {
     if (!datasetId) {
@@ -201,29 +225,7 @@ if (
     ? "fixed inset-0 bg-white z-50 p-6 overflow-auto"
     : "";
 
-useEffect(() => {
-  if (!metricId) return;
 
-  const loadMetric = async () => {
-    try {
-      const metricData = await apiClient(
-        `/api/metrics/${metricId}/`
-      );
-
-      setMetric(metricData);
-
-      const snapshotData = await apiClient(
-        `/api/metrics/${metricId}/snapshots/`
-      );
-
-      setSnapshots(snapshotData || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  loadMetric();
-}, [metricId]);
 
 const currentValue =
   snapshots.length > 0
