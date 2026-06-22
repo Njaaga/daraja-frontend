@@ -1826,6 +1826,7 @@ console.log("isMetricWidget =", isMetricWidget);
                 ) : (
                   <ChartRenderer
                     type={c.type}
+                    metricId={c.metricId}
                     datasetId={undefined}
                     excelData={aggregatedData}
                     xField={c.xField}
