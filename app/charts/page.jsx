@@ -560,7 +560,7 @@ const getPrunedPreview = () => {
   const [chartTitle, setChartTitle] = useState("");
 
   const [selectedMetric, setSelectedMetric] = useState("");
-  const [metric, setMetrics] = useState([]);
+  const [metrics, setMetrics] = useState([]);
 
   // preview
   const [preview, setPreview] = useState([]);
