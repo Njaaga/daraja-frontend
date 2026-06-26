@@ -7,6 +7,11 @@ export default function useDashboardBuilder() {
   const [datasets, setDatasets] = useState([]);
   const [selectedDatasets, setSelectedDatasets] = useState([]); // dataset objects
 
+  const [datasetRows, setDatasetRows] = useState({}); // id => rows[]
+  const [datasetFields, setDatasetFields] = useState({}); // id => [fields]
+
+  const [selectedFields, setSelectedFields] = useState({});
+
   return {
     dashboardName,
     setDashboardName,
@@ -19,5 +24,14 @@ export default function useDashboardBuilder() {
 
     selectedDatasets,
     setSelectedDatasets,
+
+    datasetRows,
+    setDatasetRows,
+    
+    datasetFields,
+    setDatasetFields,
+  
+    selectedFields,
+    setSelectedFields,
   };
 }
