@@ -13,6 +13,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import InfoTooltip from "@/app/components/InfoTooltip";
+import useDashboardBuilder from "./hooks/useDashboardBuilder";
 import {
   LayoutDashboard,
   Database,
@@ -467,10 +468,13 @@ const getPrunedPreview = () => {
 };
 
 
+const {
+  dashboardName,
+  setDashboardName,
+  dashboardId,
+  setDashboardId,
+} = useDashboardBuilder();
 
-  // Core meta
-  const [dashboardName, setDashboardName] = useState("");
-  const [dashboardId, setDashboardId] = useState(null);
 
   // datasets
   const [datasets, setDatasets] = useState([]);
