@@ -471,19 +471,33 @@ const getPrunedPreview = () => {
 const {
   dashboardName,
   setDashboardName,
+
   dashboardId,
   setDashboardId,
+
+  datasets,
+  setDatasets,
+
+  selectedDatasets,
+  setSelectedDatasets,
+
+  datasetRows,
+  setDatasetRows,
+
+  datasetFields,
+  setDatasetFields,
+
+  selectedFields,
+  setSelectedFields,
 } = useDashboardBuilder();
 
 
   // datasets
-  const [datasets, setDatasets] = useState([]);
-  const [selectedDatasets, setSelectedDatasets] = useState([]); // dataset objects
-  const [datasetRows, setDatasetRows] = useState({}); // id => rows[]
-  const [datasetFields, setDatasetFields] = useState({}); // id => [fields]
 
 
-  const [selectedFields, setSelectedFields] = useState({});
+
+
+
 
     // ------------------------
   // Initialize selectedFields
