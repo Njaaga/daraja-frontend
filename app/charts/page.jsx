@@ -492,6 +492,12 @@ const {
 
   filters,
   setFilters,
+
+  joins,
+  setJoins,
+
+  calculatedFields,
+  setCalculatedFields,
 } = useDashboardBuilder();
 
 
@@ -543,9 +549,6 @@ const {
   // filters & query
   const [query, setQuery] = useState("");
 
-  // joins & calculated
-  const [joins, setJoins] = useState([]); // {id,leftDataset,leftField,rightDataset,rightField,type}
-  const [calculatedFields, setCalculatedFields] = useState([]); // {id,name,expr,type}
 
   // logic gates
   const [logicExpr, setLogicExpr] = useState("");
