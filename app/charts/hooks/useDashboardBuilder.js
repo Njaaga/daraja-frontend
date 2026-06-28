@@ -18,6 +18,9 @@ export default function useDashboardBuilder() {
 
   const [calculatedFields, setCalculatedFields] = useState([]);
 
+  const [logicExpr, setLogicExpr] = useState("");
+  const [logicSaved, setLogicSaved] = useState([]);
+
   return {
     dashboardName,
     setDashboardName,
