@@ -14,6 +14,10 @@ export default function useDashboardBuilder() {
 
   const [filters, setFilters] = useState([]);
 
+  const [joins, setJoins] = useState([]);
+
+  const [calculatedFields, setCalculatedFields] = useState([]);
+
   return {
     dashboardName,
     setDashboardName,
@@ -38,5 +42,11 @@ export default function useDashboardBuilder() {
 
     filters,
     setFilters,
+
+    joins,
+    setJoins,
+
+    calculatedFields,
+    setCalculatedFields,
   };
 }
