@@ -489,6 +489,9 @@ const {
 
   selectedFields,
   setSelectedFields,
+
+  filters,
+  setFilters,
 } = useDashboardBuilder();
 
 
@@ -538,7 +541,6 @@ const {
   const [csvNotice, setCsvNotice] = useState("");
 
   // filters & query
-  const [filters, setFilters] = useState([]);
   const [query, setQuery] = useState("");
 
   // joins & calculated
