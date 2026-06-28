@@ -12,6 +12,8 @@ export default function useDashboardBuilder() {
 
   const [selectedFields, setSelectedFields] = useState({});
 
+  const [filters, setFilters] = useState([]);
+
   return {
     dashboardName,
     setDashboardName,
@@ -33,5 +35,8 @@ export default function useDashboardBuilder() {
   
     selectedFields,
     setSelectedFields,
+
+    filters,
+    setFilters,
   };
 }
