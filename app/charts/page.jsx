@@ -1288,6 +1288,7 @@ console.log("isMetricWidget =", isMetricWidget);
             loadingDatasets={loadingDatasets}
             toggleSelectDataset={toggleSelectDataset}
             preview={preview}
+            csvNotice={csvNotice}
           />
         )}
 
