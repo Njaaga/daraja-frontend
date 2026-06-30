@@ -1,4 +1,5 @@
 import InfoTooltip from "@/app/components/InfoTooltip";
+import TableRenderer from "../TableRenderer";
 
 export default function DataSourceStep({
   datasets,
