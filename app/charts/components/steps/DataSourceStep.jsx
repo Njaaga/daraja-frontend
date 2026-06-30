@@ -1,4 +1,10 @@
-export default function DataSourceStep(props) {
+export default function DataSourceStep({
+  datasets,
+  selectedDatasets,
+  loadingDatasets,
+  toggleSelectDataset,
+  preview,
+}) {
   return (
           <div className="mb-4">
             {/* Step 0 - Select Data */}
