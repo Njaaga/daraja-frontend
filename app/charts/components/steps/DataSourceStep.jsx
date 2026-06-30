@@ -8,6 +8,7 @@ export default function DataSourceStep({
   preview,
   csvNotice,
   excelData,
+  loadingPreview,
 }) {
   return (
           <div className="mb-4">
