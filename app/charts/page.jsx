@@ -70,7 +70,24 @@ const detectType = (v) => {
   return typeof v;
 };
 
+// flattenObject
+const flattenObject = (obj, prefix = "") =>
+  Object.keys(obj || {}).reduce((res, k) => {
+    const pre = prefix.length ? prefix + "." : "";
+    const val = obj[k];
 
+    if (val === null || val === undefined) {
+      res[pre + k] = val;
+    } else if (Array.isArray(val)) {
+      res[pre + k] = val;
+    } else if (typeof val === "object") {
+      Object.assign(res, flattenObject(val, pre + k));
+    } else {
+      res[pre + k] = val;
+    }
+
+    return res;
+  }, {});
 
 // Convert dataset rows to safe JSON-exportable rows (flatten arrays to strings)
 const normalizeForExport = (rows) =>
