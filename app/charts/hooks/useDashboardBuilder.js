@@ -51,5 +51,11 @@ export default function useDashboardBuilder() {
 
     calculatedFields,
     setCalculatedFields,
+
+    logicExpr,
+    setLogicExpr,
+    
+    logicSaved,
+    setLogicSaved,
   };
 }
