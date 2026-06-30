@@ -7,6 +7,7 @@ export default function DataSourceStep({
   toggleSelectDataset,
   preview,
   csvNotice,
+  excelData,
 }) {
   return (
           <div className="mb-4">
