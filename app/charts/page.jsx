@@ -15,7 +15,7 @@ import "react-resizable/css/styles.css";
 import InfoTooltip from "@/app/components/InfoTooltip";
 import useDashboardBuilder from "./hooks/useDashboardBuilder";
 import DataSourceStep from "./components/steps/DataSourceStep";
-import TableRenderer from "./components/TableRenderer";
+import TableRenderer from "components/TableRenderer";
 import {
   LayoutDashboard,
   Database,
