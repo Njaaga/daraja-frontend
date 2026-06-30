@@ -1289,6 +1289,7 @@ console.log("isMetricWidget =", isMetricWidget);
             toggleSelectDataset={toggleSelectDataset}
             preview={preview}
             csvNotice={csvNotice}
+            excelData={excelData}
           />
         )}
 
