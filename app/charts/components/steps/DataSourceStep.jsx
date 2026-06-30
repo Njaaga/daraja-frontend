@@ -1,3 +1,5 @@
+import InfoTooltip from "@/app/components/InfoTooltip";
+
 export default function DataSourceStep({
   datasets,
   selectedDatasets,
