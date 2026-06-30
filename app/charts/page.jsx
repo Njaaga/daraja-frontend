@@ -498,6 +498,12 @@ const {
 
   calculatedFields,
   setCalculatedFields,
+
+  logicExpr,
+  setLogicExpr,
+  
+  logicSaved,
+  setLogicSaved,
 } = useDashboardBuilder();
 
 
@@ -550,9 +556,6 @@ const {
   const [query, setQuery] = useState("");
 
 
-  // logic gates
-  const [logicExpr, setLogicExpr] = useState("");
-  const [logicSaved, setLogicSaved] = useState([]); // {id,name,expr}
 
   // charts & layout
   const [charts, setCharts] = useState([]);
