@@ -1290,6 +1290,7 @@ console.log("isMetricWidget =", isMetricWidget);
             preview={preview}
             csvNotice={csvNotice}
             excelData={excelData}
+            loadingPreview={loadingPreview}
           />
         )}
 
