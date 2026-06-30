@@ -1,7 +1,7 @@
 export default function DataSourceStep(props) {
   return (
-        {/* Step 0 - Select Data */}
           <div className="mb-4">
+            {/* Step 0 - Select Data */}
             <div className="flex items-center gap-2 mb-2">
                 <h3 className="font-semibold">
                   Choose dataset(s) or upload Excel / CSV / Google Sheets
