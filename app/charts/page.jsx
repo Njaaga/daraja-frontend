@@ -14,6 +14,7 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import InfoTooltip from "@/app/components/InfoTooltip";
 import useDashboardBuilder from "./hooks/useDashboardBuilder";
+import DataSourceStep from "./components/steps/DataSourceStep";
 import {
   LayoutDashboard,
   Database,
