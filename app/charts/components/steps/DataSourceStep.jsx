@@ -6,6 +6,7 @@ export default function DataSourceStep({
   loadingDatasets,
   toggleSelectDataset,
   preview,
+  csvNotice,
 }) {
   return (
           <div className="mb-4">
